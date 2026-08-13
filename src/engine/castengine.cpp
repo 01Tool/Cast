@@ -3,6 +3,9 @@
 #include "capture/portalcapture.h"
 #include "capture/x11capture.h"
 #include "discovery/p2pdiscovery.h"
+#include "session/gstencoder.h"
+#include "session/p2psession.h"
+#include "session/wfdserver.h"
 
 #include <DGuiApplicationHelper>
 
@@ -15,11 +18,13 @@ CastEngine::CastEngine(QObject *parent)
 {
     selectCaptureBackend();
     bindDiscovery();
+    bindSession();
     setStatusMessage(QStringLiteral("Idle. Scan to search for Miracast displays."));
 }
 
 CastEngine::~CastEngine()
 {
+    teardownSession();
     if (m_discovery)
         m_discovery->stopScan();
     if (m_capture)
@@ -78,14 +83,8 @@ void CastEngine::connectToSink(const QString &id)
         return;
     }
 
-    bool found = false;
-    for (const auto &sink : m_sinks) {
-        if (sink.id == id) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
+    const SinkDevice sink = sinkById(id);
+    if (sink.id.isEmpty()) {
         Q_EMIT errorOccurred(QStringLiteral("Unknown display."));
         return;
     }
@@ -97,29 +96,22 @@ void CastEngine::connectToSink(const QString &id)
         m_discovery->stopScan();
 
     if (!m_capture) {
-        setState(SessionState::Failed);
-        setStatusMessage(QStringLiteral("No capture backend for this session."));
-        Q_EMIT errorOccurred(m_statusMessage);
+        failSession(QStringLiteral("No capture backend for this session."));
         return;
     }
 
     if (!m_capture->start()) {
-        const QString err = m_capture->lastError();
-        setState(SessionState::Failed);
-        setStatusMessage(err);
-        Q_EMIT errorOccurred(err);
+        failSession(m_capture->lastError());
         return;
     }
 
-    setState(SessionState::Streaming);
-    setStatusMessage(QStringLiteral("Mirroring."));
+    m_connectTimer.start(30000);
+    m_p2p->activate(sink);
 }
 
 void CastEngine::disconnectFromSink()
 {
-    if (m_capture)
-        m_capture->stop();
-
+    teardownSession();
     m_selectedSinkId.clear();
     setState(SessionState::Stopped);
     setStatusMessage(QStringLiteral("Disconnected."));
@@ -226,4 +218,88 @@ void CastEngine::onScanFinished()
                              .arg(wfd));
     }
     setState(SessionState::Idle);
+}
+
+void CastEngine::bindSession()
+{
+    m_p2p = std::make_unique<P2PSession>();
+    m_wfd = std::make_unique<WfdServer>();
+    m_encoder = std::make_unique<GstEncoder>();
+
+    m_connectTimer.setSingleShot(true);
+    connect(&m_connectTimer, &QTimer::timeout, this, [this]() {
+        if (m_state == SessionState::Connecting)
+            failSession(QStringLiteral("Timed out forming the Wi-Fi Direct group or WFD session."));
+    });
+
+    connect(m_p2p.get(), &P2PSession::statusChanged, this, &CastEngine::setStatusMessage);
+    connect(m_p2p.get(), &P2PSession::activated, this, &CastEngine::onP2PActivated);
+    connect(m_p2p.get(), &P2PSession::failed, this, &CastEngine::failSession);
+    connect(m_p2p.get(), &P2PSession::deactivated, this, [this]() {
+        if (!m_tearingDown
+            && (m_state == SessionState::Streaming || m_state == SessionState::Connecting))
+            failSession(QStringLiteral("Wi-Fi Direct group dropped."));
+    });
+
+    connect(m_wfd.get(), &WfdServer::statusChanged, this, &CastEngine::setStatusMessage);
+    connect(m_wfd.get(), &WfdServer::failed, this, &CastEngine::failSession);
+    connect(m_wfd.get(), &WfdServer::playRequested, this, &CastEngine::onPlayRequested);
+
+    connect(m_encoder.get(), &GstEncoder::started, this, [this]() {
+        m_connectTimer.stop();
+        setState(SessionState::Streaming);
+        setStatusMessage(QStringLiteral("Mirroring."));
+    });
+    connect(m_encoder.get(), &GstEncoder::failed, this, &CastEngine::failSession);
+}
+
+void CastEngine::onP2PActivated(const QString &localIpv4)
+{
+    if (m_state != SessionState::Connecting)
+        return;
+    if (!m_wfd->listen(localIpv4))
+        return;
+}
+
+void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort)
+{
+    if (m_state != SessionState::Connecting && m_state != SessionState::Streaming)
+        return;
+    setStatusMessage(QStringLiteral("Starting X11 encoder…"));
+    m_encoder->start(sinkIp, rtpPort);
+}
+
+void CastEngine::failSession(const QString &message)
+{
+    teardownSession();
+    setState(SessionState::Failed);
+    setStatusMessage(message);
+    Q_EMIT errorOccurred(message);
+    setState(SessionState::Idle);
+}
+
+void CastEngine::teardownSession()
+{
+    if (m_tearingDown)
+        return;
+    m_tearingDown = true;
+    m_connectTimer.stop();
+    if (m_encoder)
+        m_encoder->stop();
+    if (m_wfd)
+        m_wfd->stop();
+    if (m_p2p)
+        m_p2p->deactivate();
+    if (m_capture)
+        m_capture->stop();
+    m_tearingDown = false;
+}
+
+SinkDevice CastEngine::sinkById(const QString &id) const
+{
+    for (const auto &sink : m_sinks) {
+        if (sink.id == id)
+            return sink;
+    }
+    return {};
 }

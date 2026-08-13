@@ -142,7 +142,7 @@ void P2PDiscovery::stopScan()
 
 void P2PDiscovery::onPeerAdded(const QDBusObjectPath &path)
 {
-    upsertPeer(path.path());
+    upsertPeer(path.path(), devicePathForPeer(path.path()));
 }
 
 void P2PDiscovery::onPeerRemoved(const QDBusObjectPath &path)
@@ -219,10 +219,27 @@ QVariant P2PDiscovery::readProperty(const QString &service,
     return arg;
 }
 
-SinkDevice P2PDiscovery::readPeer(const QString &path) const
+QString P2PDiscovery::devicePathForPeer(const QString &peerPath) const
+{
+    for (const QString &devicePath : m_devicePaths) {
+        const QVariant peersVar = readProperty(QString::fromLatin1(kNmService),
+                                               devicePath,
+                                               QString::fromLatin1(kWifiP2PIface),
+                                               QStringLiteral("Peers"));
+        const auto paths = qdbus_cast<QList<QDBusObjectPath>>(peersVar);
+        for (const QDBusObjectPath &item : paths) {
+            if (item.path() == peerPath)
+                return devicePath;
+        }
+    }
+    return m_devicePaths.value(0);
+}
+
+SinkDevice P2PDiscovery::readPeer(const QString &path, const QString &devicePath) const
 {
     SinkDevice sink;
     sink.id = path;
+    sink.p2pDevicePath = devicePath;
     sink.name = readProperty(QString::fromLatin1(kNmService), path,
                              QString::fromLatin1(kPeerIface),
                              QStringLiteral("Name")).toString();
@@ -238,12 +255,12 @@ SinkDevice P2PDiscovery::readPeer(const QString &path) const
     return sink;
 }
 
-void P2PDiscovery::upsertPeer(const QString &path)
+void P2PDiscovery::upsertPeer(const QString &path, const QString &devicePath)
 {
     if (path.isEmpty() || path == QLatin1String("/"))
         return;
 
-    const SinkDevice sink = readPeer(path);
+    const SinkDevice sink = readPeer(path, devicePath);
     m_peers.insert(path, sink);
     qInfo() << "P2P peer" << sink.name << sink.address << "wfd" << sink.wfdCapable;
     Q_EMIT peersChanged();
@@ -315,5 +332,5 @@ void P2PDiscovery::loadExistingPeers(const QString &devicePath)
                                            QStringLiteral("Peers"));
     const auto paths = qdbus_cast<QList<QDBusObjectPath>>(peersVar);
     for (const QDBusObjectPath &path : paths)
-        upsertPeer(path.path());
+        upsertPeer(path.path(), devicePath);
 }

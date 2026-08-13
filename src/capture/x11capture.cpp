@@ -1,5 +1,7 @@
 #include "capture/x11capture.h"
 
+#include <QGuiApplication>
+
 QString X11Capture::name() const
 {
     return QStringLiteral("X11Capture");
@@ -7,10 +9,14 @@ QString X11Capture::name() const
 
 bool X11Capture::start()
 {
-    // Frame grab (ximagesrc / XShm) is wired in a later cut.
-    m_lastError = QStringLiteral("X11 capture pipeline is not wired yet.");
-    m_running = false;
-    return false;
+    if (qEnvironmentVariableIsEmpty("DISPLAY")) {
+        m_lastError = QStringLiteral("DISPLAY is not set; cannot grab the X11 screen.");
+        m_running = false;
+        return false;
+    }
+    m_lastError.clear();
+    m_running = true;
+    return true;
 }
 
 void X11Capture::stop()

@@ -33,7 +33,15 @@ cmake --build build
 ./build/deepin-miracast
 ```
 
-Current cut: DTK window plus NetworkManager Wi-Fi Direct scan (`p2p-dev-*`). Connect still stops at the capture stub; GStreamer WFD send is next.
+Current cut: DTK window, NetworkManager P2P scan **and connect**, WFD RTSP on port 7236, and X11 `ximagesrc` → `x264enc` → MPEG-TS/RTP. Video only.
+
+Runtime extras:
+
+```bash
+sudo apt install gstreamer1.0-tools
+```
+
+On this deepin image, `gstreamer1.0-plugins-bad` 1.24.6 ships `mpegtsmux`/`h264parse` built as 1.26, so GStreamer 1.24 will not load them. The encoder then uses `ffmpeg -f x11grab … -f rtp_mpegts`. A firewall must allow TCP 7236 and UDP RTP toward the sink.
 
 ## Documents
 

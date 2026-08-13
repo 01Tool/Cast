@@ -4,11 +4,15 @@
 
 #include <QObject>
 #include <QString>
+#include <QTimer>
 #include <QVector>
 #include <memory>
 
 class CaptureBackend;
+class GstEncoder;
 class P2PDiscovery;
+class P2PSession;
+class WfdServer;
 
 class CastEngine : public QObject
 {
@@ -58,8 +62,14 @@ private:
     void setStatusMessage(const QString &message);
     void selectCaptureBackend();
     void bindDiscovery();
+    void bindSession();
     void onPeersChanged();
     void onScanFinished();
+    void onP2PActivated(const QString &localIpv4);
+    void onPlayRequested(const QString &sinkIp, quint16 rtpPort);
+    void failSession(const QString &message);
+    void teardownSession();
+    SinkDevice sinkById(const QString &id) const;
 
     SessionState m_state = SessionState::Idle;
     DisplayServer m_displayServer = DisplayServer::Unknown;
@@ -68,4 +78,9 @@ private:
     QString m_selectedSinkId;
     std::unique_ptr<CaptureBackend> m_capture;
     std::unique_ptr<P2PDiscovery> m_discovery;
+    std::unique_ptr<P2PSession> m_p2p;
+    std::unique_ptr<WfdServer> m_wfd;
+    std::unique_ptr<GstEncoder> m_encoder;
+    QTimer m_connectTimer;
+    bool m_tearingDown = false;
 };

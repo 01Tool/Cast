@@ -45,8 +45,9 @@ private:
                           const QString &path,
                           const QString &interface,
                           const QString &name) const;
-    SinkDevice readPeer(const QString &path) const;
-    void upsertPeer(const QString &path);
+    SinkDevice readPeer(const QString &path, const QString &devicePath) const;
+    QString devicePathForPeer(const QString &peerPath) const;
+    void upsertPeer(const QString &path, const QString &devicePath);
     void removePeer(const QString &path);
     void connectDeviceSignals(const QString &devicePath);
     void disconnectDeviceSignals();

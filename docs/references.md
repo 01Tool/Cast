@@ -80,3 +80,11 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-13 | [GNOME Network Displays README](https://github.com/benzea/gnome-network-displays) | Ignore/flag peers with empty WFDIEs; source WFD IE `00000600901c4400c8` | `src/discovery/p2pdiscovery.cpp` `tryAdvertiseWfdIes` / `readPeer`; `src/engine/castengine.cpp` `onScanFinished` |
 | 2026-08-13 | `docs/architecture.md` Discovery | NM P2P + WFD IEs; no MiracleCast; UI must not call NM | `src/discovery/p2pdiscovery.*`; `src/engine/castengine.cpp` `startScan` |
 | 2026-08-13 | `docs/constraints.md` §1–2 | wpa_supplicant P2P/WFD; not iwd; true P2P not same-LAN | `src/discovery/p2pdiscovery.cpp` `startScan` adapter / Wi-Fi checks |
+| 2026-08-13 | `/tmp/miracast-ref/gnome-network-displays/src/nd-wfd-p2p-sink.c` | `AddAndActivateConnection2`, volatile P2P profile, WFD IEs, ipv4 never-default | `src/session/p2psession.cpp` `activate` |
+| 2026-08-13 | `/tmp/miracast-ref/gnome-network-displays/src/wfd/wfd-client.c` | M1–M5 OPTIONS / GET_PARAMETER / SET_PARAMETER / trigger SETUP; source as RTSP server :7236 | `src/session/wfdserver.cpp` `WfdSession` |
+| 2026-08-13 | `/tmp/miracast-ref/gnome-network-displays/src/wfd/wfd-media-factory.c` | `ximagesrc` / `x264enc` / `mpegtsmux` video-only path | `src/session/gstencoder.cpp` `startGst` |
+| 2026-08-13 | local `gst-inspect-1.0` on gstreamer 1.24.6 | `mpegtsmux`/`h264parse` from plugins-bad fail: plugin 1.26 vs gst 1.24 | `src/session/gstencoder.cpp` `start` ffmpeg fallback |
+| 2026-08-13 | `ffmpeg -muxers` | `rtp_mpegts` MPEG-TS-over-RTP | `src/session/gstencoder.cpp` `startFfmpeg` |
+| 2026-08-13 | `/tmp/miracast-ref/gnome-network-displays/src/app/nd-window.c` | X11 fallback `ximagesrc` when portal missing | `src/capture/x11capture.cpp` `start`; `src/session/gstencoder.cpp` |
+| 2026-08-13 | `docs/platform/x11.md` | ximagesrc → encode → RTP | `src/session/gstencoder.cpp` `buildPipeline` |
+| 2026-08-13 | `docs/architecture.md` first cut §3 | X11 capture + GStreamer WFD send | `src/session/*`; `src/engine/castengine.cpp` `connectToSink` |
