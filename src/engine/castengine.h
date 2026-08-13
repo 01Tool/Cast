@@ -8,6 +8,7 @@
 #include <memory>
 
 class CaptureBackend;
+class P2PDiscovery;
 
 class CastEngine : public QObject
 {
@@ -56,6 +57,9 @@ private:
     void setState(SessionState state);
     void setStatusMessage(const QString &message);
     void selectCaptureBackend();
+    void bindDiscovery();
+    void onPeersChanged();
+    void onScanFinished();
 
     SessionState m_state = SessionState::Idle;
     DisplayServer m_displayServer = DisplayServer::Unknown;
@@ -63,4 +67,5 @@ private:
     QString m_statusMessage;
     QString m_selectedSinkId;
     std::unique_ptr<CaptureBackend> m_capture;
+    std::unique_ptr<P2PDiscovery> m_discovery;
 };

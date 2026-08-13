@@ -33,7 +33,7 @@ cmake --build build
 ./build/deepin-miracast
 ```
 
-The first cut is a DTK window, device list, and CastEngine state machine. P2P scan and X11/GStreamer streaming are not wired yet.
+Current cut: DTK window plus NetworkManager Wi-Fi Direct scan (`p2p-dev-*`). Connect still stops at the capture stub; GStreamer WFD send is next.
 
 ## Documents
 

@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets DBus)
 find_package(Dtk6Core REQUIRED)
 find_package(Dtk6Gui REQUIRED)
 find_package(Dtk6Widget REQUIRED)
@@ -16,6 +16,7 @@ add_executable(deepin-miracast
     src/main.cpp
     src/ui/mainwindow.cpp
     src/engine/castengine.cpp
+    src/discovery/p2pdiscovery.cpp
     src/capture/x11capture.cpp
     src/capture/portalcapture.cpp
 )
@@ -27,6 +28,7 @@ target_include_directories(deepin-miracast PRIVATE
 target_link_libraries(deepin-miracast PRIVATE
     Qt6::Core
     Qt6::Widgets
+    Qt6::DBus
     Dtk6::Core
     Dtk6::Gui
     Dtk6::Widget

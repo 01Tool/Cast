@@ -138,9 +138,15 @@ void MainWindow::refreshSinkList()
         item->setIcon(icon);
         item->setData(sink.id, Qt::UserRole);
         item->setFontSize(DFontSizeManager::T6);
-        if (!sink.address.isEmpty()) {
+        QString detail = sink.address;
+        if (!sink.wfdCapable) {
+            detail = detail.isEmpty()
+                ? tr("P2P · no WFD IEs")
+                : tr("%1 · no WFD IEs").arg(sink.address);
+        }
+        if (!detail.isEmpty()) {
             auto *sub = new DViewItemAction(Qt::AlignLeft, QSize(), QSize(), false);
-            sub->setText(sink.address);
+            sub->setText(detail);
             sub->setTextColorRole(DPalette::TextTips);
             sub->setFontSize(DFontSizeManager::T8);
             item->setTextActionList({sub});
@@ -153,17 +159,17 @@ void MainWindow::refreshSinkList()
 void MainWindow::updateActions()
 {
     const auto state = m_engine->state();
-    const bool busy = state == CastEngine::SessionState::Scanning
-        || state == CastEngine::SessionState::Connecting;
+    const bool scanning = state == CastEngine::SessionState::Scanning;
+    const bool connecting = state == CastEngine::SessionState::Connecting;
     const bool streaming = state == CastEngine::SessionState::Streaming;
     const bool hasSelection = m_sinkView->selectionModel()
         && !m_sinkView->selectionModel()->selectedIndexes().isEmpty()
         && m_sinkModel->itemFromIndex(m_sinkView->currentIndex())
         && m_sinkModel->itemFromIndex(m_sinkView->currentIndex())->isEnabled();
 
-    m_scanButton->setEnabled(!busy && !streaming);
-    m_connectButton->setEnabled(!busy && !streaming && hasSelection);
-    m_disconnectButton->setEnabled(streaming || state == CastEngine::SessionState::Connecting);
+    m_scanButton->setEnabled(!scanning && !connecting && !streaming);
+    m_connectButton->setEnabled(!connecting && !streaming && hasSelection);
+    m_disconnectButton->setEnabled(streaming || connecting);
 }
 
 void MainWindow::onScanClicked()

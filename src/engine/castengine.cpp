@@ -2,6 +2,7 @@
 
 #include "capture/portalcapture.h"
 #include "capture/x11capture.h"
+#include "discovery/p2pdiscovery.h"
 
 #include <DGuiApplicationHelper>
 
@@ -13,11 +14,14 @@ CastEngine::CastEngine(QObject *parent)
     : QObject(parent)
 {
     selectCaptureBackend();
+    bindDiscovery();
     setStatusMessage(QStringLiteral("Idle. Scan to search for Miracast displays."));
 }
 
 CastEngine::~CastEngine()
 {
+    if (m_discovery)
+        m_discovery->stopScan();
     if (m_capture)
         m_capture->stop();
 }
@@ -55,15 +59,8 @@ void CastEngine::startScan()
     }
 
     setState(SessionState::Scanning);
-    setStatusMessage(QStringLiteral("Scanning for Miracast sinks…"));
-
-    // NetworkManager P2P discovery is wired in the next cut.
-    m_sinks.clear();
-    Q_EMIT sinksChanged();
-
-    setStatusMessage(QStringLiteral(
-        "No devices yet. Wi-Fi Direct / NetworkManager P2P discovery is not wired."));
-    setState(SessionState::Idle);
+    setStatusMessage(QStringLiteral("Scanning for Miracast displays…"));
+    m_discovery->startScan(P2PDiscovery::DefaultScanSeconds);
 }
 
 void CastEngine::stopScan()
@@ -71,8 +68,7 @@ void CastEngine::stopScan()
     if (m_state != SessionState::Scanning)
         return;
 
-    setState(SessionState::Idle);
-    setStatusMessage(QStringLiteral("Scan stopped."));
+    m_discovery->stopScan();
 }
 
 void CastEngine::connectToSink(const QString &id)
@@ -97,6 +93,8 @@ void CastEngine::connectToSink(const QString &id)
     m_selectedSinkId = id;
     setState(SessionState::Connecting);
     setStatusMessage(QStringLiteral("Connecting…"));
+    if (m_discovery && m_discovery->scanning())
+        m_discovery->stopScan();
 
     if (!m_capture) {
         setState(SessionState::Failed);
@@ -165,4 +163,67 @@ void CastEngine::selectCaptureBackend()
 
     m_displayServer = DisplayServer::Unknown;
     qWarning() << "unknown display server, no capture backend";
+}
+
+void CastEngine::bindDiscovery()
+{
+    m_discovery = std::make_unique<P2PDiscovery>();
+    connect(m_discovery.get(), &P2PDiscovery::peersChanged, this, &CastEngine::onPeersChanged);
+    connect(m_discovery.get(), &P2PDiscovery::scanFinished, this, &CastEngine::onScanFinished);
+    connect(m_discovery.get(), &P2PDiscovery::errorOccurred, this, &CastEngine::errorOccurred);
+    connect(m_discovery.get(), &P2PDiscovery::statusChanged, this, &CastEngine::setStatusMessage);
+}
+
+void CastEngine::onPeersChanged()
+{
+    m_sinks = m_discovery->peers();
+    Q_EMIT sinksChanged();
+
+    if (m_state != SessionState::Scanning)
+        return;
+
+    int wfd = 0;
+    for (const auto &sink : m_sinks) {
+        if (sink.wfdCapable)
+            ++wfd;
+    }
+    if (m_sinks.isEmpty()) {
+        setStatusMessage(QStringLiteral("Scanning for Miracast displays…"));
+        return;
+    }
+    setStatusMessage(QStringLiteral("Found %1 device(s) (%2 with WFD IEs).")
+                         .arg(m_sinks.size())
+                         .arg(wfd));
+}
+
+void CastEngine::onScanFinished()
+{
+    if (m_state == SessionState::Connecting || m_state == SessionState::Streaming)
+        return;
+
+    m_sinks = m_discovery->peers();
+    Q_EMIT sinksChanged();
+
+    if (m_sinks.isEmpty()) {
+        setStatusMessage(QStringLiteral(
+            "No P2P devices found. The sink must be in wireless-display / Miracast mode."));
+        setState(SessionState::Idle);
+        return;
+    }
+
+    int wfd = 0;
+    for (const auto &sink : m_sinks) {
+        if (sink.wfdCapable)
+            ++wfd;
+    }
+    if (wfd == 0) {
+        setStatusMessage(QStringLiteral(
+            "Found %1 P2P device(s) with no WFD IEs. "
+            "wpa_supplicant may lack CONFIG_WIFI_DISPLAY, or they are not Miracast sinks.")
+                             .arg(m_sinks.size()));
+    } else {
+        setStatusMessage(QStringLiteral("Scan finished. %1 Miracast display(s) available.")
+                             .arg(wfd));
+    }
+    setState(SessionState::Idle);
 }
