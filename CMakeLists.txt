@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.13)
+project(deepin-miracast VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+find_package(Dtk6Core REQUIRED)
+find_package(Dtk6Gui REQUIRED)
+find_package(Dtk6Widget REQUIRED)
+
+add_executable(deepin-miracast
+    src/main.cpp
+    src/ui/mainwindow.cpp
+    src/engine/castengine.cpp
+    src/capture/x11capture.cpp
+    src/capture/portalcapture.cpp
+)
+
+target_include_directories(deepin-miracast PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(deepin-miracast PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    Dtk6::Core
+    Dtk6::Gui
+    Dtk6::Widget
+)
+
+install(TARGETS deepin-miracast RUNTIME DESTINATION bin)

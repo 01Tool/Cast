@@ -62,3 +62,16 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-13 | [FluxCast](https://github.com/IlyaP358/fluxcast) | Newer WFD client; wlroots path; ~1 s latency | [constraints.md](constraints.md) latency; this file Upstream table |
 | 2026-08-13 | [deepin 23 release notes](https://www.deepin.org/en/deepin-23-is-officially-released/) | Quick-panel wireless casting; Miracast device search | [README.md](../README.md) Existing Deepin pieces; [feasibility.md](feasibility.md) Existing Deepin work; this file Deepin notes |
 | 2026-08-13 | [Arch Wiki: XDG Desktop Portal](https://wiki.archlinux.org/title/XDG_Desktop_Portal) | `xdg-desktop-portal-dde` Screenshot yes, ScreenCast historically no | [platform/wayland.md](platform/wayland.md) DDE status; this file Capture notes |
+| 2026-08-13 | `docs/architecture.md` | Layers, CastEngine states, capture backends, first cut | `src/engine/castengine.*`; `src/capture/*`; `src/ui/mainwindow.*`; `CMakeLists.txt` |
+| 2026-08-13 | `docs/platform/wayland.md` | No X11 grab on Wayland; ScreenCast missing error | `src/capture/portalcapture.cpp` `PortalCapture::start`; `src/engine/castengine.cpp` `selectCaptureBackend` |
+| 2026-08-13 | `docs/platform/x11.md` | X11 backend first; `ximagesrc` later | `src/capture/x11capture.cpp` `X11Capture::start` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/app-dev-with-dtk.md` | DTK6 CMake, `DApplication`, debian-style deps | `CMakeLists.txt`; `src/main.cpp`; [README.md](../README.md) Build |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/widgets/application.md` | `DApplication`, single instance, product info, `loadTranslator` | `src/main.cpp` `main` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/widgets/window.md` | `DMainWindow`, `DTitlebar` | `src/ui/mainwindow.cpp` `MainWindow` / `setupUi` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/widgets/view.md` | `DListView` + `DStyledItemDelegate` | `src/ui/mainwindow.cpp` `setupUi` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/widgets/item-delegate.md` | `RoundedBackground`, `DStandardItem`, `DViewItemAction` | `src/ui/mainwindow.cpp` `setupUi` / `refreshSinkList` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/widgets/button.md` | `DSuggestButton` primary, `DPushButton` secondary | `src/ui/mainwindow.cpp` `setupUi` Connect/Scan/Disconnect |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/widgets/label.md` | `DLabel` + `DPalette` + `DFontSizeManager` | `src/ui/mainwindow.cpp` `setupUi` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/widgets/message.md` | `DMessageManager::sendMessage` | `src/ui/mainwindow.cpp` `onError` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/utilities/log.md` | `DLogManager::registerConsoleAppender` / `registerFileAppender` | `src/main.cpp` `main` |
+| 2026-08-13 | `~/.agents/skills/deepin-skills/dtk-development/references/platform-abstraction.md` | `IsXWindowPlatform` / `IsWaylandPlatform` | `src/engine/castengine.cpp` `selectCaptureBackend` |

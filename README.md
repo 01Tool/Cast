@@ -20,6 +20,21 @@ A DTK app can provide this feature. DTK only covers the UI. Miracast itself is a
 
 Recommended first cut: DTK shell + X11 capture + NetworkManager P2P discovery, with a Wayland capture backend stubbed until the portal is ready.
 
+## Build
+
+```bash
+sudo apt install \
+  build-essential cmake pkg-config \
+  qt6-base-dev qt6-tools-dev \
+  libdtk6core-dev libdtk6gui-dev libdtk6widget-dev
+
+cmake -S . -B build
+cmake --build build
+./build/deepin-miracast
+```
+
+The first cut is a DTK window, device list, and CastEngine state machine. P2P scan and X11/GStreamer streaming are not wired yet.
+
 ## Documents
 
 | Document | Path |

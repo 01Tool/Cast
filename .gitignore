@@ -1,0 +1,7 @@
+/build/
+/cmake-build-*/
+compile_commands.json
+*.user
+*.autosave
+.cache/
+CMakeUserPresets.json

@@ -1,0 +1,192 @@
+#include "ui/mainwindow.h"
+
+#include <DFontSizeManager>
+#include <DIconTheme>
+#include <DLabel>
+#include <DListView>
+#include <DMessageManager>
+#include <DPalette>
+#include <DStandardItem>
+#include <DStyledItemDelegate>
+#include <DSuggestButton>
+#include <DTitlebar>
+
+#include <QAbstractItemView>
+#include <QPushButton>
+#include <QHBoxLayout>
+#include <QIcon>
+#include <QItemSelectionModel>
+#include <QStandardItemModel>
+#include <QVBoxLayout>
+#include <QWidget>
+
+DWIDGET_USE_NAMESPACE
+DGUI_USE_NAMESPACE
+
+MainWindow::MainWindow(CastEngine *engine, QWidget *parent)
+    : DMainWindow(parent)
+    , m_engine(engine)
+{
+    setMinimumSize(640, 480);
+    titlebar()->setTitle(tr("Miracast"));
+    titlebar()->setIcon(DIconTheme::findQIcon(QStringLiteral("video-display")));
+    setupUi();
+    bindEngine();
+    updateActions();
+}
+
+void MainWindow::setupUi()
+{
+    auto *central = new QWidget(this);
+    auto *layout = new QVBoxLayout(central);
+    layout->setContentsMargins(16, 16, 16, 16);
+    layout->setSpacing(12);
+
+    m_sessionLabel = new DLabel(central);
+    m_sessionLabel->setForegroundRole(DPalette::TextTips);
+    DFontSizeManager::instance()->bind(m_sessionLabel, DFontSizeManager::T8);
+
+    m_statusLabel = new DLabel(central);
+    m_statusLabel->setForegroundRole(DPalette::TextTitle);
+    m_statusLabel->setWordWrap(true);
+    DFontSizeManager::instance()->bind(m_statusLabel, DFontSizeManager::T6);
+
+    m_sinkView = new DListView(central);
+    m_sinkView->setItemDelegate(new DStyledItemDelegate(m_sinkView));
+    m_sinkView->setBackgroundType(DStyledItemDelegate::RoundedBackground);
+    m_sinkView->setItemSpacing(6);
+    m_sinkView->setItemSize(QSize(0, 48));
+    m_sinkView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_sinkView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    m_sinkModel = new QStandardItemModel(m_sinkView);
+    m_sinkView->setModel(m_sinkModel);
+
+    auto *buttons = new QWidget(central);
+    auto *buttonLayout = new QHBoxLayout(buttons);
+    buttonLayout->setContentsMargins(0, 0, 0, 0);
+    buttonLayout->setSpacing(8);
+
+    m_scanButton = new QPushButton(tr("Scan"), buttons);
+    m_connectButton = new DSuggestButton(tr("Connect"), buttons);
+    m_disconnectButton = new QPushButton(tr("Disconnect"), buttons);
+
+    buttonLayout->addWidget(m_scanButton);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(m_disconnectButton);
+    buttonLayout->addWidget(m_connectButton);
+
+    layout->addWidget(m_sessionLabel);
+    layout->addWidget(m_statusLabel);
+    layout->addWidget(m_sinkView, 1);
+    layout->addWidget(buttons);
+
+    setCentralWidget(central);
+}
+
+void MainWindow::bindEngine()
+{
+    QString session = tr("Display server: unknown");
+    switch (m_engine->displayServer()) {
+    case CastEngine::DisplayServer::X11:
+        session = tr("Display server: X11");
+        break;
+    case CastEngine::DisplayServer::Wayland:
+        session = tr("Display server: Wayland");
+        break;
+    case CastEngine::DisplayServer::Unknown:
+        break;
+    }
+    m_sessionLabel->setText(session);
+    m_statusLabel->setText(m_engine->statusMessage());
+
+    connect(m_engine, &CastEngine::statusMessageChanged, m_statusLabel, &DLabel::setText);
+    connect(m_engine, &CastEngine::sinksChanged, this, &MainWindow::refreshSinkList);
+    connect(m_engine, &CastEngine::stateChanged, this, [this](CastEngine::SessionState) {
+        updateActions();
+    });
+    connect(m_engine, &CastEngine::errorOccurred, this, &MainWindow::onError);
+
+    connect(m_scanButton, &QPushButton::clicked, this, &MainWindow::onScanClicked);
+    connect(m_connectButton, &DSuggestButton::clicked, this, &MainWindow::onConnectClicked);
+    connect(m_disconnectButton, &QPushButton::clicked, this, &MainWindow::onDisconnectClicked);
+    connect(m_sinkView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+            [this](const QItemSelection &, const QItemSelection &) {
+                updateActions();
+            });
+}
+
+void MainWindow::refreshSinkList()
+{
+    m_sinkModel->clear();
+
+    const auto sinks = m_engine->sinks();
+    if (sinks.isEmpty()) {
+        auto *empty = new DStandardItem(tr("No Miracast displays found"));
+        empty->setEnabled(false);
+        empty->setTextColorRole(DPalette::TextTips);
+        empty->setFontSize(DFontSizeManager::T8);
+        empty->setFlags(Qt::NoItemFlags);
+        m_sinkModel->appendRow(empty);
+        updateActions();
+        return;
+    }
+
+    const QIcon icon = DIconTheme::findQIcon(QStringLiteral("video-display"));
+    for (const auto &sink : sinks) {
+        auto *item = new DStandardItem(sink.name);
+        item->setIcon(icon);
+        item->setData(sink.id, Qt::UserRole);
+        item->setFontSize(DFontSizeManager::T6);
+        if (!sink.address.isEmpty()) {
+            auto *sub = new DViewItemAction(Qt::AlignLeft, QSize(), QSize(), false);
+            sub->setText(sink.address);
+            sub->setTextColorRole(DPalette::TextTips);
+            sub->setFontSize(DFontSizeManager::T8);
+            item->setTextActionList({sub});
+        }
+        m_sinkModel->appendRow(item);
+    }
+    updateActions();
+}
+
+void MainWindow::updateActions()
+{
+    const auto state = m_engine->state();
+    const bool busy = state == CastEngine::SessionState::Scanning
+        || state == CastEngine::SessionState::Connecting;
+    const bool streaming = state == CastEngine::SessionState::Streaming;
+    const bool hasSelection = m_sinkView->selectionModel()
+        && !m_sinkView->selectionModel()->selectedIndexes().isEmpty()
+        && m_sinkModel->itemFromIndex(m_sinkView->currentIndex())
+        && m_sinkModel->itemFromIndex(m_sinkView->currentIndex())->isEnabled();
+
+    m_scanButton->setEnabled(!busy && !streaming);
+    m_connectButton->setEnabled(!busy && !streaming && hasSelection);
+    m_disconnectButton->setEnabled(streaming || state == CastEngine::SessionState::Connecting);
+}
+
+void MainWindow::onScanClicked()
+{
+    m_engine->startScan();
+}
+
+void MainWindow::onConnectClicked()
+{
+    const QModelIndex index = m_sinkView->currentIndex();
+    if (!index.isValid())
+        return;
+    m_engine->connectToSink(index.data(Qt::UserRole).toString());
+}
+
+void MainWindow::onDisconnectClicked()
+{
+    m_engine->disconnectFromSink();
+}
+
+void MainWindow::onError(const QString &message)
+{
+    DMessageManager::instance()->sendMessage(this,
+                                             DIconTheme::findQIcon(QStringLiteral("dialog-warning")),
+                                             message);
+}
