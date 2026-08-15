@@ -25,7 +25,7 @@ Recommended first cut: DTK shell + X11 capture + NetworkManager P2P discovery, w
 ```bash
 sudo apt install \
   build-essential cmake pkg-config \
-  qt6-base-dev qt6-tools-dev \
+  qt6-base-dev qt6-tools-dev qt6-l10n-tools \
   libdtk6core-dev libdtk6gui-dev libdtk6widget-dev
 
 cmake -S . -B build
@@ -33,7 +33,7 @@ cmake --build build
 ./build/deepin-miracast
 ```
 
-Current cut: DTK window, NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), WFD RTSP on port 7236, and X11 grab of the **selected monitor** → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Optional system audio (AAC-LC from the Pulse/PipeWire default-sink monitor) when the sink advertises AAC.
+Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), WFD RTSP on port 7236, and X11 grab of the **selected monitor** → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Optional system audio (AAC-LC from the Pulse/PipeWire default-sink monitor) when the sink advertises AAC.
 
 Runtime extras:
 

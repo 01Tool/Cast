@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets DBus Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets DBus Network LinguistTools)
 find_package(Dtk6Core REQUIRED)
 find_package(Dtk6Gui REQUIRED)
 find_package(Dtk6Widget REQUIRED)
@@ -40,6 +40,22 @@ target_link_libraries(deepin-miracast PRIVATE
     Dtk6::Gui
     Dtk6::Widget
 )
+
+set(TS_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/translations/deepin-miracast_zh_CN.ts
+    ${CMAKE_CURRENT_SOURCE_DIR}/translations/deepin-miracast_zh_TW.ts
+)
+qt6_add_translation(QM_FILES ${TS_FILES})
+add_custom_target(deepin-miracast-translations ALL DEPENDS ${QM_FILES})
+add_dependencies(deepin-miracast deepin-miracast-translations)
+add_custom_command(TARGET deepin-miracast POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            $<TARGET_FILE_DIR:deepin-miracast>/translations
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${QM_FILES}
+            $<TARGET_FILE_DIR:deepin-miracast>/translations
+)
+install(FILES ${QM_FILES} DESTINATION share/deepin-miracast/translations)
 
 add_executable(wfdvideomode-check
     src/session/wfdvideomode.cpp

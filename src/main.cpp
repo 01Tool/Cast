@@ -5,6 +5,7 @@
 #include <DLog>
 #include <DWidgetUtil>
 
+#include <QCoreApplication>
 #include <QIcon>
 
 DWIDGET_USE_NAMESPACE
@@ -16,11 +17,11 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QStringLiteral("deepin"));
     app.setApplicationName(QStringLiteral("deepin-miracast"));
     app.setApplicationVersion(QStringLiteral("0.1.0"));
-    app.setProductName(QStringLiteral("Miracast"));
-    app.setApplicationDescription(
-        QStringLiteral("Mirror this computer to a Miracast wireless display."));
     app.setProductIcon(QIcon::fromTheme(QStringLiteral("video-display")));
     app.loadTranslator();
+    app.setProductName(QCoreApplication::translate("Application", "Miracast"));
+    app.setApplicationDescription(QCoreApplication::translate(
+        "Application", "Mirror this computer to a Miracast wireless display."));
 
     if (!app.setSingleInstance(QStringLiteral("org.deepin.miracast"))) {
         qWarning() << "Another instance is running";

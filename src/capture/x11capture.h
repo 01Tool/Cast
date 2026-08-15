@@ -2,8 +2,11 @@
 
 #include "capture/capturebackend.h"
 
+#include <QCoreApplication>
+
 class X11Capture : public CaptureBackend
 {
+    Q_DECLARE_TR_FUNCTIONS(X11Capture)
 public:
     QString name() const override;
     bool start(const DisplaySource &source) override;

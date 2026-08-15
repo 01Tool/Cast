@@ -119,3 +119,6 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | local `man nm-settings-dbus` 802-11-wireless-security | WPS PIN is the `pin` secret | `src/session/nmsecretagent.cpp` `providePin` |
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/dialog.md` | `DDialog` + `addContent` + `ButtonRecommend` | `src/ui/mainwindow.cpp` `onPairingRequested` |
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DLineEdit` alert / placeholder | `src/ui/mainwindow.cpp` `onPairingRequested` PIN field |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `loadTranslator()` before UI; QM basename = `applicationName` | `src/main.cpp` `main`; `CMakeLists.txt` `qt6_add_translation`; `translations/deepin-miracast_zh_CN.ts` / `zh_TW.ts` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.2 | Translator basename matches `applicationName`; no `tr()` for units | `src/main.cpp` `deepin-miracast`; `translations/deepin-miracast_*.ts` |
+| 2026-08-15 | `/usr/share/dde-clipboard/translations/` | Install `app_zh_CN.qm` / `app_zh_TW.qm` under `share/<app>/translations` | `CMakeLists.txt` `install(... share/deepin-miracast/translations)` |

@@ -26,7 +26,7 @@ CastEngine::CastEngine(QObject *parent)
     bindPairing();
     watchScreens();
     refreshDisplays();
-    setStatusMessage(QStringLiteral("Idle. Scan to search for Miracast displays."));
+    setStatusMessage(tr("Idle. Scan to search for Miracast displays."));
 }
 
 CastEngine::~CastEngine()
@@ -116,9 +116,9 @@ void CastEngine::bindPairing()
                     ? PairingKind::Pin
                     : PairingKind::PushButton;
                 if (uiKind == PairingKind::Pin)
-                    setStatusMessage(QStringLiteral("Enter the pairing PIN for %1…").arg(sinkName));
+                    setStatusMessage(tr("Enter the pairing PIN for %1…").arg(sinkName));
                 else
-                    setStatusMessage(QStringLiteral("Confirm pairing on %1…").arg(sinkName));
+                    setStatusMessage(tr("Confirm pairing on %1…").arg(sinkName));
                 Q_EMIT pairingRequested(uiKind, sinkName);
             });
     connect(m_secrets.get(), &NmSecretAgent::pairingFinished, this, [this]() {
@@ -140,12 +140,12 @@ void CastEngine::setSelectedDisplayId(const QString &id)
 void CastEngine::startScan()
 {
     if (m_state == SessionState::Connecting || m_state == SessionState::Streaming) {
-        Q_EMIT errorOccurred(QStringLiteral("Stop the current session before scanning."));
+        Q_EMIT errorOccurred(tr("Stop the current session before scanning."));
         return;
     }
 
     setState(SessionState::Scanning);
-    setStatusMessage(QStringLiteral("Scanning for Miracast displays…"));
+    setStatusMessage(tr("Scanning for Miracast displays…"));
     m_discovery->startScan(P2PDiscovery::DefaultScanSeconds);
 }
 
@@ -160,24 +160,24 @@ void CastEngine::stopScan()
 void CastEngine::connectToSink(const QString &id)
 {
     if (id.isEmpty()) {
-        Q_EMIT errorOccurred(QStringLiteral("Select a display first."));
+        Q_EMIT errorOccurred(tr("Select a display first."));
         return;
     }
 
     const SinkDevice sink = sinkById(id);
     if (sink.id.isEmpty()) {
-        Q_EMIT errorOccurred(QStringLiteral("Unknown display."));
+        Q_EMIT errorOccurred(tr("Unknown display."));
         return;
     }
 
     m_selectedSinkId = id;
     setState(SessionState::Connecting);
-    setStatusMessage(QStringLiteral("Connecting…"));
+    setStatusMessage(tr("Connecting…"));
     if (m_discovery && m_discovery->scanning())
         m_discovery->stopScan();
 
     if (!m_capture) {
-        failSession(QStringLiteral("No capture backend for this session."));
+        failSession(tr("No capture backend for this session."));
         return;
     }
 
@@ -196,7 +196,7 @@ void CastEngine::disconnectFromSink()
     teardownSession();
     m_selectedSinkId.clear();
     setState(SessionState::Stopped);
-    setStatusMessage(QStringLiteral("Disconnected."));
+    setStatusMessage(tr("Disconnected."));
     setState(SessionState::Idle);
 }
 
@@ -262,10 +262,10 @@ void CastEngine::onPeersChanged()
             ++wfd;
     }
     if (m_sinks.isEmpty()) {
-        setStatusMessage(QStringLiteral("Scanning for Miracast displays…"));
+        setStatusMessage(tr("Scanning for Miracast displays…"));
         return;
     }
-    setStatusMessage(QStringLiteral("Found %1 device(s) (%2 with WFD IEs).")
+    setStatusMessage(tr("Found %1 device(s) (%2 with WFD IEs).")
                          .arg(m_sinks.size())
                          .arg(wfd));
 }
@@ -279,7 +279,7 @@ void CastEngine::onScanFinished()
     Q_EMIT sinksChanged();
 
     if (m_sinks.isEmpty()) {
-        setStatusMessage(QStringLiteral(
+        setStatusMessage(tr(
             "No P2P devices found. The sink must be in wireless-display / Miracast mode."));
         setState(SessionState::Idle);
         return;
@@ -291,12 +291,11 @@ void CastEngine::onScanFinished()
             ++wfd;
     }
     if (wfd == 0) {
-        setStatusMessage(QStringLiteral(
-            "Found %1 P2P device(s) with no WFD IEs. "
-            "wpa_supplicant may lack CONFIG_WIFI_DISPLAY, or they are not Miracast sinks.")
+        setStatusMessage(tr("Found %1 P2P device(s) with no WFD IEs. "
+                            "wpa_supplicant may lack CONFIG_WIFI_DISPLAY, or they are not Miracast sinks.")
                              .arg(m_sinks.size()));
     } else {
-        setStatusMessage(QStringLiteral("Scan finished. %1 Miracast display(s) available.")
+        setStatusMessage(tr("Scan finished. %1 Miracast display(s) available.")
                              .arg(wfd));
     }
     setState(SessionState::Idle);
@@ -311,7 +310,7 @@ void CastEngine::bindSession()
     m_connectTimer.setSingleShot(true);
     connect(&m_connectTimer, &QTimer::timeout, this, [this]() {
         if (m_state == SessionState::Connecting)
-            failSession(QStringLiteral("Timed out forming the Wi-Fi Direct group or WFD session."));
+            failSession(tr("Timed out forming the Wi-Fi Direct group or WFD session."));
     });
 
     connect(m_p2p.get(), &P2PSession::statusChanged, this, &CastEngine::setStatusMessage);
@@ -320,7 +319,7 @@ void CastEngine::bindSession()
     connect(m_p2p.get(), &P2PSession::deactivated, this, [this]() {
         if (!m_tearingDown
             && (m_state == SessionState::Streaming || m_state == SessionState::Connecting))
-            failSession(QStringLiteral("Wi-Fi Direct group dropped."));
+            failSession(tr("Wi-Fi Direct group dropped."));
     });
 
     connect(m_wfd.get(), &WfdServer::statusChanged, this, &CastEngine::setStatusMessage);
@@ -330,7 +329,7 @@ void CastEngine::bindSession()
     connect(m_encoder.get(), &GstEncoder::started, this, [this]() {
         m_connectTimer.stop();
         setState(SessionState::Streaming);
-        setStatusMessage(QStringLiteral("Mirroring %1.").arg(m_encoder->streamDescription()));
+        setStatusMessage(tr("Mirroring %1.").arg(m_encoder->streamDescription()));
     });
     connect(m_encoder.get(), &GstEncoder::failed, this, &CastEngine::failSession);
 }
@@ -348,7 +347,7 @@ void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const W
 {
     if (m_state != SessionState::Connecting && m_state != SessionState::Streaming)
         return;
-    setStatusMessage(QStringLiteral("Starting X11 encoder (%1, %2, %3)…")
+    setStatusMessage(tr("Starting encoder (%1, %2, %3)…")
                          .arg(video.description(), audio.description(),
                               m_sessionSource.shortName()));
     m_encoder->start(sinkIp, rtpPort, video, audio, m_sessionSource);
@@ -454,11 +453,11 @@ void CastEngine::refreshDisplays()
             source.width = g.width();
             source.height = g.height();
             source.primary = (screen == primary);
-            source.name = QStringLiteral("%1 (%2×%3)%4")
+            source.name = tr("%1 (%2×%3)%4")
                               .arg(title)
                               .arg(source.width)
                               .arg(source.height)
-                              .arg(source.primary ? QStringLiteral(" · primary") : QString());
+                              .arg(source.primary ? tr(" · primary") : QString());
             next.append(source);
             ++index;
         }

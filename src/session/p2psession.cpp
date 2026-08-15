@@ -64,7 +64,7 @@ void P2PSession::activate(const SinkDevice &sink)
         deactivate();
 
     if (sink.address.isEmpty() || sink.id.isEmpty() || sink.p2pDevicePath.isEmpty()) {
-        m_lastError = QStringLiteral("Sink is missing P2P address or device path.");
+        m_lastError = tr("Sink is missing P2P address or device path.");
         Q_EMIT failed(m_lastError);
         return;
     }
@@ -113,7 +113,7 @@ void P2PSession::activate(const SinkDevice &sink)
         << QVariant::fromValue(QDBusObjectPath(sink.id))
         << QVariant::fromValue(options);
 
-    Q_EMIT statusChanged(QStringLiteral("Forming Wi-Fi Direct group…"));
+    Q_EMIT statusChanged(tr("Forming Wi-Fi Direct group…"));
     auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(msg), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, &P2PSession::onAddFinished);
 }

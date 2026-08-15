@@ -1,5 +1,6 @@
 #include "session/wfdaudiomode.h"
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QRegularExpression>
 
@@ -33,8 +34,8 @@ bool WfdAudioMode::enabled() const
 QString WfdAudioMode::description() const
 {
     if (!enabled())
-        return QStringLiteral("none");
-    return QStringLiteral("AAC %1 kHz").arg(rate / 1000);
+        return QCoreApplication::translate("WfdAudioMode", "none");
+    return QCoreApplication::translate("WfdAudioMode", "AAC %1 kHz").arg(rate / 1000);
 }
 
 QByteArray WfdAudioMode::codecsParameter() const

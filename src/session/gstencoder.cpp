@@ -34,7 +34,7 @@ QString GstEncoder::streamDescription() const
 {
     QString text = m_video.description();
     if (m_source.isValid())
-        text += QStringLiteral(" from %1").arg(m_source.shortName());
+        text += tr(" from %1").arg(m_source.shortName());
     if (m_audioActive)
         text += QStringLiteral(" + ") + m_audio.description();
     else if (!m_audioNote.isEmpty())
@@ -53,7 +53,7 @@ void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMod
     m_audioNote.clear();
 
     if (sinkIp.isEmpty() || rtpPort == 0) {
-        m_lastError = QStringLiteral("Missing sink IP or RTP port.");
+        m_lastError = tr("Missing sink IP or RTP port.");
         Q_EMIT failed(m_lastError);
         return;
     }
@@ -61,7 +61,7 @@ void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMod
     const bool wantAudio = m_audio.enabled();
     const QString monitor = wantAudio ? desktopPulseMonitor() : QString();
     if (wantAudio && monitor.isEmpty()) {
-        m_audioNote = QStringLiteral("no Pulse monitor, video only");
+        m_audioNote = tr("no Pulse monitor, video only");
         qWarning() << m_audioNote;
     }
 
@@ -91,8 +91,7 @@ void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMod
         return;
 
     if (m_lastError.isEmpty()) {
-        m_lastError = QStringLiteral(
-            "No working encoder. Need a 1.24-compatible mpegtsmux or ffmpeg with libx264.");
+        m_lastError = tr("No working encoder. Need a 1.24-compatible mpegtsmux or ffmpeg with libx264.");
     }
     Q_EMIT failed(m_lastError);
 }
@@ -210,7 +209,7 @@ bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio
     qInfo() << "gst-launch" << pipeline;
     m_process.start(launch, QStringList{QStringLiteral("-e"), QStringLiteral("-q"), pipeline});
     if (!m_process.waitForStarted(3000)) {
-        m_lastError = QStringLiteral("gst-launch-1.0 failed to start.");
+        m_lastError = tr("gst-launch-1.0 failed to start.");
         m_audioActive = false;
         return false;
     }
@@ -223,7 +222,7 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAu
 {
     const QString ffmpeg = QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
     if (ffmpeg.isEmpty()) {
-        m_lastError = QStringLiteral("ffmpeg not found (needed because GStreamer mpegtsmux will not load).");
+        m_lastError = tr("ffmpeg not found (needed because GStreamer mpegtsmux will not load).");
         return false;
     }
 
@@ -248,7 +247,7 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAu
         args << QStringLiteral("-f") << QStringLiteral("pulse") << QStringLiteral("-i") << monitor;
         m_audioActive = true;
     } else if (withAudio) {
-        m_audioNote = QStringLiteral("no Pulse monitor, video only");
+        m_audioNote = tr("no Pulse monitor, video only");
     }
 
     args << QStringLiteral("-vf")
@@ -275,7 +274,7 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAu
     qInfo() << "ffmpeg" << args;
     m_process.start(ffmpeg, args);
     if (!m_process.waitForStarted(3000)) {
-        m_lastError = QStringLiteral("ffmpeg failed to start.");
+        m_lastError = tr("ffmpeg failed to start.");
         m_audioActive = false;
         return false;
     }
@@ -315,7 +314,7 @@ void GstEncoder::onFinished(int exitCode, QProcess::ExitStatus status)
     if (status != QProcess::NormalExit || exitCode != 0) {
         m_lastError = QString::fromLocal8Bit(m_process.readAllStandardError());
         if (m_lastError.isEmpty())
-            m_lastError = QStringLiteral("encoder exited with code %1").arg(exitCode);
+            m_lastError = tr("encoder exited with code %1").arg(exitCode);
         Q_EMIT failed(m_lastError);
         return;
     }

@@ -63,22 +63,21 @@ void P2PDiscovery::startScan(int timeoutSeconds)
         stopScan();
 
     if (!QDBusConnection::systemBus().isConnected()) {
-        Q_EMIT errorOccurred(QStringLiteral("System D-Bus is not available."));
+        Q_EMIT errorOccurred(tr("System D-Bus is not available."));
         Q_EMIT scanFinished();
         return;
     }
 
     if (!wifiEnabled()) {
-        Q_EMIT errorOccurred(QStringLiteral("Wi-Fi is off. Turn it on to search for Miracast displays."));
+        Q_EMIT errorOccurred(tr("Wi-Fi is off. Turn it on to search for Miracast displays."));
         Q_EMIT scanFinished();
         return;
     }
 
     m_devicePaths = findP2PDevicePaths();
     if (m_devicePaths.isEmpty()) {
-        Q_EMIT errorOccurred(QStringLiteral(
-            "No Wi-Fi P2P adapter found. Enable Wi-Fi and use NetworkManager "
-            "with wpa_supplicant P2P (not iwd)."));
+        Q_EMIT errorOccurred(tr("No Wi-Fi P2P adapter found. Enable Wi-Fi and use NetworkManager "
+                                "with wpa_supplicant P2P (not iwd)."));
         Q_EMIT scanFinished();
         return;
     }
@@ -114,7 +113,7 @@ void P2PDiscovery::startScan(int timeoutSeconds)
     if (!anyStarted) {
         disconnectDeviceSignals();
         Q_EMIT errorOccurred(lastError.isEmpty()
-                                 ? QStringLiteral("Could not start Wi-Fi Direct find.")
+                                 ? tr("Could not start Wi-Fi Direct find.")
                                  : lastError);
         Q_EMIT scanFinished();
         return;
@@ -122,7 +121,7 @@ void P2PDiscovery::startScan(int timeoutSeconds)
 
     m_scanning = true;
     m_scanTimer.start(seconds * 1000);
-    Q_EMIT statusChanged(QStringLiteral("Scanning for Miracast displays…"));
+    Q_EMIT statusChanged(tr("Scanning for Miracast displays…"));
 }
 
 void P2PDiscovery::stopScan()

@@ -108,7 +108,7 @@ void WfdSession::handleRequest(const QString &method, int cseq, const QByteArray
         sendResponse(cseq,
                      "Public: org.wfa.wfd1.0, GET_PARAMETER, SET_PARAMETER, "
                      "SETUP, PLAY, PAUSE, TEARDOWN\r\n");
-        Q_EMIT statusChanged(QStringLiteral("WFD OPTIONS, querying sink…"));
+        Q_EMIT statusChanged(tr("WFD OPTIONS, querying sink…"));
         sendGetParameter();
         return;
     }
@@ -136,7 +136,7 @@ void WfdSession::handleRequest(const QString &method, int cseq, const QByteArray
             + ";server_port=19000\r\n"
               "Session: 1;timeout=30\r\n";
         sendResponse(cseq, extra);
-        Q_EMIT statusChanged(QStringLiteral("WFD SETUP, RTP port %1").arg(m_rtpPort));
+        Q_EMIT statusChanged(tr("WFD SETUP, RTP port %1").arg(m_rtpPort));
         return;
     }
 
@@ -208,7 +208,7 @@ void WfdSession::sendRequest(const QByteArray &method, const QByteArray &body)
 
 void WfdSession::sendGetParameter()
 {
-    Q_EMIT statusChanged(QStringLiteral("WFD GET_PARAMETER…"));
+    Q_EMIT statusChanged(tr("WFD GET_PARAMETER…"));
     sendRequest("GET_PARAMETER",
                 "wfd_video_formats\r\nwfd_audio_codecs\r\nwfd_client_rtp_ports\r\n");
 }
@@ -224,7 +224,7 @@ void WfdSession::sendSetParameter()
         "wfd_presentation_URL: " + uri.toUtf8() + " none\r\n"
         "wfd_client_rtp_ports: RTP/AVP/UDP;unicast " + QByteArray::number(m_rtpPort ? m_rtpPort : 1028)
         + " 0 mode=play\r\n";
-    Q_EMIT statusChanged(QStringLiteral("WFD SET_PARAMETER %1, %2…")
+    Q_EMIT statusChanged(tr("WFD SET_PARAMETER %1, %2…")
                              .arg(m_video.description(), m_audio.description()));
     sendRequest("SET_PARAMETER", body);
 }
@@ -263,13 +263,13 @@ bool WfdServer::listen(const QString &localIpv4, bool audioWanted)
     m_localIpv4 = localIpv4;
     m_audioWanted = audioWanted;
     if (!m_server.listen(QHostAddress::Any, kWfdPort)) {
-        Q_EMIT failed(QStringLiteral("Cannot listen on RTSP port %1: %2")
+        Q_EMIT failed(tr("Cannot listen on RTSP port %1: %2")
                           .arg(kWfdPort)
                           .arg(m_server.errorString()));
         return false;
     }
     connect(&m_server, &QTcpServer::newConnection, this, &WfdServer::onNewConnection);
-    Q_EMIT statusChanged(QStringLiteral("Waiting for the display on port %1…").arg(kWfdPort));
+    Q_EMIT statusChanged(tr("Waiting for the display on port %1…").arg(kWfdPort));
     qInfo() << "WFD RTSP listening on" << kWfdPort << "local" << localIpv4;
     return true;
 }
@@ -303,5 +303,5 @@ void WfdServer::onNewConnection()
             m_session = nullptr;
         }
     });
-    Q_EMIT statusChanged(QStringLiteral("Display connected, starting WFD handshake…"));
+    Q_EMIT statusChanged(tr("Display connected, starting WFD handshake…"));
 }

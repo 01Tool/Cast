@@ -10,12 +10,12 @@ QString X11Capture::name() const
 bool X11Capture::start(const DisplaySource &source)
 {
     if (qEnvironmentVariableIsEmpty("DISPLAY")) {
-        m_lastError = QStringLiteral("DISPLAY is not set; cannot grab the X11 screen.");
+        m_lastError = tr("DISPLAY is not set; cannot grab the X11 screen.");
         m_running = false;
         return false;
     }
     if (!source.isValid()) {
-        m_lastError = QStringLiteral("No monitor selected.");
+        m_lastError = tr("No monitor selected.");
         m_running = false;
         return false;
     }
