@@ -33,13 +33,15 @@ cmake --build build
 ./build/deepin-miracast
 ```
 
-Current cut: DTK window, NetworkManager P2P scan **and connect**, WFD RTSP on port 7236, and X11 `ximagesrc` → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Video only.
+Current cut: DTK window, NetworkManager P2P scan **and connect**, WFD RTSP on port 7236, and X11 `ximagesrc` → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Optional system audio (AAC-LC from the Pulse/PipeWire default-sink monitor) when the sink advertises AAC.
 
 Runtime extras:
 
 ```bash
-sudo apt install gstreamer1.0-tools
+sudo apt install gstreamer1.0-tools pulseaudio-utils
 ```
+
+`pulseaudio-utils` provides `pactl` so the encoder can find the default-sink monitor. PipeWire users need `pipewire-pulse`.
 
 On this deepin image, `gstreamer1.0-plugins-bad` 1.24.6 ships `mpegtsmux`/`h264parse` built as 1.26, so GStreamer 1.24 will not load them. The encoder then uses `ffmpeg -f x11grab … -f rtp_mpegts`. A firewall must allow TCP 7236 and UDP RTP toward the sink.
 

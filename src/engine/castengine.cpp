@@ -56,6 +56,20 @@ QString CastEngine::selectedSinkId() const
     return m_selectedSinkId;
 }
 
+bool CastEngine::audioEnabled() const
+{
+    return m_audioEnabled;
+}
+
+void CastEngine::setAudioEnabled(bool enabled)
+{
+    if (m_audioEnabled == enabled)
+        return;
+    m_audioEnabled = enabled;
+    qInfo() << "audio enabled" << enabled;
+    Q_EMIT audioEnabledChanged(m_audioEnabled);
+}
+
 void CastEngine::startScan()
 {
     if (m_state == SessionState::Connecting || m_state == SessionState::Streaming) {
@@ -248,7 +262,7 @@ void CastEngine::bindSession()
     connect(m_encoder.get(), &GstEncoder::started, this, [this]() {
         m_connectTimer.stop();
         setState(SessionState::Streaming);
-        setStatusMessage(QStringLiteral("Mirroring."));
+        setStatusMessage(QStringLiteral("Mirroring %1.").arg(m_encoder->streamDescription()));
     });
     connect(m_encoder.get(), &GstEncoder::failed, this, &CastEngine::failSession);
 }
@@ -257,16 +271,18 @@ void CastEngine::onP2PActivated(const QString &localIpv4)
 {
     if (m_state != SessionState::Connecting)
         return;
-    if (!m_wfd->listen(localIpv4))
+    if (!m_wfd->listen(localIpv4, m_audioEnabled))
         return;
 }
 
-void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode)
+void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
+                                const WfdAudioMode &audio)
 {
     if (m_state != SessionState::Connecting && m_state != SessionState::Streaming)
         return;
-    setStatusMessage(QStringLiteral("Starting X11 encoder (%1)…").arg(mode.description()));
-    m_encoder->start(sinkIp, rtpPort, mode);
+    setStatusMessage(QStringLiteral("Starting X11 encoder (%1, %2)…")
+                         .arg(video.description(), audio.description()));
+    m_encoder->start(sinkIp, rtpPort, video, audio);
 }
 
 void CastEngine::failSession(const QString &message)

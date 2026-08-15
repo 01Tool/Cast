@@ -50,9 +50,9 @@ Do not advertise “low latency” until measured on target hardware.
 
 ## 5. Audio
 
-Audio is extra work: AAC (or the sink’s codec), clock sync, and a capture source (PulseAudio / PipeWire). Video-only is a valid first release.
+Audio is extra work: AAC (or the sink’s codec), clock sync, and a capture source (PulseAudio / PipeWire). Video-only is still valid: the app sends AAC-LC only when the user enables system audio **and** the sink lists AAC in `wfd_audio_codecs`. Otherwise the session stays video-only.
 
-GNOME Network Displays is one of the few Linux senders that attempts synchronized audio. MiracleCast-style tools often skip it or route it separately.
+GNOME Network Displays is one of the few Linux senders that attempts synchronized audio. This app follows that path (Pulse monitor + AAC in the same MPEG-TS). MiracleCast-style tools often skip audio or route it separately.
 
 ## 6. Wrong base: MiracleCast
 

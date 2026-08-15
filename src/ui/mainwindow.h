@@ -11,6 +11,7 @@ DWIDGET_BEGIN_NAMESPACE
 class DLabel;
 class DListView;
 class DSuggestButton;
+class DSwitchButton;
 DWIDGET_END_NAMESPACE
 
 class MainWindow : public DTK_WIDGET_NAMESPACE::DMainWindow
@@ -38,4 +39,5 @@ private:
     QPushButton *m_scanButton = nullptr;
     DTK_WIDGET_NAMESPACE::DSuggestButton *m_connectButton = nullptr;
     QPushButton *m_disconnectButton = nullptr;
+    DTK_WIDGET_NAMESPACE::DSwitchButton *m_audioSwitch = nullptr;
 };

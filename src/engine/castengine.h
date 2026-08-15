@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/sinkdevice.h"
+#include "session/wfdaudiomode.h"
 #include "session/wfdvideomode.h"
 
 #include <QObject>
@@ -45,18 +46,21 @@ public:
     QVector<SinkDevice> sinks() const;
     QString statusMessage() const;
     QString selectedSinkId() const;
+    bool audioEnabled() const;
 
 public Q_SLOTS:
     void startScan();
     void stopScan();
     void connectToSink(const QString &id);
     void disconnectFromSink();
+    void setAudioEnabled(bool enabled);
 
 Q_SIGNALS:
     void stateChanged(CastEngine::SessionState state);
     void sinksChanged();
     void statusMessageChanged(const QString &message);
     void errorOccurred(const QString &message);
+    void audioEnabledChanged(bool enabled);
 
 private:
     void setState(SessionState state);
@@ -67,7 +71,8 @@ private:
     void onPeersChanged();
     void onScanFinished();
     void onP2PActivated(const QString &localIpv4);
-    void onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode);
+    void onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
+                         const WfdAudioMode &audio);
     void failSession(const QString &message);
     void teardownSession();
     SinkDevice sinkById(const QString &id) const;
@@ -84,4 +89,5 @@ private:
     std::unique_ptr<GstEncoder> m_encoder;
     QTimer m_connectTimer;
     bool m_tearingDown = false;
+    bool m_audioEnabled = true;
 };

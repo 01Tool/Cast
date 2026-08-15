@@ -1,5 +1,6 @@
 #pragma once
 
+#include "session/wfdaudiomode.h"
 #include "session/wfdvideomode.h"
 
 #include <QObject>
@@ -15,10 +16,13 @@ public:
     ~GstEncoder() override;
 
     bool running() const;
+    bool audioActive() const;
     QString lastError() const;
+    QString streamDescription() const;
 
 public Q_SLOTS:
-    void start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode);
+    void start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
+               const WfdAudioMode &audio);
     void stop();
 
 Q_SIGNALS:
@@ -32,11 +36,16 @@ private Q_SLOTS:
 
 private:
     bool gstHasElement(const QString &name) const;
-    bool startGst(const QString &sinkIp, quint16 rtpPort);
-    bool startFfmpeg(const QString &sinkIp, quint16 rtpPort);
+    QString gstAacEncoder() const;
+    QString desktopPulseMonitor() const;
+    bool startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio);
+    bool startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAudio);
 
     QProcess m_process;
     QString m_lastError;
-    WfdVideoMode m_mode;
+    WfdVideoMode m_video;
+    WfdAudioMode m_audio;
+    QString m_audioNote;
+    bool m_audioActive = false;
     bool m_running = false;
 };

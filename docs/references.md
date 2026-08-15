@@ -30,6 +30,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | `wpa_supplicant` | `CONFIG_P2P` + `CONFIG_WIFI_DISPLAY` |
 | GStreamer + `gst-rtsp-server` | Capture, H.264, RTSP/RTP |
 | PipeWire + WirePlumber | Wayland (and modern X11) audio/video capture |
+| PulseAudio / `pipewire-pulse` | Default-sink `.monitor` for system audio |
 | `xdg-desktop-portal` | ScreenCast session on Wayland |
 
 ## Capture notes
@@ -37,6 +38,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 - GNOME Network Displays README: stream the selected monitor if the mutter screencast portal is available; otherwise fall back to X11 frame grabbing.
 - Arch Wiki XDG Desktop Portal table (verify when targeting a DDE release): `xdg-desktop-portal-dde` Screenshot yes, ScreenCast historically no.
 - X11 `ximagesrc` lives in `gstreamer1.0-plugins-good`. Missing that plugin is a common “fallback to X11 failed” cause.
+- WFD `wfd_audio_codecs` AAC bit 0 is 48 kHz stereo; bit 1 is 44.1 kHz. This sender muxes AAC-LC into MPEG-TS and skips audio when the sink lists only LPCM.
 
 ## Related local docs
 
@@ -94,3 +96,11 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-media-factory.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-media-factory.c) | `videoscale` to negotiated raw size before `x264enc` | `src/session/gstencoder.cpp` `startGst` |
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/SKILL.md` | DTK6-only app; Qt logs; no widget-layer protocol work | this change stays in `src/session` / `src/engine` |
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` | CMake `add_executable` + `Qt6::Core` test helper | `CMakeLists.txt` `wfdvideomode-check` |
+| 2026-08-15 | `docs/constraints.md` §5 | AAC + Pulse/PipeWire + clock sync; video-only still valid | `src/session/wfdaudiomode.cpp` `selectWfdAudioMode`; `src/session/gstencoder.cpp` `start` |
+| 2026-08-15 | `docs/architecture.md` UI / Encode | Audio toggle via CastEngine; H.264 + AAC | `src/engine/castengine.cpp` `setAudioEnabled`; `src/ui/mainwindow.cpp` `setupUi` |
+| 2026-08-15 | `docs/platform/x11.md` Audio | Default-sink monitor; AAC in the same MPEG-TS | `src/session/gstencoder.cpp` `desktopPulseMonitor` / `startGst` / `startFfmpeg` |
+| 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-params.c`](https://github.com/GNOME/gnome-network-displays/blob/master/src/wfd/wfd-params.c) | AAC bitmap: bit 0 = 48 kHz 2ch, bit 1 = 44.1 kHz 2ch | `src/session/wfdaudiomode.cpp` `kAac48k` / `kAac441k` |
+| 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-media-factory.c`](https://github.com/GNOME/gnome-network-displays/blob/master/src/wfd/wfd-media-factory.c) | `pulsesrc provide-clock=true` + AAC into `mpegtsmux` | `src/session/gstencoder.cpp` `startGst` audio branch |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/button.md` | `DSwitchButton` + `checkedChanged` | `src/ui/mainwindow.cpp` `setupUi` / `bindEngine` |
+| 2026-08-15 | local `pactl get-default-sink` + Pulse monitor naming | System audio is `${default_sink}.monitor`, not the mic | `src/session/gstencoder.cpp` `desktopPulseMonitor` |
+| 2026-08-15 | `ffmpeg -f pulse` / `aac` / `aresample=async=1` | Pulse capture, AAC-LC, light A/V drift correction | `src/session/gstencoder.cpp` `startFfmpeg` |

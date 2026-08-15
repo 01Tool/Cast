@@ -20,6 +20,7 @@ add_executable(deepin-miracast
     src/session/p2psession.cpp
     src/session/wfdserver.cpp
     src/session/wfdvideomode.cpp
+    src/session/wfdaudiomode.cpp
     src/session/gstencoder.cpp
     src/capture/x11capture.cpp
     src/capture/portalcapture.cpp
@@ -47,5 +48,14 @@ target_include_directories(wfdvideomode-check PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(wfdvideomode-check PRIVATE Qt6::Core)
+
+add_executable(wfdaudiomode-check
+    src/session/wfdaudiomode.cpp
+    tests/wfdaudiomode-check.cpp
+)
+target_include_directories(wfdaudiomode-check PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(wfdaudiomode-check PRIVATE Qt6::Core)
 
 install(TARGETS deepin-miracast RUNTIME DESTINATION bin)

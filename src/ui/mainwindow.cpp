@@ -9,6 +9,7 @@
 #include <DStandardItem>
 #include <DStyledItemDelegate>
 #include <DSuggestButton>
+#include <DSwitchButton>
 #include <DTitlebar>
 
 #include <QAbstractItemView>
@@ -62,6 +63,19 @@ void MainWindow::setupUi()
     m_sinkModel = new QStandardItemModel(m_sinkView);
     m_sinkView->setModel(m_sinkModel);
 
+    auto *audioRow = new QWidget(central);
+    auto *audioLayout = new QHBoxLayout(audioRow);
+    audioLayout->setContentsMargins(0, 0, 0, 0);
+    audioLayout->setSpacing(8);
+    auto *audioLabel = new DLabel(tr("Include system audio"), audioRow);
+    audioLabel->setForegroundRole(DPalette::TextTitle);
+    DFontSizeManager::instance()->bind(audioLabel, DFontSizeManager::T6);
+    m_audioSwitch = new DSwitchButton(audioRow);
+    m_audioSwitch->setChecked(m_engine->audioEnabled());
+    audioLayout->addWidget(audioLabel);
+    audioLayout->addStretch();
+    audioLayout->addWidget(m_audioSwitch);
+
     auto *buttons = new QWidget(central);
     auto *buttonLayout = new QHBoxLayout(buttons);
     buttonLayout->setContentsMargins(0, 0, 0, 0);
@@ -79,6 +93,7 @@ void MainWindow::setupUi()
     layout->addWidget(m_sessionLabel);
     layout->addWidget(m_statusLabel);
     layout->addWidget(m_sinkView, 1);
+    layout->addWidget(audioRow);
     layout->addWidget(buttons);
 
     setCentralWidget(central);
@@ -110,6 +125,8 @@ void MainWindow::bindEngine()
     connect(m_scanButton, &QPushButton::clicked, this, &MainWindow::onScanClicked);
     connect(m_connectButton, &DSuggestButton::clicked, this, &MainWindow::onConnectClicked);
     connect(m_disconnectButton, &QPushButton::clicked, this, &MainWindow::onDisconnectClicked);
+    connect(m_audioSwitch, &DSwitchButton::checkedChanged, m_engine, &CastEngine::setAudioEnabled);
+    connect(m_engine, &CastEngine::audioEnabledChanged, m_audioSwitch, &DSwitchButton::setChecked);
     connect(m_sinkView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
             [this](const QItemSelection &, const QItemSelection &) {
                 updateActions();
@@ -170,6 +187,7 @@ void MainWindow::updateActions()
     m_scanButton->setEnabled(!scanning && !connecting && !streaming);
     m_connectButton->setEnabled(!connecting && !streaming && hasSelection);
     m_disconnectButton->setEnabled(streaming || connecting);
+    m_audioSwitch->setEnabled(!connecting && !streaming);
 }
 
 void MainWindow::onScanClicked()

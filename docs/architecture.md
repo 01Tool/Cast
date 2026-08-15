@@ -26,7 +26,8 @@ Responsibilities:
 - Device list and refresh
 - Connect / disconnect, pairing prompts, error dialogs
 - Session status (searching, connecting, mirroring, failed)
-- Optional: choose monitor, toggle audio, remember last sink (DConfig)
+- Optional: choose monitor, remember last sink (DConfig)
+- Toggle system audio (AAC when the sink supports it)
 
 The UI talks only to `CastEngine` signals and slots (or an equivalent Qt interface). It does not open NetworkManager, GStreamer, or portal connections itself.
 
@@ -48,8 +49,8 @@ Subsystems:
 |-----------|------|--------------------------|
 | Discovery | List Miracast sinks | NetworkManager P2P + `wpa_supplicant` WFD IEs |
 | Session | WFD RTSP handshake | GStreamer WFD elements from GNOME / deepin-network-displays |
-| Capture | Frames (+ audio later) | Backend interface, see below |
-| Encode | H.264 (AAC later) | GStreamer (`x264enc` / hardware encoder) |
+| Capture | Frames + optional system audio | Backend interface + Pulse/PipeWire monitor |
+| Encode | H.264 + AAC-LC | GStreamer (`x264enc` / `avenc_aac`) or ffmpeg |
 | Transport | RTP/UDP to sink | GStreamer RTSP/RTP pipeline |
 
 Do not start from MiracleCast for a desktop app. It often requires stopping NetworkManager / `wpa_supplicant` and has a poor UX fit.
@@ -78,7 +79,7 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 2. Discovery: NetworkManager P2P scan, populate the list.
 3. X11 capture + GStreamer WFD send path (reuse deepin/GNOME network-displays where possible).
 4. Wayland `PortalCapture` stub that reports “ScreenCast unavailable”.
-5. Audio, multi-monitor picker, and hardware-encoder tuning after video-only X11 works.
+5. Multi-monitor picker and hardware-encoder tuning after video + optional AAC works.
 
 This order ships a usable X11 product without blocking on Treeland portal work.
 

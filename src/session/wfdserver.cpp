@@ -30,10 +30,12 @@ int headerInt(const QByteArray &raw, const QByteArray &name, int fallback = 0)
 
 } // namespace
 
-WfdSession::WfdSession(QTcpSocket *socket, const QString &localIpv4, QObject *parent)
+WfdSession::WfdSession(QTcpSocket *socket, const QString &localIpv4, bool audioWanted,
+                       QObject *parent)
     : QObject(parent)
     , m_socket(socket)
     , m_localIpv4(localIpv4)
+    , m_audioWanted(audioWanted)
 {
     m_socket->setParent(this);
     connect(m_socket, &QTcpSocket::readyRead, this, &WfdSession::onReadyRead);
@@ -114,7 +116,8 @@ void WfdSession::handleRequest(const QString &method, int cseq, const QByteArray
     if (method == QLatin1String("GET_PARAMETER")) {
         const QByteArray reply =
             "wfd_video_formats: " + wfdSourceFormatsParameter() + "\r\n"
-            "wfd_audio_codecs: none\r\n"
+            "wfd_audio_codecs: "
+            + (m_audioWanted ? wfdSourceAudioParameter() : QByteArrayLiteral("none")) + "\r\n"
             "wfd_client_rtp_ports: RTP/AVP/UDP;unicast 1028 0 mode=play\r\n";
         sendResponse(cseq, "Content-Type: text/parameters\r\n", reply);
         return;
@@ -140,8 +143,8 @@ void WfdSession::handleRequest(const QString &method, int cseq, const QByteArray
     if (method == QLatin1String("PLAY")) {
         sendResponse(cseq, "Session: 1\r\nRange: npt=now-\r\n");
         const QString ip = m_socket->peerAddress().toString();
-        qInfo() << "WFD PLAY" << ip << m_rtpPort;
-        Q_EMIT playRequested(ip, m_rtpPort, m_mode);
+        qInfo() << "WFD PLAY" << ip << m_rtpPort << m_video.description() << m_audio.description();
+        Q_EMIT playRequested(ip, m_rtpPort, m_video, m_audio);
         return;
     }
 
@@ -216,12 +219,13 @@ void WfdSession::sendSetParameter()
                             .arg(m_localIpv4.isEmpty() ? QStringLiteral("127.0.0.1") : m_localIpv4)
                             .arg(kWfdPort);
     const QByteArray body =
-        "wfd_video_formats: " + m_mode.formatsParameter() + "\r\n"
-        "wfd_audio_codecs: none\r\n"
+        "wfd_video_formats: " + m_video.formatsParameter() + "\r\n"
+        "wfd_audio_codecs: " + m_audio.codecsParameter() + "\r\n"
         "wfd_presentation_URL: " + uri.toUtf8() + " none\r\n"
         "wfd_client_rtp_ports: RTP/AVP/UDP;unicast " + QByteArray::number(m_rtpPort ? m_rtpPort : 1028)
         + " 0 mode=play\r\n";
-    Q_EMIT statusChanged(QStringLiteral("WFD SET_PARAMETER %1…").arg(m_mode.description()));
+    Q_EMIT statusChanged(QStringLiteral("WFD SET_PARAMETER %1, %2…")
+                             .arg(m_video.description(), m_audio.description()));
     sendRequest("SET_PARAMETER", body);
 }
 
@@ -237,8 +241,10 @@ void WfdSession::parseSinkParams(const QByteArray &body)
     const auto match = portsRe.match(QString::fromLatin1(body));
     if (match.hasMatch())
         m_rtpPort = static_cast<quint16>(match.captured(1).toUInt());
-    m_mode = selectWfdVideoMode(body);
-    qInfo() << "WFD sink RTP port" << m_rtpPort << "video" << m_mode.description();
+    m_video = selectWfdVideoMode(body);
+    m_audio = selectWfdAudioMode(body, m_audioWanted);
+    qInfo() << "WFD sink RTP port" << m_rtpPort << "video" << m_video.description()
+            << "audio" << m_audio.description();
 }
 
 WfdServer::WfdServer(QObject *parent)
@@ -251,10 +257,11 @@ WfdServer::~WfdServer()
     stop();
 }
 
-bool WfdServer::listen(const QString &localIpv4)
+bool WfdServer::listen(const QString &localIpv4, bool audioWanted)
 {
     stop();
     m_localIpv4 = localIpv4;
+    m_audioWanted = audioWanted;
     if (!m_server.listen(QHostAddress::Any, kWfdPort)) {
         Q_EMIT failed(QStringLiteral("Cannot listen on RTSP port %1: %2")
                           .arg(kWfdPort)
@@ -287,7 +294,7 @@ void WfdServer::onNewConnection()
         socket->deleteLater();
         return;
     }
-    m_session = new WfdSession(socket, m_localIpv4, this);
+    m_session = new WfdSession(socket, m_localIpv4, m_audioWanted, this);
     connect(m_session, &WfdSession::playRequested, this, &WfdServer::playRequested);
     connect(m_session, &WfdSession::statusChanged, this, &WfdServer::statusChanged);
     connect(m_session, &WfdSession::sessionClosed, this, [this]() {
