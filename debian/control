@@ -1,4 +1,4 @@
-Source: deepin-miracast
+Source: ot-cast
 Section: video
 Priority: optional
 Maintainer: Playhi <000902play@gmail.com>
@@ -13,10 +13,10 @@ Build-Depends:
  libdtk6gui-dev,
  libdtk6widget-dev,
 Standards-Version: 4.7.0
-Homepage: https://github.com/01Tool/Miracast
+Homepage: https://01tool.com
 Rules-Requires-Root: no
 
-Package: deepin-miracast
+Package: ot-cast
 Architecture: any
 Depends:
  ${misc:Depends},
@@ -30,10 +30,12 @@ Recommends:
  gstreamer1.0-plugins-bad,
  gstreamer1.0-libav,
  pipewire-pulse | pulseaudio,
-Description: DTK sender that mirrors the screen to Miracast displays
- A DTK6 desktop app that discovers Wi-Fi Display sinks over
+Description: Cast a desktop to Miracast and other wireless displays
+ A DTK6 app from 01tool that discovers Wi-Fi Display sinks over
  NetworkManager P2P, completes WFD/RTSP, and streams the selected
  X11 monitor as H.264 (optional AAC) over RTP.
  .
- Wayland capture is stubbed until a ScreenCast portal is available.
- Do not treat this as universal sink support.
+ DLNA and other same-LAN protocols may be added later as separate
+ backends. Wayland capture is stubbed until a ScreenCast portal exists.
+ .
+ This is not an official Deepin / DDE component.

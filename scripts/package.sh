@@ -8,8 +8,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-APP_NAME="deepin-miracast"
-VERSION="$(sed -n 's/^project(deepin-miracast VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+APP_NAME="ot-cast"
+DESKTOP_FILE="com.01tool.cast.desktop"
+VERSION="$(sed -n 's/^project(ot-cast VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
 ARCH="$(uname -m)"
 JOBS="$(nproc 2>/dev/null || echo 4)"
 OUT_DIR="${ROOT}/dist"
@@ -165,7 +166,7 @@ build_appimage() {
     DESTDIR="${appdir}" cmake --install "${PKG_BUILD}" --prefix /usr
 
     [[ -x "${appdir}/usr/bin/${APP_NAME}" ]] || die "cmake --install did not place usr/bin/${APP_NAME}"
-    [[ -f "${appdir}/usr/share/applications/org.deepin.miracast.desktop" ]] \
+    [[ -f "${appdir}/usr/share/applications/${DESKTOP_FILE}" ]] \
         || die "desktop file missing from AppDir"
     [[ -f "${appdir}/usr/share/icons/hicolor/scalable/apps/${APP_NAME}.svg" ]] \
         || die "icon missing from AppDir"
@@ -193,7 +194,7 @@ build_appimage() {
         run_appimage "${linuxdeploy}" \
             --appdir "${appdir}" \
             --executable "${appdir}/usr/bin/${APP_NAME}" \
-            --desktop-file "${appdir}/usr/share/applications/org.deepin.miracast.desktop" \
+            --desktop-file "${appdir}/usr/share/applications/${DESKTOP_FILE}" \
             --icon-file "${appdir}/usr/share/icons/hicolor/scalable/apps/${APP_NAME}.svg" \
             --plugin qt \
             --output appimage

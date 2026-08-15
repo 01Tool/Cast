@@ -119,17 +119,18 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | local `man nm-settings-dbus` 802-11-wireless-security | WPS PIN is the `pin` secret | `src/session/nmsecretagent.cpp` `providePin` |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/dialog.md` | `DDialog` + `addContent` + `ButtonRecommend` | `src/ui/mainwindow.cpp` `onPairingRequested` |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DLineEdit` alert / placeholder | `src/ui/mainwindow.cpp` `onPairingRequested` PIN field |
-| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `loadTranslator()` before UI; QM basename = `applicationName` | `src/main.cpp` `main`; `CMakeLists.txt` `qt6_add_translation`; `translations/deepin-miracast_zh_CN.ts` / `zh_TW.ts` |
-| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.2 | Translator basename matches `applicationName`; no `tr()` for units | `src/main.cpp` `deepin-miracast`; `translations/deepin-miracast_*.ts` |
-| 2026-08-15 | `/usr/share/dde-clipboard/translations/` | Install `app_zh_CN.qm` / `app_zh_TW.qm` under `share/<app>/translations` | `CMakeLists.txt` `install(... share/deepin-miracast/translations)` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `loadTranslator()` before UI; QM basename = `applicationName` | `src/main.cpp` `main`; `CMakeLists.txt` `qt6_add_translation`; `translations/ot-cast_zh_CN.ts` / `zh_TW.ts` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.2 | Translator basename matches `applicationName`; no `tr()` for units | `src/main.cpp` `ot-cast`; `translations/ot-cast_*.ts` |
+| 2026-08-15 | `/usr/share/dde-clipboard/translations/` | Install `app_zh_CN.qm` / `app_zh_TW.qm` under `share/<app>/translations` | `CMakeLists.txt` `install(... share/ot-cast/translations)` |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §4 | `Build-Depends` DTK6 `-dev` packages; runtime via `${shlibs:Depends}` | `debian/control` |
-| 2026-08-15 | `/usr/share/applications/dde-file-manager.desktop` | `Type=Application`, `Exec`, `Icon`, `Categories`, `Name[zh_CN]` | `data/org.deepin.miracast.desktop` |
+| 2026-08-15 | `/usr/share/applications/dde-file-manager.desktop` | `Type=Application`, `Exec`, `Icon`, `Categories`, `Name[zh_CN]` | `data/com.01tool.cast.desktop` |
 | 2026-08-15 | [Debian debhelper compat 13](https://manpages.debian.org/bookworm/debhelper/debhelper.7.en.html) | `dh --buildsystem=cmake` | `debian/rules` |
 | 2026-08-15 | [softprops/action-gh-release](https://github.com/softprops/action-gh-release) | Tag `v*` → GitHub Release + source tarball | `.github/workflows/release.yml` |
 | 2026-08-15 | `docs/architecture.md` one-binary DTK6 app | Package the same binary; no MiracleCast | `debian/control` Description |
-| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/theme/icontheme.md` | Look up the app icon by base name `deepin-miracast`; fallback `video-display` | `src/main.cpp` `setProductIcon`; `src/ui/mainwindow.cpp` title bar |
-| 2026-08-15 | `/usr/share/icons/hicolor/scalable/apps/dde-cooperation.svg` | Deepin-style rounded plate + content; XDG hicolor scalable | `data/icons/hicolor/scalable/apps/deepin-miracast.svg` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/theme/icontheme.md` | Look up the app icon by base name `ot-cast`; fallback `video-display` | `src/main.cpp` `setProductIcon`; `src/ui/mainwindow.cpp` title bar |
+| 2026-08-15 | `/usr/share/icons/hicolor/scalable/apps/dde-cooperation.svg` | Deepin-style rounded plate + content; XDG hicolor scalable | `data/icons/hicolor/scalable/apps/ot-cast.svg` |
 | 2026-08-15 | `docs/architecture.md` one binary, DTK UI only | Package the same DTK sender; do not ship MiracleCast | `scripts/package.sh` |
 | 2026-08-15 | [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) | AppDir + AppImage output; `--appimage-extract-and-run` without FUSE | `scripts/package.sh` `build_appimage` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `applicationName` = binary; unique app ID for single-instance | `src/main.cpp` `ot-cast` / `com.01tool.cast` |
 | 2026-08-15 | [linuxdeploy-plugin-qt](https://github.com/linuxdeploy/linuxdeploy-plugin-qt) | Bundle Qt 6 plugins; `EXTRA_QT_PLUGINS` for styles | `scripts/package.sh` `build_appimage` |
 | 2026-08-15 | local `qmake6 -query QT_INSTALL_PLUGINS` | Chameleon style, DTK icon engines, `qdeepin` platform theme | `scripts/package.sh` `copy_qt_plugin` |

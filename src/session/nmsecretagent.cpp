@@ -13,7 +13,7 @@ constexpr auto kAgentManagerPath = "/org/freedesktop/NetworkManager/AgentManager
 constexpr auto kAgentManagerIface = "org.freedesktop.NetworkManager.AgentManager";
 constexpr auto kAgentPath = "/org/freedesktop/NetworkManager/SecretAgent";
 constexpr auto kAgentIface = "org.freedesktop.NetworkManager.SecretAgent";
-constexpr auto kAgentId = "org.deepin.miracast";
+constexpr auto kAgentId = "com.01tool.cast";
 
 constexpr auto kErrUserCanceled = "org.freedesktop.NetworkManager.SecretAgent.Error.UserCanceled";
 constexpr auto kErrAgentCanceled = "org.freedesktop.NetworkManager.SecretAgent.Error.AgentCanceled";
@@ -63,7 +63,7 @@ bool isOurP2P(const ConnectionMap &connection)
 {
     if (connectionType(connection) == QLatin1String("wifi-p2p"))
         return true;
-    return connectionId(connection).startsWith(QLatin1String("Miracast "));
+    return connectionId(connection).startsWith(QLatin1String("Cast "));
 }
 
 } // namespace
@@ -190,8 +190,8 @@ bool NmSecretAgent::handleGetSecrets(const QDBusMessage &message, const QDBusCon
     const QString peer = connectionMap.value(QStringLiteral("wifi-p2p"))
                              .value(QStringLiteral("peer"))
                              .toString();
-    if (sinkName.startsWith(QLatin1String("Miracast ")))
-        sinkName = sinkName.mid(9);
+    if (sinkName.startsWith(QLatin1String("Cast ")))
+        sinkName = sinkName.mid(5);
     if (sinkName.isEmpty())
         sinkName = peer;
 

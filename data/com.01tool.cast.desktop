@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Cast
+Name[zh_CN]=投屏
+Name[zh_TW]=投屏
+GenericName=Wireless Display
+GenericName[zh_CN]=无线显示
+GenericName[zh_TW]=無線顯示
+Comment=Cast this screen to a TV or wireless display
+Comment[zh_CN]=将此计算机的屏幕投到电视或无线显示器
+Comment[zh_TW]=將此電腦的畫面投到電視或無線顯示器
+Exec=ot-cast
+Icon=ot-cast
+Terminal=false
+StartupNotify=true
+Categories=Network;Qt;
+Keywords=Miracast;WFD;DLNA;Wi-Fi Display;cast;mirror;投屏;
+StartupWMClass=ot-cast

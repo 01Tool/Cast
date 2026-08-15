@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(deepin-miracast VERSION 0.1.0 LANGUAGES CXX)
+project(ot-cast VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,7 +20,7 @@ elseif(BUILD_CHECKS)
 endif()
 
 if(BUILD_APP)
-add_executable(deepin-miracast
+add_executable(ot-cast
     src/main.cpp
     src/ui/mainwindow.cpp
     src/engine/castengine.cpp
@@ -35,11 +35,11 @@ add_executable(deepin-miracast
     src/capture/portalcapture.cpp
 )
 
-target_include_directories(deepin-miracast PRIVATE
+target_include_directories(ot-cast PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(deepin-miracast PRIVATE
+target_link_libraries(ot-cast PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::DBus
@@ -50,22 +50,22 @@ target_link_libraries(deepin-miracast PRIVATE
 )
 
 set(TS_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/translations/deepin-miracast_zh_CN.ts
-    ${CMAKE_CURRENT_SOURCE_DIR}/translations/deepin-miracast_zh_TW.ts
+    ${CMAKE_CURRENT_SOURCE_DIR}/translations/ot-cast_zh_CN.ts
+    ${CMAKE_CURRENT_SOURCE_DIR}/translations/ot-cast_zh_TW.ts
 )
 qt6_add_translation(QM_FILES ${TS_FILES})
-add_custom_target(deepin-miracast-translations ALL DEPENDS ${QM_FILES})
-add_dependencies(deepin-miracast deepin-miracast-translations)
-add_custom_command(TARGET deepin-miracast POST_BUILD
+add_custom_target(ot-cast-translations ALL DEPENDS ${QM_FILES})
+add_dependencies(ot-cast ot-cast-translations)
+add_custom_command(TARGET ot-cast POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
-            $<TARGET_FILE_DIR:deepin-miracast>/translations
+            $<TARGET_FILE_DIR:ot-cast>/translations
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${QM_FILES}
-            $<TARGET_FILE_DIR:deepin-miracast>/translations
+            $<TARGET_FILE_DIR:ot-cast>/translations
 )
-install(FILES ${QM_FILES} DESTINATION share/deepin-miracast/translations)
-install(FILES data/org.deepin.miracast.desktop DESTINATION share/applications)
-install(FILES data/icons/hicolor/scalable/apps/deepin-miracast.svg
+install(FILES ${QM_FILES} DESTINATION share/ot-cast/translations)
+install(FILES data/com.01tool.cast.desktop DESTINATION share/applications)
+install(FILES data/icons/hicolor/scalable/apps/ot-cast.svg
         DESTINATION share/icons/hicolor/scalable/apps)
 endif()
 
@@ -98,5 +98,5 @@ target_link_libraries(displaysource-check PRIVATE Qt6::Core)
 endif()
 
 if(BUILD_APP)
-install(TARGETS deepin-miracast RUNTIME DESTINATION bin)
+install(TARGETS ot-cast RUNTIME DESTINATION bin)
 endif()

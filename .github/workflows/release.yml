@@ -40,8 +40,8 @@ jobs:
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
           VERSION="${TAG#v}"
-          CMAKE_VERSION="$(sed -n 's/^project(deepin-miracast VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
-          CHANGELOG_VERSION="$(sed -n 's/^deepin-miracast (\([^)]*\)).*/\1/p' debian/changelog | head -1)"
+          CMAKE_VERSION="$(sed -n 's/^project(ot-cast VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+          CHANGELOG_VERSION="$(sed -n 's/^ot-cast (\([^)]*\)).*/\1/p' debian/changelog | head -1)"
           if [ "${VERSION}" != "${CMAKE_VERSION}" ]; then
             echo "Tag ${TAG} does not match CMake version ${CMAKE_VERSION}" >&2
             exit 1
@@ -50,7 +50,7 @@ jobs:
             echo "Tag ${TAG} does not match debian/changelog ${CHANGELOG_VERSION}" >&2
             exit 1
           fi
-          PREFIX="deepin-miracast-${VERSION}"
+          PREFIX="ot-cast-${VERSION}"
           git archive --format=tar.gz --prefix="${PREFIX}/" -o "${PREFIX}.tar.gz" HEAD
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tarball=${PREFIX}.tar.gz" >> "${GITHUB_OUTPUT}"
@@ -58,12 +58,12 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: deepin-miracast ${{ steps.archive.outputs.version }}
+          name: Cast ${{ steps.archive.outputs.version }}
           generate_release_notes: true
           files: ${{ steps.archive.outputs.tarball }}
           fail_on_unmatched_files: true
           body: |
-            Source release of deepin-miracast ${{ steps.archive.outputs.version }}.
+            Source release of Cast (ot-cast) ${{ steps.archive.outputs.version }}.
 
             Build a `.deb` on Deepin / a DTK6 system:
 

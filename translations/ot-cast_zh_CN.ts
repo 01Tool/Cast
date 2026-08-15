@@ -4,14 +4,14 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="../src/main.cpp" line="22"/>
-        <source>Miracast</source>
-        <translation>无线投屏</translation>
+        <location filename="../src/main.cpp" line="26"/>
+        <source>Cast</source>
+        <translation>投屏</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="23"/>
-        <source>Mirror this computer to a Miracast wireless display.</source>
-        <translation>将此计算机的屏幕镜像到 Miracast 无线显示器。</translation>
+        <location filename="../src/main.cpp" line="27"/>
+        <source>Cast this screen to a TV or wireless display.</source>
+        <translation>将此计算机的屏幕投到电视或无线显示器。</translation>
     </message>
 </context>
 <context>
@@ -166,103 +166,103 @@
     <name>MainWindow</name>
     <message>
         <location filename="../src/ui/mainwindow.cpp" line="37"/>
-        <source>Miracast</source>
-        <translation>无线投屏</translation>
+        <source>Cast</source>
+        <translation>投屏</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="75"/>
+        <location filename="../src/ui/mainwindow.cpp" line="76"/>
         <source>Monitor</source>
         <translation>显示器</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="87"/>
+        <location filename="../src/ui/mainwindow.cpp" line="88"/>
         <source>Include system audio</source>
         <translation>包含系统音频</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="101"/>
+        <location filename="../src/ui/mainwindow.cpp" line="102"/>
         <source>Scan</source>
         <translation>扫描</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="102"/>
-        <location filename="../src/ui/mainwindow.cpp" line="285"/>
+        <location filename="../src/ui/mainwindow.cpp" line="103"/>
+        <location filename="../src/ui/mainwindow.cpp" line="286"/>
         <source>Connect</source>
         <translation>连接</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="103"/>
+        <location filename="../src/ui/mainwindow.cpp" line="104"/>
         <source>Disconnect</source>
         <translation>断开</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="122"/>
+        <location filename="../src/ui/mainwindow.cpp" line="123"/>
         <source>Display server: unknown</source>
         <translation>显示服务器：未知</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="125"/>
+        <location filename="../src/ui/mainwindow.cpp" line="126"/>
         <source>Display server: X11</source>
         <translation>显示服务器：X11</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="128"/>
+        <location filename="../src/ui/mainwindow.cpp" line="129"/>
         <source>Display server: Wayland</source>
         <translation>显示服务器：Wayland</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="171"/>
+        <location filename="../src/ui/mainwindow.cpp" line="172"/>
         <source>No Miracast displays found</source>
         <translation>未找到 Miracast 显示器</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="190"/>
+        <location filename="../src/ui/mainwindow.cpp" line="191"/>
         <source>P2P · no WFD IEs</source>
         <translation>P2P · 无 WFD 信息元素</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="191"/>
+        <location filename="../src/ui/mainwindow.cpp" line="192"/>
         <source>%1 · no WFD IEs</source>
         <translation>%1 · 无 WFD 信息元素</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="272"/>
+        <location filename="../src/ui/mainwindow.cpp" line="273"/>
         <source>the display</source>
         <translation>显示器</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="279"/>
+        <location filename="../src/ui/mainwindow.cpp" line="280"/>
         <source>Enter pairing PIN</source>
         <translation>输入配对 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="280"/>
+        <location filename="../src/ui/mainwindow.cpp" line="281"/>
         <source>Enter the PIN shown on %1.</source>
         <translation>请输入 %1 上显示的 PIN。</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="282"/>
+        <location filename="../src/ui/mainwindow.cpp" line="283"/>
         <source>4 or 8 digit PIN</source>
         <translation>4 位或 8 位 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="286"/>
-        <location filename="../src/ui/mainwindow.cpp" line="310"/>
+        <location filename="../src/ui/mainwindow.cpp" line="287"/>
+        <location filename="../src/ui/mainwindow.cpp" line="311"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="301"/>
+        <location filename="../src/ui/mainwindow.cpp" line="302"/>
         <source>Enter a 4- or 8-digit PIN</source>
         <translation>请输入 4 位或 8 位 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="308"/>
+        <location filename="../src/ui/mainwindow.cpp" line="309"/>
         <source>Confirm pairing</source>
         <translation>确认配对</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="309"/>
+        <location filename="../src/ui/mainwindow.cpp" line="310"/>
         <source>Confirm the pairing request on %1.</source>
         <translation>请在 %1 上确认配对请求。</translation>
     </message>

@@ -73,7 +73,7 @@ void P2PSession::activate(const SinkDevice &sink)
 
     QVariantMap general;
     general.insert(QStringLiteral("type"), QStringLiteral("wifi-p2p"));
-    general.insert(QStringLiteral("id"), QStringLiteral("Miracast %1").arg(sink.address));
+    general.insert(QStringLiteral("id"), QStringLiteral("Cast %1").arg(sink.address));
     general.insert(QStringLiteral("autoconnect"), false);
     const QString user = QProcessEnvironment::systemEnvironment().value(QStringLiteral("USER"));
     if (!user.isEmpty()) {

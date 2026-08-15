@@ -44,6 +44,6 @@ jobs:
           test -x debian/rules
           grep -q 'debhelper-compat (= 13)' debian/control
           grep -q 'libdtk6widget-dev' debian/control
-          grep -q 'org.deepin.miracast.desktop' CMakeLists.txt
-          test -f data/org.deepin.miracast.desktop
-          desktop-file-validate data/org.deepin.miracast.desktop || true
+          grep -q 'com.01tool.cast.desktop' CMakeLists.txt
+          test -f data/com.01tool.cast.desktop
+          desktop-file-validate data/com.01tool.cast.desktop || true

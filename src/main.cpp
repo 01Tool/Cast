@@ -16,17 +16,18 @@ DGUI_USE_NAMESPACE
 int main(int argc, char *argv[])
 {
     DApplication app(argc, argv);
-    app.setOrganizationName(QStringLiteral("deepin"));
-    app.setApplicationName(QStringLiteral("deepin-miracast"));
+    app.setOrganizationName(QStringLiteral("01tool"));
+    app.setApplicationName(QStringLiteral("ot-cast"));
     app.setApplicationVersion(QStringLiteral("0.1.0"));
-    app.setProductIcon(DIconTheme::findQIcon(QStringLiteral("deepin-miracast"),
+    app.setApplicationHomePage(QStringLiteral("https://01tool.com"));
+    app.setProductIcon(DIconTheme::findQIcon(QStringLiteral("ot-cast"),
                                               DIconTheme::findQIcon(QStringLiteral("video-display"))));
     app.loadTranslator();
-    app.setProductName(QCoreApplication::translate("Application", "Miracast"));
+    app.setProductName(QCoreApplication::translate("Application", "Cast"));
     app.setApplicationDescription(QCoreApplication::translate(
-        "Application", "Mirror this computer to a Miracast wireless display."));
+        "Application", "Cast this screen to a TV or wireless display."));
 
-    if (!app.setSingleInstance(QStringLiteral("org.deepin.miracast"))) {
+    if (!app.setSingleInstance(QStringLiteral("com.01tool.cast"))) {
         qWarning() << "Another instance is running";
         return 0;
     }

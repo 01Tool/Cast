@@ -1,6 +1,6 @@
-# Miracast DTK App
+# Cast (`ot-cast`)
 
-A DTK desktop app that mirrors the local screen to Miracast (Wi-Fi Display) sinks, on both X11 and Wayland.
+A 01tool DTK app that casts the local screen to a wireless display. The first backend is Miracast (Wi-Fi Display) on X11, with a Wayland capture stub. DLNA and other same-LAN protocols may follow as extra backends — they are not Miracast.
 
 This folder currently holds the feasibility and architecture notes. Implementation has not started.
 
@@ -30,7 +30,7 @@ sudo apt install \
 
 cmake -S . -B build
 cmake --build build
-./build/deepin-miracast
+./build/ot-cast
 ```
 
 Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), WFD RTSP on port 7236, and X11 grab of the **selected monitor** → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Optional system audio (AAC-LC from the Pulse/PipeWire default-sink monitor) when the sink advertises AAC.
@@ -63,7 +63,7 @@ Only one format:
 
 Artifacts land in `dist/`. `scripts/package.sh --help` lists jobs, output dir, and clean flags.
 
-Debian packaging lives in `debian/` (debhelper + CMake, DTK6). You can still call `dpkg-buildpackage -us -uc -b` by hand. That installs the binary to `/usr/bin/deepin-miracast`, translations to `/usr/share/deepin-miracast/translations`, and the desktop file plus SVG icon into the applications menu.
+Debian packaging lives in `debian/` (debhelper + CMake, DTK6). You can still call `dpkg-buildpackage -us -uc -b` by hand. That installs the binary to `/usr/bin/ot-cast`, translations to `/usr/share/ot-cast/translations`, and the desktop file plus SVG icon into the applications menu.
 
 The AppImage bundles Qt 6 and DTK6. It still needs host NetworkManager, `ffmpeg` or `gst-launch-1.0`, and `pactl`.
 
