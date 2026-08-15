@@ -10,7 +10,7 @@ Projects and docs that this design builds on. Prefer reuse over a new WFD implem
 | [linuxdeepin/dde-tray-loader](https://github.com/linuxdeepin/dde-tray-loader) | Ships the **无线投屏** (`wireless-casting`) quick-panel plugin and icons. |
 | [linuxdeepin/xdg-desktop-portal-dde](https://github.com/linuxdeepin/xdg-desktop-portal-dde) | DDE portal backend. Confirm ScreenCast vs Screenshot on the target version. |
 | [linuxdeepin/treeland](https://github.com/linuxdeepin/treeland) | DDE Wayland compositor (wlroots + QtQuick). Capture must go through it or a portal backend. |
-| [DTK development skill](file:///home/playhi/.agents/skills/deepin-skills/dtk-development/SKILL.md) | App CMake, `DApplication` / `DMainWindow`, platform detection, packaging. |
+| DTK development skill (`~/.agents/skills/deepin/dtk-development/SKILL.md`) | App CMake, `DApplication` / `DMainWindow`, platform detection, packaging. |
 
 deepin 23 release notes introduced wireless screen casting in the quick panel and later fixed the plugin’s incomplete options display.
 
@@ -95,14 +95,14 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `docs/architecture.md` first cut §3 | X11 + GStreamer WFD send; widgets stay off the pipeline | `src/session/wfdvideomode.*`; `src/engine/castengine.cpp` `onPlayRequested` |
 | 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-params.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-params.c) | CEA / VESA / HH `resolution_table` bit maps | `src/session/wfdvideomode.cpp` `kCea` / `kVesa` / `kHh` |
 | 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-media-factory.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-media-factory.c) | `videoscale` to negotiated raw size before `x264enc` | `src/session/gstencoder.cpp` `startGst` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/SKILL.md` | DTK6-only app; Qt logs; no widget-layer protocol work | this change stays in `src/session` / `src/engine` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` | CMake `add_executable` + `Qt6::Core` test helper | `CMakeLists.txt` `wfdvideomode-check` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/SKILL.md` | DTK6-only app; Qt logs; no widget-layer protocol work | this change stays in `src/session` / `src/engine` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` | CMake `add_executable` + `Qt6::Core` test helper | `CMakeLists.txt` `wfdvideomode-check` |
 | 2026-08-15 | `docs/constraints.md` §5 | AAC + Pulse/PipeWire + clock sync; video-only still valid | `src/session/wfdaudiomode.cpp` `selectWfdAudioMode`; `src/session/gstencoder.cpp` `start` |
 | 2026-08-15 | `docs/architecture.md` UI / Encode | Audio toggle via CastEngine; H.264 + AAC | `src/engine/castengine.cpp` `setAudioEnabled`; `src/ui/mainwindow.cpp` `setupUi` |
 | 2026-08-15 | `docs/platform/x11.md` Audio | Default-sink monitor; AAC in the same MPEG-TS | `src/session/gstencoder.cpp` `desktopPulseMonitor` / `startGst` / `startFfmpeg` |
 | 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-params.c`](https://github.com/GNOME/gnome-network-displays/blob/master/src/wfd/wfd-params.c) | AAC bitmap: bit 0 = 48 kHz 2ch, bit 1 = 44.1 kHz 2ch | `src/session/wfdaudiomode.cpp` `kAac48k` / `kAac441k` |
 | 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-media-factory.c`](https://github.com/GNOME/gnome-network-displays/blob/master/src/wfd/wfd-media-factory.c) | `pulsesrc provide-clock=true` + AAC into `mpegtsmux` | `src/session/gstencoder.cpp` `startGst` audio branch |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/button.md` | `DSwitchButton` + `checkedChanged` | `src/ui/mainwindow.cpp` `setupUi` / `bindEngine` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/button.md` | `DSwitchButton` + `checkedChanged` | `src/ui/mainwindow.cpp` `setupUi` / `bindEngine` |
 | 2026-08-15 | local `pactl get-default-sink` + Pulse monitor naming | System audio is `${default_sink}.monitor`, not the mic | `src/session/gstencoder.cpp` `desktopPulseMonitor` |
 | 2026-08-15 | `ffmpeg -f pulse` / `aac` / `aresample=async=1` | Pulse capture, AAC-LC, light A/V drift correction | `src/session/gstencoder.cpp` `startFfmpeg` |
 | 2026-08-15 | `docs/platform/x11.md` Limits | One output, not the virtual desktop union; primary default | `src/engine/castengine.cpp` `refreshDisplays` / `selectedDisplay`; `src/session/gstencoder.cpp` `ximagesrcElement` / `startFfmpeg` |
@@ -110,20 +110,22 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | [Qt `QScreen`](https://doc.qt.io/qt-6/qscreen.html) | `geometry()`, `name()`, `manufacturer()` / `model()`, primary screen | `src/engine/castengine.cpp` `refreshDisplays` |
 | 2026-08-15 | [GStreamer `ximagesrc`](https://gstreamer.freedesktop.org/documentation/ximagesrc/index.html) | `startx` / `starty` / `endx` / `endy` inclusive crop | `src/capture/displaysource.h` `ximagesrcRegionProperties`; `src/session/gstencoder.cpp` `ximagesrcElement` |
 | 2026-08-15 | [ffmpeg x11grab](https://ffmpeg.org/ffmpeg-devices.html#x11grab) | `-video_size WxH -i :0+x,y` | `src/capture/displaysource.h` `x11grabSize` / `x11grabInputSpecifier`; `src/session/gstencoder.cpp` `startFfmpeg` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DComboBox` + `currentIndexChanged` | `src/ui/mainwindow.cpp` `setupUi` / `refreshDisplayList` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/index.md` | Dropdown selection → `DComboBox` | `src/ui/mainwindow.cpp` monitor row |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DComboBox` + `currentIndexChanged` | `src/ui/mainwindow.cpp` `setupUi` / `refreshDisplayList` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/index.md` | Dropdown selection → `DComboBox` | `src/ui/mainwindow.cpp` monitor row |
 | 2026-08-15 | `docs/architecture.md` UI pairing prompts | Pairing stays in CastEngine; widgets do not call NM | `src/session/nmsecretagent.*`; `src/engine/castengine.cpp` `bindPairing`; `src/ui/mainwindow.cpp` `onPairingRequested` |
 | 2026-08-15 | local `man nm-settings-dbus` wifi-p2p | `wps-method` uint32; default/AUTO lets NM pick PBC or PIN | `src/session/p2psession.cpp` `activate` `wifi-p2p.wps-method` |
 | 2026-08-15 | [NM AgentManager](https://networkmanager.dev/docs/api/1.44.4/gdbus-org.freedesktop.NetworkManager.AgentManager.html) | `Register` / `Unregister` identifier | `src/session/nmsecretagent.cpp` ctor / `unregisterAgent` |
 | 2026-08-15 | [NM SecretAgent](https://networkmanager.dev/docs/api/1.44.4/gdbus-org.freedesktop.NetworkManager.SecretAgent.html) | `GetSecrets` `a{sa{sv}}`, delayed PIN reply, `CancelGetSecrets`, `ALLOW_INTERACTION` / `WPS_PBC_ACTIVE` | `src/session/nmsecretagent.cpp` `handleGetSecrets` / `providePin` |
 | 2026-08-15 | local `man nm-settings-dbus` 802-11-wireless-security | WPS PIN is the `pin` secret | `src/session/nmsecretagent.cpp` `providePin` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/dialog.md` | `DDialog` + `addContent` + `ButtonRecommend` | `src/ui/mainwindow.cpp` `onPairingRequested` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DLineEdit` alert / placeholder | `src/ui/mainwindow.cpp` `onPairingRequested` PIN field |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `loadTranslator()` before UI; QM basename = `applicationName` | `src/main.cpp` `main`; `CMakeLists.txt` `qt6_add_translation`; `translations/deepin-miracast_zh_CN.ts` / `zh_TW.ts` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.2 | Translator basename matches `applicationName`; no `tr()` for units | `src/main.cpp` `deepin-miracast`; `translations/deepin-miracast_*.ts` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/dialog.md` | `DDialog` + `addContent` + `ButtonRecommend` | `src/ui/mainwindow.cpp` `onPairingRequested` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DLineEdit` alert / placeholder | `src/ui/mainwindow.cpp` `onPairingRequested` PIN field |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `loadTranslator()` before UI; QM basename = `applicationName` | `src/main.cpp` `main`; `CMakeLists.txt` `qt6_add_translation`; `translations/deepin-miracast_zh_CN.ts` / `zh_TW.ts` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.2 | Translator basename matches `applicationName`; no `tr()` for units | `src/main.cpp` `deepin-miracast`; `translations/deepin-miracast_*.ts` |
 | 2026-08-15 | `/usr/share/dde-clipboard/translations/` | Install `app_zh_CN.qm` / `app_zh_TW.qm` under `share/<app>/translations` | `CMakeLists.txt` `install(... share/deepin-miracast/translations)` |
-| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §4 | `Build-Depends` DTK6 `-dev` packages; runtime via `${shlibs:Depends}` | `debian/control` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §4 | `Build-Depends` DTK6 `-dev` packages; runtime via `${shlibs:Depends}` | `debian/control` |
 | 2026-08-15 | `/usr/share/applications/dde-file-manager.desktop` | `Type=Application`, `Exec`, `Icon`, `Categories`, `Name[zh_CN]` | `data/org.deepin.miracast.desktop` |
 | 2026-08-15 | [Debian debhelper compat 13](https://manpages.debian.org/bookworm/debhelper/debhelper.7.en.html) | `dh --buildsystem=cmake` | `debian/rules` |
 | 2026-08-15 | [softprops/action-gh-release](https://github.com/softprops/action-gh-release) | Tag `v*` → GitHub Release + source tarball | `.github/workflows/release.yml` |
 | 2026-08-15 | `docs/architecture.md` one-binary DTK6 app | Package the same binary; no MiracleCast | `debian/control` Description |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/theme/icontheme.md` | Look up the app icon by base name `deepin-miracast`; fallback `video-display` | `src/main.cpp` `setProductIcon`; `src/ui/mainwindow.cpp` title bar |
+| 2026-08-15 | `/usr/share/icons/hicolor/scalable/apps/dde-cooperation.svg` | Deepin-style rounded plate + content; XDG hicolor scalable | `data/icons/hicolor/scalable/apps/deepin-miracast.svg` |

@@ -35,7 +35,8 @@ MainWindow::MainWindow(CastEngine *engine, QWidget *parent)
 {
     setMinimumSize(640, 480);
     titlebar()->setTitle(tr("Miracast"));
-    titlebar()->setIcon(DIconTheme::findQIcon(QStringLiteral("video-display")));
+    titlebar()->setIcon(DIconTheme::findQIcon(QStringLiteral("deepin-miracast"),
+                                             DIconTheme::findQIcon(QStringLiteral("video-display"))));
     setupUi();
     bindEngine();
     updateActions();

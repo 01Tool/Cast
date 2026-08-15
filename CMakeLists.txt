@@ -65,6 +65,8 @@ add_custom_command(TARGET deepin-miracast POST_BUILD
 )
 install(FILES ${QM_FILES} DESTINATION share/deepin-miracast/translations)
 install(FILES data/org.deepin.miracast.desktop DESTINATION share/applications)
+install(FILES data/icons/hicolor/scalable/apps/deepin-miracast.svg
+        DESTINATION share/icons/hicolor/scalable/apps)
 endif()
 
 if(BUILD_CHECKS)
