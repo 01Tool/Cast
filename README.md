@@ -47,16 +47,25 @@ On this deepin image, `gstreamer1.0-plugins-bad` 1.24.6 ships `mpegtsmux`/`h264p
 
 ## Package
 
-Debian packaging lives in `debian/` (debhelper + CMake, DTK6). On a Deepin / DTK6 system:
+On a Deepin / DTK6 system, build both a `.deb` and an AppImage:
 
 ```bash
 sudo apt build-dep .
-dpkg-buildpackage -us -uc -b
+./scripts/package.sh
 ```
 
-That installs the binary to `/usr/bin/deepin-miracast`, translations to
-`/usr/share/deepin-miracast/translations`, and
-`data/org.deepin.miracast.desktop` into the applications menu.
+Only one format:
+
+```bash
+./scripts/package.sh --deb
+./scripts/package.sh --appimage
+```
+
+Artifacts land in `dist/`. `scripts/package.sh --help` lists jobs, output dir, and clean flags.
+
+Debian packaging lives in `debian/` (debhelper + CMake, DTK6). You can still call `dpkg-buildpackage -us -uc -b` by hand. That installs the binary to `/usr/bin/deepin-miracast`, translations to `/usr/share/deepin-miracast/translations`, and the desktop file plus SVG icon into the applications menu.
+
+The AppImage bundles Qt 6 and DTK6. It still needs host NetworkManager, `ffmpeg` or `gst-launch-1.0`, and `pactl`.
 
 ## Release
 

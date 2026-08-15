@@ -129,3 +129,7 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `docs/architecture.md` one-binary DTK6 app | Package the same binary; no MiracleCast | `debian/control` Description |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/theme/icontheme.md` | Look up the app icon by base name `deepin-miracast`; fallback `video-display` | `src/main.cpp` `setProductIcon`; `src/ui/mainwindow.cpp` title bar |
 | 2026-08-15 | `/usr/share/icons/hicolor/scalable/apps/dde-cooperation.svg` | Deepin-style rounded plate + content; XDG hicolor scalable | `data/icons/hicolor/scalable/apps/deepin-miracast.svg` |
+| 2026-08-15 | `docs/architecture.md` one binary, DTK UI only | Package the same DTK sender; do not ship MiracleCast | `scripts/package.sh` |
+| 2026-08-15 | [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) | AppDir + AppImage output; `--appimage-extract-and-run` without FUSE | `scripts/package.sh` `build_appimage` |
+| 2026-08-15 | [linuxdeploy-plugin-qt](https://github.com/linuxdeploy/linuxdeploy-plugin-qt) | Bundle Qt 6 plugins; `EXTRA_QT_PLUGINS` for styles | `scripts/package.sh` `build_appimage` |
+| 2026-08-15 | local `qmake6 -query QT_INSTALL_PLUGINS` | Chameleon style, DTK icon engines, `qdeepin` platform theme | `scripts/package.sh` `copy_qt_plugin` |

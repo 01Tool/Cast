@@ -1,4 +1,7 @@
 /build/
+/build-package/
+/dist/
+/obj-*/
 /cmake-build-*/
 compile_commands.json
 *.user
@@ -6,6 +9,7 @@ compile_commands.json
 .cache/
 CMakeUserPresets.json
 /debian/.debhelper/
+/debian/tmp/
 /debian/deepin-miracast/
 /debian/files
 /debian/*.debhelper.log
@@ -18,3 +22,4 @@ CMakeUserPresets.json
 /*.build
 /*.buildinfo
 /*.changes
+/*.AppImage
