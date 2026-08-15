@@ -12,21 +12,23 @@ Mandatory rules for every agent working in this repository. Read this file and t
 | [docs/platform/README.md](docs/platform/README.md) | Capture backend split |
 | [docs/platform/x11.md](docs/platform/x11.md) | X11 grab (`ximagesrc` / XShm) |
 | [docs/platform/wayland.md](docs/platform/wayland.md) | Portal + PipeWire; DDE ScreenCast gap |
-| [docs/constraints.md](docs/constraints.md) | Chipset, P2P, sinks, latency, audio |
+| [docs/constraints.md](docs/constraints.md) | Chipset, P2P vs DLNA, sinks, latency, audio |
+| [docs/protocols/README.md](docs/protocols/README.md) | Miracast vs DLNA transports |
 | [docs/references.md](docs/references.md) | Known projects **and** the usage log you must update |
 
 DTK conventions: `~/.agents/skills/deepin-skills/dtk-development/SKILL.md` and its `references/`. Load that skill when writing or packaging the app.
 
 ## Product facts (do not violate)
 
-- This is a **DTK sender** that mirrors the local screen to Miracast / Wi-Fi Display sinks.
-- **DTK is the UI only.** Discovery, P2P, WFD/RTSP, capture, encode, and RTP live in `CastEngine` and backends — not in widgets.
+- This is a **DTK sender** (product name **Cast**, binary `ot-cast`) that mirrors the local screen.
+- **Miracast / WFD** is the first transport (Wi-Fi Direct + RTSP + RTP). **DLNA DMR** is the planned same-LAN fallback. Both may appear in one device list; each row must show its protocol.
+- **DTK is the UI only.** Discovery, P2P, WFD/RTSP, UPnP, capture, encode, and send live in `CastEngine` and backends — not in widgets.
 - **Reuse**, do not rewrite WFD. Start from `linuxdeepin/deepin-network-displays` / GNOME Network Displays. Do **not** base the desktop app on MiracleCast.
 - **One binary, two capture backends.** Detect the session with `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform`.
 - **X11 first.** Implement `X11Capture`. Stub `PortalCapture` until DDE ScreenCast (or equivalent) exists.
 - **Never X11-grab on Wayland.** That only sees XWayland windows. Fail with a clear error if ScreenCast is missing.
-- Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, or GStreamer APIs directly.
-- True Miracast is **Wi-Fi Direct**, not “same LAN then stream.” Do not silently ship DLNA/Chromecast and call it Miracast.
+- Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, UPnP/SSDP, or GStreamer APIs directly.
+- True Miracast is **Wi-Fi Direct**, not “same LAN then stream.” DLNA is allowed as an **explicit** backend. Do not label a DMR as Miracast. Do not add Chromecast under either name.
 - Do not claim universal sink support or “low latency” without a measured device matrix.
 - Video-only is a valid first release. Audio (AAC + sync) is later.
 

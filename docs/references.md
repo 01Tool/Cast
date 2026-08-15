@@ -18,7 +18,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 
 | Project | Role |
 |---------|------|
-| [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Closest production open-source sender. Miracast + Chromecast. PipeWire portal, X11 fallback, NetworkManager P2P. Still described as experimental. |
+| [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Closest production open-source sender. Miracast + Chromecast (not DLNA). PipeWire portal, X11 fallback, NetworkManager P2P. Still described as experimental. |
 | [MiracleCast](https://github.com/albfan/miraclecast) | Low-level WFD toolkit. Poor desktop fit (often needs NM/wpa stopped). Do not use as the app base. |
 | [FluxCast](https://github.com/IlyaP358/fluxcast) | Newer Python WFD client; native wlroots path, ~1 s latency reported. Useful as a protocol reference, not as the DTK UI. |
 
@@ -32,6 +32,25 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | PipeWire + WirePlumber | Wayland (and modern X11) audio/video capture |
 | PulseAudio / `pipewire-pulse` | Default-sink `.monitor` for system audio |
 | `xdg-desktop-portal` | ScreenCast session on Wayland |
+| SSDP / UPnP AV / DLNA DMR | Same-LAN discovery (`MediaRenderer:1`) and `AVTransport` Play |
+| GUPnP / GSSDP / gupnp-av | Preferred C stack for SSDP + SOAP + DIDL-Lite when DLNA is implemented |
+
+## DLNA / UPnP
+
+| Project | Role |
+|---------|------|
+| [UPnP AV Architecture:1](https://upnp.org/specs/av/UPnP-av-AVArchitecture-v1.pdf) | Control Point + MediaRenderer + MediaServer roles; `SetAVTransportURI` then `Play` |
+| [AVTransport:2](https://www.upnp.org/specs/av/UPnP-av-AVTransport-v2-Service.pdf) | `SetAVTransportURI`, `Play`, `Stop`, `GetTransportInfo` |
+| [ConnectionManager](https://upnp.org/specs/av/UPnP-av-ConnectionManager-v3-Service-20101231.pdf) | `GetProtocolInfo` so the HTTP MIME/profile is not a guess |
+| [MediaRenderer:3](https://upnp.org/specs/av/UPnP-av-MediaRenderer-v3-Device-20101231.pdf) | Device template; first cut still searches `MediaRenderer:1` |
+| [DLNA guidelines](https://www.dlna.org/) | Historical media profiles and HTTP headers (`contentFeatures.dlna.org`). The alliance has dissolved; treat headers as de facto. |
+| [GNOME GUPnP](https://gitlab.gnome.org/GNOME/gupnp) | SOAP / device control-point stack |
+| [GNOME GSSDP](https://gitlab.gnome.org/GNOME/gssdp) | SSDP M-SEARCH / notify |
+| [GNOME gupnp-av](https://gitlab.gnome.org/GNOME/gupnp-av) | DIDL-Lite and ProtocolInfo helpers |
+| [Rygel](https://gitlab.gnome.org/GNOME/rygel) | Linux DMS/DMR; profile/header reference, not this app’s UI |
+| [link89/dlna-cast](https://github.com/link89/dlna-cast) | CLI proof: live desktop → HLS → `SetAVTransportURI`. Not the DTK UI. |
+
+Live desktop over DMR is HTTP pull, not WFD RTP. See [protocols/dlna.md](protocols/dlna.md). GNOME Network Displays does not implement this path (it has Chromecast instead). Do not add Chromecast here.
 
 ## Capture notes
 
@@ -48,6 +67,9 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 - [platform/x11.md](platform/x11.md)
 - [platform/wayland.md](platform/wayland.md)
 - [constraints.md](constraints.md)
+- [protocols/README.md](protocols/README.md)
+- [protocols/dlna.md](protocols/dlna.md)
+- [protocols/miracast.md](protocols/miracast.md)
 
 ## Where used
 
@@ -134,3 +156,22 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `applicationName` = binary; unique app ID for single-instance | `src/main.cpp` `ot-cast` / `com.01tool.cast` |
 | 2026-08-15 | [linuxdeploy-plugin-qt](https://github.com/linuxdeploy/linuxdeploy-plugin-qt) | Bundle Qt 6 plugins; `EXTRA_QT_PLUGINS` for styles | `scripts/package.sh` `build_appimage` |
 | 2026-08-15 | local `qmake6 -query QT_INSTALL_PLUGINS` | Chameleon style, DTK icon engines, `qdeepin` platform theme | `scripts/package.sh` `copy_qt_plugin` |
+| 2026-08-15 | `docs/architecture.md` two labeled transports | Capture shared; WFD first; DLNA planned; widgets off UPnP | [architecture.md](architecture.md) Layers / first cut §6; [AGENTS.md](../AGENTS.md) Product facts |
+| 2026-08-15 | `docs/constraints.md` §2 | True Miracast is P2P; many sinks are immature; DLNA is same-LAN | [constraints.md](constraints.md) §2–4, §7; [protocols/README.md](protocols/README.md) When to use which |
+| 2026-08-15 | `docs/feasibility.md` | DTK is UI only; DLNA is engine work, not in deepin-network-displays | [feasibility.md](feasibility.md) What DTK does not cover / Existing Deepin work |
+| 2026-08-15 | `docs/platform/x11.md` Approach | Same H.264 encode; WFD sends RTP, DLNA will serve HTTP | [platform/x11.md](platform/x11.md) Approach step 4 / Requirements |
+| 2026-08-15 | `docs/platform/wayland.md` Required path | Portal frames feed the same encode; transport is WFD or DLNA | [platform/wayland.md](platform/wayland.md) Required path / What the app should do now |
+| 2026-08-15 | `src/engine/sinkdevice.h` `SinkDevice` | WFD-only fields today; protocol tag required before DLNA lists | [architecture.md](architecture.md) Sink identity; [protocols/dlna.md](protocols/dlna.md) Engine fit |
+| 2026-08-15 | `src/engine/castengine.h` `SessionState` | Reuse Idle/Scanning/Connecting/Streaming; branch `connectToSink` | [protocols/dlna.md](protocols/dlna.md) Engine fit |
+| 2026-08-15 | [UPnP AV Architecture:1](https://upnp.org/specs/av/UPnP-av-AVArchitecture-v1.pdf) | Control Point + DMR; `SetAVTransportURI` then `Play` | [protocols/dlna.md](protocols/dlna.md) Role / Required path |
+| 2026-08-15 | [AVTransport:2](https://www.upnp.org/specs/av/UPnP-av-AVTransport-v2-Service.pdf) | `InstanceID` 0, `SetAVTransportURI`, `Play` Speed=1, `Stop` | [protocols/dlna.md](protocols/dlna.md) Required path |
+| 2026-08-15 | [ConnectionManager:3](https://upnp.org/specs/av/UPnP-av-ConnectionManager-v3-Service-20101231.pdf) | `GetProtocolInfo` before guessing MIME | [protocols/dlna.md](protocols/dlna.md) Required path / Limits |
+| 2026-08-15 | [MediaRenderer:3](https://upnp.org/specs/av/UPnP-av-MediaRenderer-v3-Device-20101231.pdf) | Device type; search still `MediaRenderer:1` | [protocols/dlna.md](protocols/dlna.md) Discovery URN |
+| 2026-08-15 | [DLNA.org](https://www.dlna.org/) | `contentFeatures.dlna.org` / `transferMode.dlna.org: Streaming`; alliance dissolved | [protocols/dlna.md](protocols/dlna.md) Required path step 3; this file DLNA table |
+| 2026-08-15 | [GNOME GUPnP](https://gitlab.gnome.org/GNOME/gupnp) | Preferred SOAP control-point stack | [protocols/dlna.md](protocols/dlna.md) Engine fit |
+| 2026-08-15 | [GNOME GSSDP](https://gitlab.gnome.org/GNOME/gssdp) | SSDP M-SEARCH on `239.255.255.250:1900` | [protocols/dlna.md](protocols/dlna.md) Required path |
+| 2026-08-15 | [GNOME gupnp-av](https://gitlab.gnome.org/GNOME/gupnp-av) | DIDL-Lite `CurrentURIMetaData` / ProtocolInfo helpers | [protocols/dlna.md](protocols/dlna.md) Engine fit |
+| 2026-08-15 | [Rygel](https://gitlab.gnome.org/GNOME/rygel) | Linux DMS/DMR; do not start as this app’s UI | [protocols/dlna.md](protocols/dlna.md) Engine fit |
+| 2026-08-15 | [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Miracast + Chromecast, not DLNA; do not copy Chromecast | [feasibility.md](feasibility.md) Existing Deepin work; [protocols/README.md](protocols/README.md) out of scope |
+| 2026-08-15 | [link89/dlna-cast](https://github.com/link89/dlna-cast) | Live x11grab → HLS → UPnP Play; CLI reference only | [protocols/dlna.md](protocols/dlna.md) Engine fit |
+| 2026-08-15 | `AGENTS.md` Product facts | Explicit DLNA backend; never label a DMR as Miracast | [README.md](../README.md) Verdict; [protocols/README.md](protocols/README.md) |

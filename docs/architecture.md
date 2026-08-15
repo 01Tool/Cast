@@ -1,16 +1,22 @@
 # Architecture
 
-One DTK process, a display-server-agnostic cast engine, and two capture backends. Widgets never call X11 or Wayland capture APIs directly.
+One DTK process, a display-server-agnostic cast engine, two capture backends, and **two labeled transports**. Widgets never call X11, Wayland, NetworkManager, or UPnP APIs directly.
+
+Miracast (Wi-Fi Direct + WFD) is the first transport. Many TVs and Linux chipsets implement it poorly, so DLNA Digital Media Renderer on the same LAN is the planned fallback. The device list must show the protocol. Do not present a DMR as a Miracast sink. See [protocols/README.md](protocols/README.md).
 
 ## Layers
 
 ```
 DTK UI  (DApplication + DMainWindow)
-    │  scan / connect / status / errors
+    │  scan / connect / status / errors  (protocol visible on each row)
     ▼
 CastEngine (Qt, display-server agnostic)
-    ├── Discovery: NetworkManager P2P / wpa_supplicant WFD IEs
-    ├── Session:   WFD RTSP (reuse existing GStreamer WFD bits)
+    ├── Discovery:
+    │     P2P  → NetworkManager + wpa_supplicant WFD IEs
+    │     DLNA → SSDP MediaRenderer   (planned)
+    ├── Session:
+    │     WFD  → RTSP :7236 + RTP
+    │     DLNA → HTTP stream + AVTransport Play   (planned)
     └── Capture:
           X11     → ximagesrc / XShm
           Wayland → portal + PipeWire  (requires ScreenCast backend)
@@ -23,14 +29,14 @@ Detect the session with `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandP
 Responsibilities:
 
 - Native DDE window (`DApplication`, `DMainWindow`, title bar, icons)
-- Device list and refresh
-- Connect / disconnect, pairing prompts (WPS PIN or confirm-on-TV), error dialogs
+- Device list and refresh, with a **Miracast** or **DLNA** mark on each row
+- Connect / disconnect, pairing prompts (WPS PIN or confirm-on-TV for P2P only), error dialogs
 - Session status (searching, connecting, mirroring, failed)
 - Optional: remember last sink (DConfig)
 - Choose which monitor to mirror
 - Toggle system audio (AAC when the sink supports it)
 
-The UI talks only to `CastEngine` signals and slots (or an equivalent Qt interface). It does not open NetworkManager, GStreamer, or portal connections itself.
+The UI talks only to `CastEngine` signals and slots (or an equivalent Qt interface). It does not open NetworkManager, GStreamer, portal, or UPnP connections itself.
 
 Suggested CMake baseline (DTK6): `Qt6::Core`, `Qt6::Widgets`, `Dtk6::Core`, `Dtk6::Gui`, `Dtk6::Widget`. Add GStreamer / libnm / portal packages when the engine is wired.
 
@@ -38,22 +44,25 @@ Suggested CMake baseline (DTK6): `Qt6::Core`, `Qt6::Widgets`, `Dtk6::Core`, `Dtk
 
 A Qt object that owns the session state machine:
 
-1. **Idle** — Wi-Fi / P2P capability check
-2. **Scanning** — P2P peers with WFD IEs
-3. **Connecting** — P2P group + RTSP SETUP
-4. **Streaming** — capture → encode → RTP
-5. **Failed / Stopped** — teardown, restore Wi-Fi if needed
+1. **Idle** — Wi-Fi / P2P / LAN capability check
+2. **Scanning** — P2P peers with WFD IEs **and** (later) SSDP MediaRenderers
+3. **Connecting** — P2P group + RTSP, **or** HTTP + AVTransport
+4. **Streaming** — capture → encode → RTP **or** HTTP
+5. **Failed / Stopped** — teardown; restore STA Wi-Fi after a P2P session
 
 Subsystems:
 
 | Subsystem | Role | Preferred implementation |
 |-----------|------|--------------------------|
-| Discovery | List Miracast sinks | NetworkManager P2P + `wpa_supplicant` WFD IEs |
-| Pairing | WPS PIN / PBC | NM SecretAgent in-process; UI only through CastEngine |
-| Session | WFD RTSP handshake | GStreamer WFD elements from GNOME / deepin-network-displays |
+| Discovery (WFD) | List Miracast sinks | NetworkManager P2P + `wpa_supplicant` WFD IEs |
+| Discovery (DLNA) | List MediaRenderers | SSDP; planned, see [protocols/dlna.md](protocols/dlna.md) |
+| Pairing | WPS PIN / PBC | NM SecretAgent; P2P only |
+| Session (WFD) | WFD RTSP handshake | GStreamer WFD bits from GNOME / deepin-network-displays |
+| Session (DLNA) | HTTP + `SetAVTransportURI` | Planned `DlnaSession` |
+| Sink identity | Protocol on every row | Extend `SinkDevice` with `Miracast` / `Dlna` (today it is WFD-only) |
 | Capture | Frames + optional system audio | Backend interface + Pulse/PipeWire monitor |
 | Encode | H.264 + AAC-LC | GStreamer (`x264enc` / `avenc_aac`) or ffmpeg |
-| Transport | RTP/UDP to sink | GStreamer RTSP/RTP pipeline |
+| Transport | RTP or HTTP | Same encoder, different mux/send path |
 
 Do not start from MiracleCast for a desktop app. It often requires stopping NetworkManager / `wpa_supplicant` and has a poor UX fit.
 
@@ -82,14 +91,16 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 3. X11 capture + GStreamer WFD send path (reuse deepin/GNOME network-displays where possible).
 4. Wayland `PortalCapture` stub that reports “ScreenCast unavailable”.
 5. Hardware-encoder tuning after video, optional AAC, and a monitor picker work.
+6. DLNA: SSDP list + HTTP live push to MediaRenderers, tagged in the UI. Use this when P2P/WFD is missing or unstable. See [protocols/dlna.md](protocols/dlna.md).
 
-This order ships a usable X11 product without blocking on Treeland portal work.
+This order ships a usable X11 Miracast product first, then covers TVs that only do DMR well, without blocking on Treeland portal work.
 
 ## What not to put in widgets
 
 - `XOpenDisplay`, `XShmGetImage`, GStreamer `ximagesrc` setup
 - `xdg-desktop-portal` D-Bus calls
 - NetworkManager / `wpa_supplicant` D-Bus
+- SSDP / UPnP SOAP / local HTTP bind
 - Encoder bitrate / RTP socket details
 
 Those belong in `CastEngine` and the capture backends so X11 and Wayland stay swappable.

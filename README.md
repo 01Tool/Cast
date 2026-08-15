@@ -1,22 +1,21 @@
 # Cast (`ot-cast`)
 
-A 01tool DTK app that casts the local screen to a wireless display. The first backend is Miracast (Wi-Fi Display) on X11, with a Wayland capture stub. DLNA and other same-LAN protocols may follow as extra backends — they are not Miracast.
-
-This folder currently holds the feasibility and architecture notes. Implementation has not started.
+A 01tool DTK app that casts the local screen to a wireless display. The first backend is **Miracast** (Wi-Fi Display) on X11, with a Wayland capture stub. **DLNA** Digital Media Renderer on the same LAN is the planned fallback for TVs that do not implement WFD well. The UI must name the protocol; DLNA is not Miracast. See [docs/protocols/README.md](docs/protocols/README.md).
 
 ## Verdict
 
-A DTK app can provide this feature. DTK only covers the UI. Miracast itself is a system-level stack (Wi-Fi Direct, WFD/RTSP, capture, encode, RTP).
+A DTK app can provide this feature. DTK only covers the UI. Miracast (Wi-Fi Direct, WFD/RTSP, RTP) and DLNA (SSDP, HTTP, AVTransport) are engine work.
 
 | Goal | Feasible? |
 |------|-----------|
 | DTK app that looks native on DDE | Yes |
 | Mirror to many Miracast TVs/dongles on **X11** | Yes, with hardware caveats |
-| Same feature on **Wayland / Treeland** | Only after ScreenCast (or equivalent) exists |
+| Reach TVs that only do **DLNA** well | Yes, as a labeled same-LAN backend (planned) |
+| Same capture on **Wayland / Treeland** | Only after ScreenCast (or equivalent) exists |
 | One binary, both sessions, degrade gracefully | Yes — that should be the design |
 | Windows-quality “it just works” on every sink | No, not with current Linux WFD |
 
-**Bottom line:** the DTK app is the easy part. The feature is satisfied on X11 if an existing WFD stack is reused and chipset/sink limits are accepted. Wayland support is a desktop-environment dependency, not a DTK one.
+**Bottom line:** the DTK app is the easy part. X11 Miracast works when WFD is reused and chipset limits are accepted. DLNA is the fallback when P2P/WFD is immature. Wayland capture is a desktop-environment dependency.
 
 Recommended first cut: DTK shell + X11 capture + NetworkManager P2P discovery, with a Wayland capture backend stubbed until the portal is ready.
 
@@ -80,7 +79,10 @@ Push a tag that matches `CMakeLists.txt` and `debian/changelog` (for example `v0
 | Recommended layers and first implementation cut | [docs/architecture.md](docs/architecture.md) |
 | X11 screen capture | [docs/platform/x11.md](docs/platform/x11.md) |
 | Wayland / Treeland screen capture | [docs/platform/wayland.md](docs/platform/wayland.md) |
-| Hardware, P2P, sink, latency, and audio limits | [docs/constraints.md](docs/constraints.md) |
+| Hardware, P2P vs DLNA, sink, latency, and audio limits | [docs/constraints.md](docs/constraints.md) |
+| Miracast vs DLNA transports | [docs/protocols/README.md](docs/protocols/README.md) |
+| Miracast / Wi-Fi Display | [docs/protocols/miracast.md](docs/protocols/miracast.md) |
+| DLNA / UPnP AV (planned) | [docs/protocols/dlna.md](docs/protocols/dlna.md) |
 | Existing projects and Deepin pieces to reuse | [docs/references.md](docs/references.md) |
 
 ## Existing Deepin pieces

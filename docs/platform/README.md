@@ -1,6 +1,6 @@
 # Platform capture
 
-Screen capture is the only layer that must branch on the display server. Discovery, WFD/RTSP, encode, and RTP stay shared.
+Screen capture is the only layer that must branch on the display server. Encode is shared. Discovery and send are **not**: Miracast uses P2P + RTP; DLNA uses SSDP + HTTP. See [../protocols/README.md](../protocols/README.md).
 
 | Session | Document | First cut |
 |---------|----------|-----------|
