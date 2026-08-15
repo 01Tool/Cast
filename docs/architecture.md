@@ -24,7 +24,7 @@ Responsibilities:
 
 - Native DDE window (`DApplication`, `DMainWindow`, title bar, icons)
 - Device list and refresh
-- Connect / disconnect, pairing prompts, error dialogs
+- Connect / disconnect, pairing prompts (WPS PIN or confirm-on-TV), error dialogs
 - Session status (searching, connecting, mirroring, failed)
 - Optional: remember last sink (DConfig)
 - Choose which monitor to mirror
@@ -49,6 +49,7 @@ Subsystems:
 | Subsystem | Role | Preferred implementation |
 |-----------|------|--------------------------|
 | Discovery | List Miracast sinks | NetworkManager P2P + `wpa_supplicant` WFD IEs |
+| Pairing | WPS PIN / PBC | NM SecretAgent in-process; UI only through CastEngine |
 | Session | WFD RTSP handshake | GStreamer WFD elements from GNOME / deepin-network-displays |
 | Capture | Frames + optional system audio | Backend interface + Pulse/PipeWire monitor |
 | Encode | H.264 + AAC-LC | GStreamer (`x264enc` / `avenc_aac`) or ffmpeg |

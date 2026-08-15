@@ -85,6 +85,8 @@ void P2PSession::activate(const SinkDevice &sink)
     QVariantMap p2p;
     p2p.insert(QStringLiteral("peer"), sink.address);
     p2p.insert(QStringLiteral("wfd-ies"), QByteArray::fromHex(kWfdIesHex));
+    // NM_SETTING_WIRELESS_SECURITY_WPS_METHOD_AUTO: NM picks PBC or PIN.
+    p2p.insert(QStringLiteral("wps-method"), quint32(0x2));
     conn.insert(QStringLiteral("wifi-p2p"), p2p);
 
     QVariantMap ipv4;

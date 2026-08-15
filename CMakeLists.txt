@@ -18,6 +18,7 @@ add_executable(deepin-miracast
     src/engine/castengine.cpp
     src/discovery/p2pdiscovery.cpp
     src/session/p2psession.cpp
+    src/session/nmsecretagent.cpp
     src/session/wfdserver.cpp
     src/session/wfdvideomode.cpp
     src/session/wfdaudiomode.cpp

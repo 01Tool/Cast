@@ -4,6 +4,7 @@
 #include "capture/x11capture.h"
 #include "discovery/p2pdiscovery.h"
 #include "session/gstencoder.h"
+#include "session/nmsecretagent.h"
 #include "session/p2psession.h"
 #include "session/wfdserver.h"
 
@@ -22,6 +23,7 @@ CastEngine::CastEngine(QObject *parent)
     selectCaptureBackend();
     bindDiscovery();
     bindSession();
+    bindPairing();
     watchScreens();
     refreshDisplays();
     setStatusMessage(QStringLiteral("Idle. Scan to search for Miracast displays."));
@@ -91,6 +93,37 @@ DisplaySource CastEngine::selectedDisplay() const
     if (chosen.isValid())
         return chosen;
     return primaryDisplay();
+}
+
+void CastEngine::submitPairingPin(const QString &pin)
+{
+    if (m_secrets)
+        m_secrets->providePin(pin);
+}
+
+void CastEngine::cancelPairing()
+{
+    if (m_secrets)
+        m_secrets->cancel();
+}
+
+void CastEngine::bindPairing()
+{
+    m_secrets = std::make_unique<NmSecretAgent>();
+    connect(m_secrets.get(), &NmSecretAgent::pairingRequested, this,
+            [this](NmSecretAgent::PairingKind kind, const QString &sinkName) {
+                const PairingKind uiKind = (kind == NmSecretAgent::PairingKind::Pin)
+                    ? PairingKind::Pin
+                    : PairingKind::PushButton;
+                if (uiKind == PairingKind::Pin)
+                    setStatusMessage(QStringLiteral("Enter the pairing PIN for %1…").arg(sinkName));
+                else
+                    setStatusMessage(QStringLiteral("Confirm pairing on %1…").arg(sinkName));
+                Q_EMIT pairingRequested(uiKind, sinkName);
+            });
+    connect(m_secrets.get(), &NmSecretAgent::pairingFinished, this, [this]() {
+        Q_EMIT pairingFinished();
+    });
 }
 
 void CastEngine::setSelectedDisplayId(const QString &id)
@@ -335,6 +368,7 @@ void CastEngine::teardownSession()
     if (m_tearingDown)
         return;
     m_tearingDown = true;
+    cancelPairing();
     m_connectTimer.stop();
     if (m_encoder)
         m_encoder->stop();

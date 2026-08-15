@@ -68,3 +68,4 @@ Prefer:
 - X11 grab can capture the whole desktop without a user picker.
 - Wayland capture should go through the portal so the user consents and can choose a monitor.
 - P2P groups are a new L2 network; firewall rules that assume “only the AP” will break the RTP/RTSP path (a common GNOME Network Displays support issue).
+- Many sinks use WPS push-button; others show an 8-digit PIN on the TV. The app registers an in-process NetworkManager SecretAgent so those prompts stay in the DTK window instead of depending on nm-applet.

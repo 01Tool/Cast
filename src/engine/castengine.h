@@ -13,6 +13,7 @@
 
 class CaptureBackend;
 class GstEncoder;
+class NmSecretAgent;
 class P2PDiscovery;
 class P2PSession;
 class WfdServer;
@@ -39,6 +40,12 @@ public:
     };
     Q_ENUM(DisplayServer)
 
+    enum class PairingKind {
+        Pin,
+        PushButton,
+    };
+    Q_ENUM(PairingKind)
+
     explicit CastEngine(QObject *parent = nullptr);
     ~CastEngine() override;
 
@@ -59,6 +66,8 @@ public Q_SLOTS:
     void disconnectFromSink();
     void setAudioEnabled(bool enabled);
     void setSelectedDisplayId(const QString &id);
+    void submitPairingPin(const QString &pin);
+    void cancelPairing();
 
 Q_SIGNALS:
     void stateChanged(CastEngine::SessionState state);
@@ -68,6 +77,8 @@ Q_SIGNALS:
     void audioEnabledChanged(bool enabled);
     void displaysChanged();
     void selectedDisplayChanged(const QString &id);
+    void pairingRequested(CastEngine::PairingKind kind, const QString &sinkName);
+    void pairingFinished();
 
 private:
     void setState(SessionState state);
@@ -75,6 +86,7 @@ private:
     void selectCaptureBackend();
     void bindDiscovery();
     void bindSession();
+    void bindPairing();
     void onPeersChanged();
     void onScanFinished();
     void onP2PActivated(const QString &localIpv4);
@@ -98,6 +110,7 @@ private:
     std::unique_ptr<P2PSession> m_p2p;
     std::unique_ptr<WfdServer> m_wfd;
     std::unique_ptr<GstEncoder> m_encoder;
+    std::unique_ptr<NmSecretAgent> m_secrets;
     QTimer m_connectTimer;
     QVector<DisplaySource> m_displays;
     QString m_selectedDisplayId;

@@ -26,7 +26,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 
 | Component | Why it matters |
 |-----------|----------------|
-| NetworkManager ≥ 1.15.2 | P2P together with `wpa_supplicant` (not `iwd`) |
+| NetworkManager ≥ 1.15.2 | P2P together with `wpa_supplicant` (not `iwd`); SecretAgent for WPS PIN/PBC |
 | `wpa_supplicant` | `CONFIG_P2P` + `CONFIG_WIFI_DISPLAY` |
 | GStreamer + `gst-rtsp-server` | Capture, H.264, RTSP/RTP |
 | PipeWire + WirePlumber | Wayland (and modern X11) audio/video capture |
@@ -112,3 +112,10 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | [ffmpeg x11grab](https://ffmpeg.org/ffmpeg-devices.html#x11grab) | `-video_size WxH -i :0+x,y` | `src/capture/displaysource.h` `x11grabSize` / `x11grabInputSpecifier`; `src/session/gstencoder.cpp` `startFfmpeg` |
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DComboBox` + `currentIndexChanged` | `src/ui/mainwindow.cpp` `setupUi` / `refreshDisplayList` |
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/index.md` | Dropdown selection → `DComboBox` | `src/ui/mainwindow.cpp` monitor row |
+| 2026-08-15 | `docs/architecture.md` UI pairing prompts | Pairing stays in CastEngine; widgets do not call NM | `src/session/nmsecretagent.*`; `src/engine/castengine.cpp` `bindPairing`; `src/ui/mainwindow.cpp` `onPairingRequested` |
+| 2026-08-15 | local `man nm-settings-dbus` wifi-p2p | `wps-method` uint32; default/AUTO lets NM pick PBC or PIN | `src/session/p2psession.cpp` `activate` `wifi-p2p.wps-method` |
+| 2026-08-15 | [NM AgentManager](https://networkmanager.dev/docs/api/1.44.4/gdbus-org.freedesktop.NetworkManager.AgentManager.html) | `Register` / `Unregister` identifier | `src/session/nmsecretagent.cpp` ctor / `unregisterAgent` |
+| 2026-08-15 | [NM SecretAgent](https://networkmanager.dev/docs/api/1.44.4/gdbus-org.freedesktop.NetworkManager.SecretAgent.html) | `GetSecrets` `a{sa{sv}}`, delayed PIN reply, `CancelGetSecrets`, `ALLOW_INTERACTION` / `WPS_PBC_ACTIVE` | `src/session/nmsecretagent.cpp` `handleGetSecrets` / `providePin` |
+| 2026-08-15 | local `man nm-settings-dbus` 802-11-wireless-security | WPS PIN is the `pin` secret | `src/session/nmsecretagent.cpp` `providePin` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/dialog.md` | `DDialog` + `addContent` + `ButtonRecommend` | `src/ui/mainwindow.cpp` `onPairingRequested` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DLineEdit` alert / placeholder | `src/ui/mainwindow.cpp` `onPairingRequested` PIN field |

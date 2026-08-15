@@ -1,9 +1,11 @@
 #include "ui/mainwindow.h"
 
 #include <DComboBox>
+#include <DDialog>
 #include <DFontSizeManager>
 #include <DIconTheme>
 #include <DLabel>
+#include <DLineEdit>
 #include <DListView>
 #include <DMessageManager>
 #include <DPalette>
@@ -14,6 +16,8 @@
 #include <DTitlebar>
 
 #include <QAbstractItemView>
+#include <QLineEdit>
+#include <QRegularExpression>
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -135,6 +139,8 @@ void MainWindow::bindEngine()
         updateActions();
     });
     connect(m_engine, &CastEngine::errorOccurred, this, &MainWindow::onError);
+    connect(m_engine, &CastEngine::pairingRequested, this, &MainWindow::onPairingRequested);
+    connect(m_engine, &CastEngine::pairingFinished, this, &MainWindow::closePairingDialog);
 
     connect(m_scanButton, &QPushButton::clicked, this, &MainWindow::onScanClicked);
     connect(m_connectButton, &DSuggestButton::clicked, this, &MainWindow::onConnectClicked);
@@ -257,4 +263,72 @@ void MainWindow::onError(const QString &message)
     DMessageManager::instance()->sendMessage(this,
                                              DIconTheme::findQIcon(QStringLiteral("dialog-warning")),
                                              message);
+}
+
+void MainWindow::onPairingRequested(CastEngine::PairingKind kind, const QString &sinkName)
+{
+    closePairingDialog();
+
+    const QString peer = sinkName.isEmpty() ? tr("the display") : sinkName;
+    auto *dialog = new DDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setIcon(DIconTheme::findQIcon(QStringLiteral("network-wireless")));
+    dialog->setOnButtonClickedClose(false);
+
+    if (kind == CastEngine::PairingKind::Pin) {
+        dialog->setTitle(tr("Enter pairing PIN"));
+        dialog->setMessage(tr("Enter the PIN shown on %1.").arg(peer));
+        auto *edit = new DLineEdit(dialog);
+        edit->setPlaceholderText(tr("4 or 8 digit PIN"));
+        edit->setClearButtonEnabled(true);
+        dialog->addContent(edit);
+        const int connectIndex = dialog->addButton(tr("Connect"), true, DDialog::ButtonRecommend);
+        dialog->addButton(tr("Cancel"));
+        connect(edit->lineEdit(), &QLineEdit::textChanged, edit, [edit]() {
+            edit->setAlert(false);
+        });
+        connect(dialog, &DDialog::buttonClicked, this,
+                [this, dialog, edit, connectIndex](int index, const QString &) {
+                    if (index != connectIndex) {
+                        m_engine->cancelPairing();
+                        dialog->close();
+                        return;
+                    }
+                    const QString pin = edit->text().trimmed();
+                    static const QRegularExpression pinRe(QStringLiteral("^[0-9]{4}$|^[0-9]{8}$"));
+                    if (!pinRe.match(pin).hasMatch()) {
+                        edit->setAlert(true);
+                        edit->showAlertMessage(tr("Enter a 4- or 8-digit PIN"));
+                        return;
+                    }
+                    m_engine->submitPairingPin(pin);
+                    dialog->close();
+                });
+    } else {
+        dialog->setTitle(tr("Confirm pairing"));
+        dialog->setMessage(tr("Confirm the pairing request on %1.").arg(peer));
+        dialog->addButton(tr("Cancel"));
+        connect(dialog, &DDialog::buttonClicked, this, [this, dialog](int, const QString &) {
+            m_engine->cancelPairing();
+            dialog->close();
+        });
+    }
+
+    connect(dialog, &QObject::destroyed, this, [this, dialog]() {
+        if (m_pairingDialog == dialog)
+            m_pairingDialog = nullptr;
+    });
+    m_pairingDialog = dialog;
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
+}
+
+void MainWindow::closePairingDialog()
+{
+    if (!m_pairingDialog)
+        return;
+    DDialog *dialog = m_pairingDialog;
+    m_pairingDialog = nullptr;
+    dialog->close();
 }

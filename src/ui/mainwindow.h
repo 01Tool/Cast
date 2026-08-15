@@ -9,6 +9,7 @@ class QStandardItemModel;
 
 DWIDGET_BEGIN_NAMESPACE
 class DComboBox;
+class DDialog;
 class DLabel;
 class DListView;
 class DSuggestButton;
@@ -32,6 +33,8 @@ private:
     void onConnectClicked();
     void onDisconnectClicked();
     void onError(const QString &message);
+    void onPairingRequested(CastEngine::PairingKind kind, const QString &sinkName);
+    void closePairingDialog();
 
     CastEngine *m_engine = nullptr;
     DTK_WIDGET_NAMESPACE::DLabel *m_statusLabel = nullptr;
@@ -43,4 +46,5 @@ private:
     QPushButton *m_disconnectButton = nullptr;
     DTK_WIDGET_NAMESPACE::DSwitchButton *m_audioSwitch = nullptr;
     DTK_WIDGET_NAMESPACE::DComboBox *m_displayCombo = nullptr;
+    DTK_WIDGET_NAMESPACE::DDialog *m_pairingDialog = nullptr;
 };
