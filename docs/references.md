@@ -88,3 +88,9 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-13 | `/tmp/miracast-ref/gnome-network-displays/src/app/nd-window.c` | X11 fallback `ximagesrc` when portal missing | `src/capture/x11capture.cpp` `start`; `src/session/gstencoder.cpp` |
 | 2026-08-13 | `docs/platform/x11.md` | ximagesrc → encode → RTP | `src/session/gstencoder.cpp` `buildPipeline` |
 | 2026-08-13 | `docs/architecture.md` first cut §3 | X11 capture + GStreamer WFD send | `src/session/*`; `src/engine/castengine.cpp` `connectToSink` |
+| 2026-08-15 | `docs/platform/x11.md` Approach | Scale to sink-negotiated size after `ximagesrc` | `src/session/wfdvideomode.cpp` `selectWfdVideoMode`; `src/session/wfdserver.cpp` `parseSinkParams` / `sendSetParameter`; `src/session/gstencoder.cpp` `startGst` / `startFfmpeg` |
+| 2026-08-15 | `docs/architecture.md` first cut §3 | X11 + GStreamer WFD send; widgets stay off the pipeline | `src/session/wfdvideomode.*`; `src/engine/castengine.cpp` `onPlayRequested` |
+| 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-params.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-params.c) | CEA / VESA / HH `resolution_table` bit maps | `src/session/wfdvideomode.cpp` `kCea` / `kVesa` / `kHh` |
+| 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-media-factory.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-media-factory.c) | `videoscale` to negotiated raw size before `x264enc` | `src/session/gstencoder.cpp` `startGst` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/SKILL.md` | DTK6-only app; Qt logs; no widget-layer protocol work | this change stays in `src/session` / `src/engine` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` | CMake `add_executable` + `Qt6::Core` test helper | `CMakeLists.txt` `wfdvideomode-check` |

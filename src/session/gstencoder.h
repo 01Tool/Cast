@@ -1,5 +1,7 @@
 #pragma once
 
+#include "session/wfdvideomode.h"
+
 #include <QObject>
 #include <QProcess>
 #include <QString>
@@ -16,7 +18,7 @@ public:
     QString lastError() const;
 
 public Q_SLOTS:
-    void start(const QString &sinkIp, quint16 rtpPort);
+    void start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode);
     void stop();
 
 Q_SIGNALS:
@@ -35,5 +37,6 @@ private:
 
     QProcess m_process;
     QString m_lastError;
+    WfdVideoMode m_mode;
     bool m_running = false;
 };

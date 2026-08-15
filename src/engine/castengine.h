@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/sinkdevice.h"
+#include "session/wfdvideomode.h"
 
 #include <QObject>
 #include <QString>
@@ -66,7 +67,7 @@ private:
     void onPeersChanged();
     void onScanFinished();
     void onP2PActivated(const QString &localIpv4);
-    void onPlayRequested(const QString &sinkIp, quint16 rtpPort);
+    void onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode);
     void failSession(const QString &message);
     void teardownSession();
     SinkDevice sinkById(const QString &id) const;

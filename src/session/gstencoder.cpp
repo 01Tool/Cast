@@ -25,9 +25,10 @@ QString GstEncoder::lastError() const
     return m_lastError;
 }
 
-void GstEncoder::start(const QString &sinkIp, quint16 rtpPort)
+void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode)
 {
     stop();
+    m_mode = mode.isValid() ? mode : defaultWfdVideoMode();
 
     if (sinkIp.isEmpty() || rtpPort == 0) {
         m_lastError = QStringLiteral("Missing sink IP or RTP port.");
@@ -80,13 +81,16 @@ bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort)
     const QString pipeline = QStringLiteral(
                                  "ximagesrc use-damage=false show-pointer=true ! "
                                  "videoconvert ! videoscale ! "
-                                 "video/x-raw,width=1280,height=720,framerate=30/1 ! "
-                                 "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=30 ! "
+                                 "video/x-raw,width=%1,height=%2,framerate=%3/1 ! "
+                                 "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%3 ! "
                                  "video/x-h264,profile=baseline ! "
                                  "h264parse config-interval=1 ! "
                                  "mpegtsmux alignment=7 ! "
                                  "rtpmp2tpay pt=33 ! "
-                                 "udpsink host=%1 port=%2 sync=false")
+                                 "udpsink host=%4 port=%5 sync=false")
+                                 .arg(m_mode.width)
+                                 .arg(m_mode.height)
+                                 .arg(m_mode.fps)
                                  .arg(sinkIp)
                                  .arg(rtpPort);
     qInfo() << "gst-launch" << pipeline;
@@ -118,12 +122,12 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort)
         QStringLiteral("-f"),
         QStringLiteral("x11grab"),
         QStringLiteral("-framerate"),
-        QStringLiteral("30"),
-        QStringLiteral("-video_size"),
-        QStringLiteral("1280x720"),
+        QString::number(m_mode.fps),
         QStringLiteral("-i"),
         display,
         QStringLiteral("-an"),
+        QStringLiteral("-vf"),
+        QStringLiteral("scale=%1:%2").arg(m_mode.width).arg(m_mode.height),
         QStringLiteral("-c:v"),
         QStringLiteral("libx264"),
         QStringLiteral("-preset"),
@@ -133,7 +137,7 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort)
         QStringLiteral("-profile:v"),
         QStringLiteral("baseline"),
         QStringLiteral("-g"),
-        QStringLiteral("30"),
+        QString::number(m_mode.fps),
         QStringLiteral("-b:v"),
         QStringLiteral("4M"),
         QStringLiteral("-f"),

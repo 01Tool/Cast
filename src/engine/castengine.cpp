@@ -261,12 +261,12 @@ void CastEngine::onP2PActivated(const QString &localIpv4)
         return;
 }
 
-void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort)
+void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode)
 {
     if (m_state != SessionState::Connecting && m_state != SessionState::Streaming)
         return;
-    setStatusMessage(QStringLiteral("Starting X11 encoder…"));
-    m_encoder->start(sinkIp, rtpPort);
+    setStatusMessage(QStringLiteral("Starting X11 encoder (%1)…").arg(mode.description()));
+    m_encoder->start(sinkIp, rtpPort, mode);
 }
 
 void CastEngine::failSession(const QString &message)

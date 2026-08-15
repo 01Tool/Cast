@@ -1,5 +1,7 @@
 #pragma once
 
+#include "session/wfdvideomode.h"
+
 #include <QByteArray>
 #include <QObject>
 #include <QTcpServer>
@@ -13,7 +15,7 @@ public:
     explicit WfdSession(QTcpSocket *socket, const QString &localIpv4, QObject *parent = nullptr);
 
 Q_SIGNALS:
-    void playRequested(const QString &sinkIp, quint16 rtpPort);
+    void playRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode);
     void sessionClosed();
     void statusChanged(const QString &message);
 
@@ -42,6 +44,7 @@ private:
     int m_pendingSetCseq = -1;
     int m_pendingTriggerCseq = -1;
     quint16 m_rtpPort = 0;
+    WfdVideoMode m_mode;
     bool m_sentM1 = false;
     bool m_gotM2 = false;
 };
@@ -58,7 +61,7 @@ public:
     void stop();
 
 Q_SIGNALS:
-    void playRequested(const QString &sinkIp, quint16 rtpPort);
+    void playRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &mode);
     void failed(const QString &message);
     void statusChanged(const QString &message);
 

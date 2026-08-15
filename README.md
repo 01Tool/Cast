@@ -33,7 +33,7 @@ cmake --build build
 ./build/deepin-miracast
 ```
 
-Current cut: DTK window, NetworkManager P2P scan **and connect**, WFD RTSP on port 7236, and X11 `ximagesrc` → `x264enc` → MPEG-TS/RTP. Video only.
+Current cut: DTK window, NetworkManager P2P scan **and connect**, WFD RTSP on port 7236, and X11 `ximagesrc` → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Video only.
 
 Runtime extras:
 
