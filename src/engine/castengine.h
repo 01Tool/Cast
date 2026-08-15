@@ -1,5 +1,6 @@
 #pragma once
 
+#include "capture/displaysource.h"
 #include "engine/sinkdevice.h"
 #include "session/wfdaudiomode.h"
 #include "session/wfdvideomode.h"
@@ -47,6 +48,9 @@ public:
     QString statusMessage() const;
     QString selectedSinkId() const;
     bool audioEnabled() const;
+    QVector<DisplaySource> displays() const;
+    QString selectedDisplayId() const;
+    DisplaySource selectedDisplay() const;
 
 public Q_SLOTS:
     void startScan();
@@ -54,6 +58,7 @@ public Q_SLOTS:
     void connectToSink(const QString &id);
     void disconnectFromSink();
     void setAudioEnabled(bool enabled);
+    void setSelectedDisplayId(const QString &id);
 
 Q_SIGNALS:
     void stateChanged(CastEngine::SessionState state);
@@ -61,6 +66,8 @@ Q_SIGNALS:
     void statusMessageChanged(const QString &message);
     void errorOccurred(const QString &message);
     void audioEnabledChanged(bool enabled);
+    void displaysChanged();
+    void selectedDisplayChanged(const QString &id);
 
 private:
     void setState(SessionState state);
@@ -75,7 +82,11 @@ private:
                          const WfdAudioMode &audio);
     void failSession(const QString &message);
     void teardownSession();
+    void watchScreens();
+    void refreshDisplays();
     SinkDevice sinkById(const QString &id) const;
+    DisplaySource displayById(const QString &id) const;
+    DisplaySource primaryDisplay() const;
 
     SessionState m_state = SessionState::Idle;
     DisplayServer m_displayServer = DisplayServer::Unknown;
@@ -88,6 +99,9 @@ private:
     std::unique_ptr<WfdServer> m_wfd;
     std::unique_ptr<GstEncoder> m_encoder;
     QTimer m_connectTimer;
+    QVector<DisplaySource> m_displays;
+    QString m_selectedDisplayId;
+    DisplaySource m_sessionSource;
     bool m_tearingDown = false;
     bool m_audioEnabled = true;
 };

@@ -33,6 +33,8 @@ QString GstEncoder::lastError() const
 QString GstEncoder::streamDescription() const
 {
     QString text = m_video.description();
+    if (m_source.isValid())
+        text += QStringLiteral(" from %1").arg(m_source.shortName());
     if (m_audioActive)
         text += QStringLiteral(" + ") + m_audio.description();
     else if (!m_audioNote.isEmpty())
@@ -41,11 +43,12 @@ QString GstEncoder::streamDescription() const
 }
 
 void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
-                       const WfdAudioMode &audio)
+                       const WfdAudioMode &audio, const DisplaySource &source)
 {
     stop();
     m_video = video.isValid() ? video : defaultWfdVideoMode();
     m_audio = audio;
+    m_source = source;
     m_audioActive = false;
     m_audioNote.clear();
 
@@ -144,6 +147,15 @@ QString GstEncoder::desktopPulseMonitor() const
     return sink + QStringLiteral(".monitor");
 }
 
+QString GstEncoder::ximagesrcElement() const
+{
+    QString element = QStringLiteral("ximagesrc use-damage=false show-pointer=true");
+    const QString region = ximagesrcRegionProperties(m_source);
+    if (!region.isEmpty())
+        element += QLatin1Char(' ') + region;
+    return element;
+}
+
 bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio)
 {
     const QString launch = QStandardPaths::findExecutable(QStringLiteral("gst-launch-1.0"));
@@ -151,22 +163,24 @@ bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio
         return false;
 
     const QString monitor = withAudio ? desktopPulseMonitor() : QString();
+    const QString grab = ximagesrcElement();
     QString pipeline;
     if (withAudio && !monitor.isEmpty()) {
         pipeline = QStringLiteral(
                        "mpegtsmux name=mux alignment=7 ! rtpmp2tpay pt=33 ! "
                        "udpsink host=%1 port=%2 sync=false "
-                       "ximagesrc use-damage=false show-pointer=true ! "
+                       "%3 ! "
                        "videoconvert ! videoscale ! "
-                       "video/x-raw,width=%3,height=%4,framerate=%5/1 ! "
-                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%5 ! "
+                       "video/x-raw,width=%4,height=%5,framerate=%6/1 ! "
+                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%6 ! "
                        "video/x-h264,profile=baseline ! "
                        "h264parse config-interval=1 ! queue ! mux. "
-                       "pulsesrc device=\"%6\" provide-clock=true do-timestamp=true ! "
-                       "audioconvert ! audioresample ! audio/x-raw,rate=%7,channels=2 ! "
-                       "%8 ! aacparse ! queue ! mux.")
+                       "pulsesrc device=\"%7\" provide-clock=true do-timestamp=true ! "
+                       "audioconvert ! audioresample ! audio/x-raw,rate=%8,channels=2 ! "
+                       "%9 ! aacparse ! queue ! mux.")
                        .arg(sinkIp)
                        .arg(rtpPort)
+                       .arg(grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
                        .arg(m_video.fps)
@@ -176,15 +190,16 @@ bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio
         m_audioActive = true;
     } else {
         pipeline = QStringLiteral(
-                       "ximagesrc use-damage=false show-pointer=true ! "
+                       "%1 ! "
                        "videoconvert ! videoscale ! "
-                       "video/x-raw,width=%1,height=%2,framerate=%3/1 ! "
-                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%3 ! "
+                       "video/x-raw,width=%2,height=%3,framerate=%4/1 ! "
+                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%4 ! "
                        "video/x-h264,profile=baseline ! "
                        "h264parse config-interval=1 ! "
                        "mpegtsmux alignment=7 ! "
                        "rtpmp2tpay pt=33 ! "
-                       "udpsink host=%4 port=%5 sync=false")
+                       "udpsink host=%5 port=%6 sync=false")
+                       .arg(grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
                        .arg(m_video.fps)
@@ -224,9 +239,11 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAu
         QStringLiteral("x11grab"),
         QStringLiteral("-framerate"),
         QString::number(m_video.fps),
-        QStringLiteral("-i"),
-        display,
     };
+    const QString grabSize = x11grabSize(m_source);
+    if (!grabSize.isEmpty())
+        args << QStringLiteral("-video_size") << grabSize;
+    args << QStringLiteral("-i") << x11grabInputSpecifier(display, m_source);
     if (withAudio && !monitor.isEmpty()) {
         args << QStringLiteral("-f") << QStringLiteral("pulse") << QStringLiteral("-i") << monitor;
         m_audioActive = true;

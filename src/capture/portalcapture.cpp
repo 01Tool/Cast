@@ -5,8 +5,9 @@ QString PortalCapture::name() const
     return QStringLiteral("PortalCapture");
 }
 
-bool PortalCapture::start()
+bool PortalCapture::start(const DisplaySource &source)
 {
+    Q_UNUSED(source);
     // Do not fall back to X11 grab on Wayland (XWayland-only frames).
     m_lastError = QStringLiteral(
         "Screen capture is unavailable on this session. "

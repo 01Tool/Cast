@@ -6,7 +6,7 @@ class PortalCapture : public CaptureBackend
 {
 public:
     QString name() const override;
-    bool start() override;
+    bool start(const DisplaySource &source) override;
     void stop() override;
     QString lastError() const override;
 

@@ -58,4 +58,12 @@ target_include_directories(wfdaudiomode-check PRIVATE
 )
 target_link_libraries(wfdaudiomode-check PRIVATE Qt6::Core)
 
+add_executable(displaysource-check
+    tests/displaysource-check.cpp
+)
+target_include_directories(displaysource-check PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(displaysource-check PRIVATE Qt6::Core)
+
 install(TARGETS deepin-miracast RUNTIME DESTINATION bin)

@@ -26,7 +26,8 @@ Responsibilities:
 - Device list and refresh
 - Connect / disconnect, pairing prompts, error dialogs
 - Session status (searching, connecting, mirroring, failed)
-- Optional: choose monitor, remember last sink (DConfig)
+- Optional: remember last sink (DConfig)
+- Choose which monitor to mirror
 - Toggle system audio (AAC when the sink supports it)
 
 The UI talks only to `CastEngine` signals and slots (or an equivalent Qt interface). It does not open NetworkManager, GStreamer, or portal connections itself.
@@ -59,7 +60,7 @@ Do not start from MiracleCast for a desktop app. It often requires stopping Netw
 
 ```
 CaptureBackend
-  start(source) -> frames
+  start(DisplaySource) -> frames
   stop()
   lastError()
 ```
@@ -79,7 +80,7 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 2. Discovery: NetworkManager P2P scan, populate the list.
 3. X11 capture + GStreamer WFD send path (reuse deepin/GNOME network-displays where possible).
 4. Wayland `PortalCapture` stub that reports “ScreenCast unavailable”.
-5. Multi-monitor picker and hardware-encoder tuning after video + optional AAC works.
+5. Hardware-encoder tuning after video, optional AAC, and a monitor picker work.
 
 This order ships a usable X11 product without blocking on Treeland portal work.
 

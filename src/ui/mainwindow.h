@@ -8,6 +8,7 @@ class QPushButton;
 class QStandardItemModel;
 
 DWIDGET_BEGIN_NAMESPACE
+class DComboBox;
 class DLabel;
 class DListView;
 class DSuggestButton;
@@ -25,6 +26,7 @@ private:
     void setupUi();
     void bindEngine();
     void refreshSinkList();
+    void refreshDisplayList();
     void updateActions();
     void onScanClicked();
     void onConnectClicked();
@@ -40,4 +42,5 @@ private:
     DTK_WIDGET_NAMESPACE::DSuggestButton *m_connectButton = nullptr;
     QPushButton *m_disconnectButton = nullptr;
     DTK_WIDGET_NAMESPACE::DSwitchButton *m_audioSwitch = nullptr;
+    DTK_WIDGET_NAMESPACE::DComboBox *m_displayCombo = nullptr;
 };

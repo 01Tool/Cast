@@ -33,7 +33,7 @@ cmake --build build
 ./build/deepin-miracast
 ```
 
-Current cut: DTK window, NetworkManager P2P scan **and connect**, WFD RTSP on port 7236, and X11 `ximagesrc` → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Optional system audio (AAC-LC from the Pulse/PipeWire default-sink monitor) when the sink advertises AAC.
+Current cut: DTK window, NetworkManager P2P scan **and connect**, WFD RTSP on port 7236, and X11 grab of the **selected monitor** → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Optional system audio (AAC-LC from the Pulse/PipeWire default-sink monitor) when the sink advertises AAC.
 
 Runtime extras:
 

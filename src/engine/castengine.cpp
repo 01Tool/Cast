@@ -9,7 +9,10 @@
 
 #include <DGuiApplicationHelper>
 
+#include <QCoreApplication>
 #include <QDebug>
+#include <QGuiApplication>
+#include <QScreen>
 
 DGUI_USE_NAMESPACE
 
@@ -19,6 +22,8 @@ CastEngine::CastEngine(QObject *parent)
     selectCaptureBackend();
     bindDiscovery();
     bindSession();
+    watchScreens();
+    refreshDisplays();
     setStatusMessage(QStringLiteral("Idle. Scan to search for Miracast displays."));
 }
 
@@ -70,6 +75,35 @@ void CastEngine::setAudioEnabled(bool enabled)
     Q_EMIT audioEnabledChanged(m_audioEnabled);
 }
 
+QVector<DisplaySource> CastEngine::displays() const
+{
+    return m_displays;
+}
+
+QString CastEngine::selectedDisplayId() const
+{
+    return m_selectedDisplayId;
+}
+
+DisplaySource CastEngine::selectedDisplay() const
+{
+    const DisplaySource chosen = displayById(m_selectedDisplayId);
+    if (chosen.isValid())
+        return chosen;
+    return primaryDisplay();
+}
+
+void CastEngine::setSelectedDisplayId(const QString &id)
+{
+    const DisplaySource source = displayById(id);
+    const QString resolved = source.isValid() ? source.id : primaryDisplay().id;
+    if (m_selectedDisplayId == resolved)
+        return;
+    m_selectedDisplayId = resolved;
+    qInfo() << "selected monitor" << m_selectedDisplayId;
+    Q_EMIT selectedDisplayChanged(m_selectedDisplayId);
+}
+
 void CastEngine::startScan()
 {
     if (m_state == SessionState::Connecting || m_state == SessionState::Streaming) {
@@ -114,7 +148,8 @@ void CastEngine::connectToSink(const QString &id)
         return;
     }
 
-    if (!m_capture->start()) {
+    m_sessionSource = selectedDisplay();
+    if (!m_capture->start(m_sessionSource)) {
         failSession(m_capture->lastError());
         return;
     }
@@ -280,9 +315,10 @@ void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const W
 {
     if (m_state != SessionState::Connecting && m_state != SessionState::Streaming)
         return;
-    setStatusMessage(QStringLiteral("Starting X11 encoder (%1, %2)…")
-                         .arg(video.description(), audio.description()));
-    m_encoder->start(sinkIp, rtpPort, video, audio);
+    setStatusMessage(QStringLiteral("Starting X11 encoder (%1, %2, %3)…")
+                         .arg(video.description(), audio.description(),
+                              m_sessionSource.shortName()));
+    m_encoder->start(sinkIp, rtpPort, video, audio, m_sessionSource);
 }
 
 void CastEngine::failSession(const QString &message)
@@ -318,4 +354,93 @@ SinkDevice CastEngine::sinkById(const QString &id) const
             return sink;
     }
     return {};
+}
+
+DisplaySource CastEngine::displayById(const QString &id) const
+{
+    if (id.isEmpty())
+        return {};
+    for (const auto &display : m_displays) {
+        if (display.id == id)
+            return display;
+    }
+    return {};
+}
+
+DisplaySource CastEngine::primaryDisplay() const
+{
+    for (const auto &display : m_displays) {
+        if (display.primary)
+            return display;
+    }
+    return m_displays.value(0);
+}
+
+void CastEngine::watchScreens()
+{
+    auto *app = qobject_cast<QGuiApplication *>(QCoreApplication::instance());
+    if (!app)
+        return;
+
+    connect(app, &QGuiApplication::screenAdded, this, [this](QScreen *screen) {
+        connect(screen, &QScreen::geometryChanged, this, &CastEngine::refreshDisplays,
+                Qt::UniqueConnection);
+        refreshDisplays();
+    });
+    connect(app, &QGuiApplication::screenRemoved, this, &CastEngine::refreshDisplays);
+    connect(app, &QGuiApplication::primaryScreenChanged, this, &CastEngine::refreshDisplays);
+    for (QScreen *screen : app->screens()) {
+        connect(screen, &QScreen::geometryChanged, this, &CastEngine::refreshDisplays,
+                Qt::UniqueConnection);
+    }
+}
+
+void CastEngine::refreshDisplays()
+{
+    auto *app = qobject_cast<QGuiApplication *>(QCoreApplication::instance());
+    QVector<DisplaySource> next;
+    if (app) {
+        QScreen *primary = app->primaryScreen();
+        int index = 0;
+        for (QScreen *screen : app->screens()) {
+            DisplaySource source;
+            source.id = screen->name();
+            if (source.id.isEmpty())
+                source.id = QStringLiteral("screen-%1").arg(index);
+            QString title = screen->name();
+            const QString model =
+                (screen->manufacturer() + QLatin1Char(' ') + screen->model()).trimmed();
+            if (!model.isEmpty())
+                title = model;
+            if (title.isEmpty())
+                title = source.id;
+            const QRect g = screen->geometry();
+            source.x = g.x();
+            source.y = g.y();
+            source.width = g.width();
+            source.height = g.height();
+            source.primary = (screen == primary);
+            source.name = QStringLiteral("%1 (%2×%3)%4")
+                              .arg(title)
+                              .arg(source.width)
+                              .arg(source.height)
+                              .arg(source.primary ? QStringLiteral(" · primary") : QString());
+            next.append(source);
+            ++index;
+        }
+    }
+
+    m_displays = next;
+    const bool sessionLocked =
+        m_state == SessionState::Connecting || m_state == SessionState::Streaming;
+    if (!sessionLocked) {
+        if (!displayById(m_selectedDisplayId).isValid()) {
+            const DisplaySource primary = primaryDisplay();
+            if (m_selectedDisplayId != primary.id) {
+                m_selectedDisplayId = primary.id;
+                Q_EMIT selectedDisplayChanged(m_selectedDisplayId);
+            }
+        }
+    }
+    Q_EMIT displaysChanged();
 }

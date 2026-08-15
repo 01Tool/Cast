@@ -39,6 +39,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 - Arch Wiki XDG Desktop Portal table (verify when targeting a DDE release): `xdg-desktop-portal-dde` Screenshot yes, ScreenCast historically no.
 - X11 `ximagesrc` lives in `gstreamer1.0-plugins-good`. Missing that plugin is a common “fallback to X11 failed” cause.
 - WFD `wfd_audio_codecs` AAC bit 0 is 48 kHz stereo; bit 1 is 44.1 kHz. This sender muxes AAC-LC into MPEG-TS and skips audio when the sink lists only LPCM.
+- Multi-monitor: crop the selected `QScreen::geometry()`; do not grab the virtual union of all outputs.
 
 ## Related local docs
 
@@ -104,3 +105,10 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/button.md` | `DSwitchButton` + `checkedChanged` | `src/ui/mainwindow.cpp` `setupUi` / `bindEngine` |
 | 2026-08-15 | local `pactl get-default-sink` + Pulse monitor naming | System audio is `${default_sink}.monitor`, not the mic | `src/session/gstencoder.cpp` `desktopPulseMonitor` |
 | 2026-08-15 | `ffmpeg -f pulse` / `aac` / `aresample=async=1` | Pulse capture, AAC-LC, light A/V drift correction | `src/session/gstencoder.cpp` `startFfmpeg` |
+| 2026-08-15 | `docs/platform/x11.md` Limits | One output, not the virtual desktop union; primary default | `src/engine/castengine.cpp` `refreshDisplays` / `selectedDisplay`; `src/session/gstencoder.cpp` `ximagesrcElement` / `startFfmpeg` |
+| 2026-08-15 | `docs/architecture.md` Capture backend | `start(DisplaySource)`; widgets must not grab | `src/capture/capturebackend.h`; `src/capture/x11capture.cpp` `start`; `src/ui/mainwindow.cpp` `refreshDisplayList` |
+| 2026-08-15 | [Qt `QScreen`](https://doc.qt.io/qt-6/qscreen.html) | `geometry()`, `name()`, `manufacturer()` / `model()`, primary screen | `src/engine/castengine.cpp` `refreshDisplays` |
+| 2026-08-15 | [GStreamer `ximagesrc`](https://gstreamer.freedesktop.org/documentation/ximagesrc/index.html) | `startx` / `starty` / `endx` / `endy` inclusive crop | `src/capture/displaysource.h` `ximagesrcRegionProperties`; `src/session/gstencoder.cpp` `ximagesrcElement` |
+| 2026-08-15 | [ffmpeg x11grab](https://ffmpeg.org/ffmpeg-devices.html#x11grab) | `-video_size WxH -i :0+x,y` | `src/capture/displaysource.h` `x11grabSize` / `x11grabInputSpecifier`; `src/session/gstencoder.cpp` `startFfmpeg` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DComboBox` + `currentIndexChanged` | `src/ui/mainwindow.cpp` `setupUi` / `refreshDisplayList` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/index.md` | Dropdown selection → `DComboBox` | `src/ui/mainwindow.cpp` monitor row |

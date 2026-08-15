@@ -1,5 +1,6 @@
 #pragma once
 
+#include "capture/displaysource.h"
 #include "session/wfdaudiomode.h"
 #include "session/wfdvideomode.h"
 
@@ -22,7 +23,7 @@ public:
 
 public Q_SLOTS:
     void start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
-               const WfdAudioMode &audio);
+               const WfdAudioMode &audio, const DisplaySource &source);
     void stop();
 
 Q_SIGNALS:
@@ -38,6 +39,7 @@ private:
     bool gstHasElement(const QString &name) const;
     QString gstAacEncoder() const;
     QString desktopPulseMonitor() const;
+    QString ximagesrcElement() const;
     bool startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio);
     bool startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAudio);
 
@@ -45,6 +47,7 @@ private:
     QString m_lastError;
     WfdVideoMode m_video;
     WfdAudioMode m_audio;
+    DisplaySource m_source;
     QString m_audioNote;
     bool m_audioActive = false;
     bool m_running = false;

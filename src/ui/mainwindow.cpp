@@ -1,5 +1,6 @@
 #include "ui/mainwindow.h"
 
+#include <DComboBox>
 #include <DFontSizeManager>
 #include <DIconTheme>
 #include <DLabel>
@@ -63,6 +64,18 @@ void MainWindow::setupUi()
     m_sinkModel = new QStandardItemModel(m_sinkView);
     m_sinkView->setModel(m_sinkModel);
 
+    auto *monitorRow = new QWidget(central);
+    auto *monitorLayout = new QHBoxLayout(monitorRow);
+    monitorLayout->setContentsMargins(0, 0, 0, 0);
+    monitorLayout->setSpacing(8);
+    auto *monitorLabel = new DLabel(tr("Monitor"), monitorRow);
+    monitorLabel->setForegroundRole(DPalette::TextTitle);
+    DFontSizeManager::instance()->bind(monitorLabel, DFontSizeManager::T6);
+    m_displayCombo = new DComboBox(monitorRow);
+    m_displayCombo->setMinimumWidth(240);
+    monitorLayout->addWidget(monitorLabel);
+    monitorLayout->addWidget(m_displayCombo, 1);
+
     auto *audioRow = new QWidget(central);
     auto *audioLayout = new QHBoxLayout(audioRow);
     audioLayout->setContentsMargins(0, 0, 0, 0);
@@ -93,6 +106,7 @@ void MainWindow::setupUi()
     layout->addWidget(m_sessionLabel);
     layout->addWidget(m_statusLabel);
     layout->addWidget(m_sinkView, 1);
+    layout->addWidget(monitorRow);
     layout->addWidget(audioRow);
     layout->addWidget(buttons);
 
@@ -127,6 +141,15 @@ void MainWindow::bindEngine()
     connect(m_disconnectButton, &QPushButton::clicked, this, &MainWindow::onDisconnectClicked);
     connect(m_audioSwitch, &DSwitchButton::checkedChanged, m_engine, &CastEngine::setAudioEnabled);
     connect(m_engine, &CastEngine::audioEnabledChanged, m_audioSwitch, &DSwitchButton::setChecked);
+    connect(m_displayCombo, QOverload<int>::of(&DComboBox::currentIndexChanged), this,
+            [this](int index) {
+                if (index < 0)
+                    return;
+                m_engine->setSelectedDisplayId(m_displayCombo->itemData(index).toString());
+            });
+    connect(m_engine, &CastEngine::displaysChanged, this, &MainWindow::refreshDisplayList);
+    connect(m_engine, &CastEngine::selectedDisplayChanged, this, &MainWindow::refreshDisplayList);
+    refreshDisplayList();
     connect(m_sinkView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
             [this](const QItemSelection &, const QItemSelection &) {
                 updateActions();
@@ -173,6 +196,26 @@ void MainWindow::refreshSinkList()
     updateActions();
 }
 
+void MainWindow::refreshDisplayList()
+{
+    const QString selected = m_engine->selectedDisplayId();
+    m_displayCombo->blockSignals(true);
+    m_displayCombo->clear();
+    int current = -1;
+    const auto displays = m_engine->displays();
+    for (int i = 0; i < displays.size(); ++i) {
+        m_displayCombo->addItem(displays.at(i).name, displays.at(i).id);
+        if (displays.at(i).id == selected)
+            current = i;
+    }
+    if (current < 0 && !displays.isEmpty())
+        current = 0;
+    if (current >= 0)
+        m_displayCombo->setCurrentIndex(current);
+    m_displayCombo->blockSignals(false);
+    updateActions();
+}
+
 void MainWindow::updateActions()
 {
     const auto state = m_engine->state();
@@ -188,6 +231,7 @@ void MainWindow::updateActions()
     m_connectButton->setEnabled(!connecting && !streaming && hasSelection);
     m_disconnectButton->setEnabled(streaming || connecting);
     m_audioSwitch->setEnabled(!connecting && !streaming);
+    m_displayCombo->setEnabled(!connecting && !streaming && m_displayCombo->count() > 0);
 }
 
 void MainWindow::onScanClicked()
