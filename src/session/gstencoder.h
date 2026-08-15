@@ -4,6 +4,7 @@
 #include "session/wfdaudiomode.h"
 #include "session/wfdvideomode.h"
 
+#include <QIODevice>
 #include <QObject>
 #include <QProcess>
 #include <QString>
@@ -21,9 +22,13 @@ public:
     QString lastError() const;
     QString streamDescription() const;
 
+    QIODevice *tsPipe();
+
 public Q_SLOTS:
     void start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
                const WfdAudioMode &audio, const DisplaySource &source);
+    void startMpegTsPipe(const WfdVideoMode &video, const WfdAudioMode &audio,
+                         const DisplaySource &source);
     void stop();
 
 Q_SIGNALS:
@@ -40,8 +45,12 @@ private:
     QString gstAacEncoder() const;
     QString desktopPulseMonitor() const;
     QString ximagesrcElement() const;
-    bool startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio);
-    bool startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAudio);
+    enum class TsSink { Rtp, Stdout };
+
+    bool prepare(const WfdVideoMode &video, const WfdAudioMode &audio, const DisplaySource &source);
+    bool startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpPort);
+    bool startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio);
+    bool startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio);
 
     QProcess m_process;
     QString m_lastError;

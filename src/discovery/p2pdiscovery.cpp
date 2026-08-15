@@ -237,6 +237,7 @@ QString P2PDiscovery::devicePathForPeer(const QString &peerPath) const
 SinkDevice P2PDiscovery::readPeer(const QString &path, const QString &devicePath) const
 {
     SinkDevice sink;
+    sink.protocol = CastProtocol::Miracast;
     sink.id = path;
     sink.p2pDevicePath = devicePath;
     sink.name = readProperty(QString::fromLatin1(kNmService), path,

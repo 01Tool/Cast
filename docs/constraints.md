@@ -34,7 +34,7 @@ WFD typically forms a Wi-Fi Direct group between source and sink. That often dro
 Cast therefore ships (and will ship) **two named protocols**:
 
 - **Miracast / WFD:** P2P + RTSP + RTP. Works without a shared AP. Disrupts STA Wi-Fi more often. Implemented first.
-- **DLNA / UPnP AV:** SSDP + HTTP + AVTransport on the existing LAN. Leaves STA Wi-Fi up. Planned because more TVs expose a Digital Media Renderer than a reliable WFD sink. See [protocols/dlna.md](protocols/dlna.md).
+- **DLNA / UPnP AV:** SSDP + HTTP + AVTransport on the existing LAN. Leaves STA Wi-Fi up. Shipped because more TVs expose a Digital Media Renderer than a reliable WFD sink. See [protocols/dlna.md](protocols/dlna.md).
 
 The UI must say which protocol a row uses. Do not list a DMR under “Miracast.” Chromecast and custom TCP are still different products; do not add them under either name.
 
@@ -52,7 +52,7 @@ Audio is extra work: AAC (or the sink’s codec), clock sync, and a capture sour
 
 On **Miracast**, the app sends AAC-LC only when the user enables system audio **and** the sink lists AAC in `wfd_audio_codecs`. Otherwise the WFD session stays video-only.
 
-On **DLNA** (planned), there is no WFD codec bitmap. Audio is whatever the HTTP container and the renderer’s `ProtocolInfo` allow (AAC in MPEG-TS is the first try). Sync is the TV’s clock.
+On **DLNA**, there is no WFD codec bitmap. Audio is whatever the HTTP container and the renderer’s `ProtocolInfo` allow (AAC in MPEG-TS is the first try). Sync is the TV’s clock.
 
 GNOME Network Displays is one of the few Linux senders that attempts synchronized audio. This app follows that path (Pulse monitor + AAC in the same MPEG-TS). MiracleCast-style tools often skip audio or route it separately.
 

@@ -24,7 +24,7 @@ These layers must live under the UI, in a display-server-agnostic engine plus pl
 |------|-----|
 | Wi-Fi Direct / P2P | Find a WFD sink, form a P2P group |
 | WFD / RTSP | Capability exchange and session setup |
-| DLNA / UPnP | Find a MediaRenderer; HTTP + AVTransport (planned) |
+| DLNA / UPnP | Find a MediaRenderer; HTTP + AVTransport |
 | Capture | Desktop frames and optional system audio |
 | Encode / send | H.264 (and AAC) over RTP (WFD) or HTTP (DLNA) |
 
@@ -35,7 +35,7 @@ These layers must live under the UI, in a display-server-agnostic engine plus pl
 | UI | Scan, pair, connect, status | Yes — this is the DTK app |
 | Wi-Fi Direct / P2P | Find a WFD sink, form a P2P group | No — NetworkManager + `wpa_supplicant` |
 | WFD / RTSP | Capability exchange, session | No — reuse GStreamer / existing WFD code |
-| DLNA / UPnP | SSDP, HTTP media, AVTransport | No — GUPnP/GSSDP or equivalent; planned |
+| DLNA / UPnP | SSDP, HTTP media, AVTransport | No — Qt SSDP + SOAP in the engine |
 | Capture | Frames + optional audio | No — X11 grab vs portal / PipeWire |
 | Encode / send | H.264 (+ AAC), RTP or HTTP | No — GStreamer / FFmpeg |
 
@@ -64,7 +64,7 @@ Details: [platform/x11.md](platform/x11.md), [platform/wayland.md](platform/wayl
 |------|-----------|
 | DTK app that looks native on DDE | Yes |
 | Mirror to many Miracast TVs/dongles on **X11** | Yes, with hardware caveats |
-| Reach TVs that only do **DLNA DMR** well | Yes, as a labeled same-LAN backend (planned) |
+| Reach TVs that only do **DLNA DMR** well | Yes, as a labeled same-LAN backend |
 | Same capture on **Wayland / Treeland** | Only after ScreenCast (or equivalent) exists |
 | One binary, both sessions, degrade gracefully | Yes — that should be the design |
 | Windows-quality “it just works” on every sink | No, not with current Linux WFD; DLNA is the fallback, not a guarantee |

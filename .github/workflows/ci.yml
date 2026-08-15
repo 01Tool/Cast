@@ -32,6 +32,7 @@ jobs:
           ./build/wfdvideomode-check
           ./build/wfdaudiomode-check
           ./build/displaysource-check
+          ./build/dlna-check
 
   debian-source:
     name: Debian source sanity

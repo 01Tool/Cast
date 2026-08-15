@@ -2,7 +2,9 @@
 
 #include "capture/portalcapture.h"
 #include "capture/x11capture.h"
+#include "discovery/dlnadiscovery.h"
 #include "discovery/p2pdiscovery.h"
+#include "session/dlnasession.h"
 #include "session/gstencoder.h"
 #include "session/nmsecretagent.h"
 #include "session/p2psession.h"
@@ -26,7 +28,7 @@ CastEngine::CastEngine(QObject *parent)
     bindPairing();
     watchScreens();
     refreshDisplays();
-    setStatusMessage(tr("Idle. Scan to search for Miracast displays."));
+    setStatusMessage(tr("Idle. Scan to search for Miracast and DLNA displays."));
 }
 
 CastEngine::~CastEngine()
@@ -34,6 +36,8 @@ CastEngine::~CastEngine()
     teardownSession();
     if (m_discovery)
         m_discovery->stopScan();
+    if (m_dlnaDiscovery)
+        m_dlnaDiscovery->stopScan();
     if (m_capture)
         m_capture->stop();
 }
@@ -144,9 +148,14 @@ void CastEngine::startScan()
         return;
     }
 
+    m_p2pScanDone = false;
+    m_dlnaScanDone = false;
     setState(SessionState::Scanning);
-    setStatusMessage(tr("Scanning for Miracast displays…"));
-    m_discovery->startScan(P2PDiscovery::DefaultScanSeconds);
+    setStatusMessage(tr("Scanning for Miracast and DLNA displays…"));
+    if (m_discovery)
+        m_discovery->startScan(P2PDiscovery::DefaultScanSeconds);
+    if (m_dlnaDiscovery)
+        m_dlnaDiscovery->startScan(DlnaDiscovery::DefaultScanSeconds);
 }
 
 void CastEngine::stopScan()
@@ -154,7 +163,10 @@ void CastEngine::stopScan()
     if (m_state != SessionState::Scanning)
         return;
 
-    m_discovery->stopScan();
+    if (m_discovery)
+        m_discovery->stopScan();
+    if (m_dlnaDiscovery)
+        m_dlnaDiscovery->stopScan();
 }
 
 void CastEngine::connectToSink(const QString &id)
@@ -175,6 +187,8 @@ void CastEngine::connectToSink(const QString &id)
     setStatusMessage(tr("Connecting…"));
     if (m_discovery && m_discovery->scanning())
         m_discovery->stopScan();
+    if (m_dlnaDiscovery && m_dlnaDiscovery->scanning())
+        m_dlnaDiscovery->stopScan();
 
     if (!m_capture) {
         failSession(tr("No capture backend for this session."));
@@ -187,8 +201,22 @@ void CastEngine::connectToSink(const QString &id)
         return;
     }
 
+    if (sink.protocol == CastProtocol::Dlna)
+        connectDlna(sink);
+    else
+        connectMiracast(sink);
+}
+
+void CastEngine::connectMiracast(const SinkDevice &sink)
+{
     m_connectTimer.start(30000);
     m_p2p->activate(sink);
+}
+
+void CastEngine::connectDlna(const SinkDevice &sink)
+{
+    m_connectTimer.start(45000);
+    m_dlna->start(sink, m_sessionSource, m_audioEnabled, m_encoder.get());
 }
 
 void CastEngine::disconnectFromSink()
@@ -242,75 +270,121 @@ void CastEngine::selectCaptureBackend()
 void CastEngine::bindDiscovery()
 {
     m_discovery = std::make_unique<P2PDiscovery>();
+    m_dlnaDiscovery = std::make_unique<DlnaDiscovery>();
     connect(m_discovery.get(), &P2PDiscovery::peersChanged, this, &CastEngine::onPeersChanged);
     connect(m_discovery.get(), &P2PDiscovery::scanFinished, this, &CastEngine::onScanFinished);
     connect(m_discovery.get(), &P2PDiscovery::errorOccurred, this, &CastEngine::errorOccurred);
-    connect(m_discovery.get(), &P2PDiscovery::statusChanged, this, &CastEngine::setStatusMessage);
+    connect(m_dlnaDiscovery.get(), &DlnaDiscovery::renderersChanged, this,
+            &CastEngine::onPeersChanged);
+    connect(m_dlnaDiscovery.get(), &DlnaDiscovery::scanFinished, this,
+            &CastEngine::onDlnaScanFinished);
+    connect(m_dlnaDiscovery.get(), &DlnaDiscovery::errorOccurred, this, &CastEngine::errorOccurred);
+}
+
+void CastEngine::mergeSinks()
+{
+    QVector<SinkDevice> next;
+    if (m_discovery)
+        next += m_discovery->peers();
+    if (m_dlnaDiscovery)
+        next += m_dlnaDiscovery->renderers();
+    m_sinks = next;
+    Q_EMIT sinksChanged();
+}
+
+void CastEngine::updateScanStatus()
+{
+    if (m_state != SessionState::Scanning)
+        return;
+
+    int miracast = 0;
+    int dlna = 0;
+    for (const auto &sink : m_sinks) {
+        if (sink.protocol == CastProtocol::Dlna)
+            ++dlna;
+        else
+            ++miracast;
+    }
+    if (miracast == 0 && dlna == 0) {
+        setStatusMessage(tr("Scanning for Miracast and DLNA displays…"));
+        return;
+    }
+    setStatusMessage(tr("Found %1 Miracast, %2 DLNA.").arg(miracast).arg(dlna));
+}
+
+void CastEngine::finishScanIfReady()
+{
+    if (!m_p2pScanDone || !m_dlnaScanDone)
+        return;
+    if (m_state == SessionState::Connecting || m_state == SessionState::Streaming)
+        return;
+
+    mergeSinks();
+
+    int miracast = 0;
+    int dlna = 0;
+    int wfd = 0;
+    for (const auto &sink : m_sinks) {
+        if (sink.protocol == CastProtocol::Dlna)
+            ++dlna;
+        else {
+            ++miracast;
+            if (sink.wfdCapable)
+                ++wfd;
+        }
+    }
+
+    if (m_sinks.isEmpty()) {
+        setStatusMessage(tr("No displays found. Put the TV in Miracast mode, or keep it on this "
+                            "Wi-Fi for DLNA."));
+    } else if (dlna > 0 && miracast == 0) {
+        setStatusMessage(tr("Scan finished. %1 DLNA renderer(s) available.").arg(dlna));
+    } else if (dlna == 0 && wfd == 0) {
+        setStatusMessage(tr("Found %1 P2P device(s) with no WFD IEs and no DLNA renderers. "
+                            "wpa_supplicant may lack CONFIG_WIFI_DISPLAY.")
+                             .arg(miracast));
+    } else {
+        setStatusMessage(tr("Scan finished. %1 Miracast, %2 DLNA.").arg(wfd).arg(dlna));
+    }
+    setState(SessionState::Idle);
 }
 
 void CastEngine::onPeersChanged()
 {
-    m_sinks = m_discovery->peers();
-    Q_EMIT sinksChanged();
-
-    if (m_state != SessionState::Scanning)
-        return;
-
-    int wfd = 0;
-    for (const auto &sink : m_sinks) {
-        if (sink.wfdCapable)
-            ++wfd;
-    }
-    if (m_sinks.isEmpty()) {
-        setStatusMessage(tr("Scanning for Miracast displays…"));
-        return;
-    }
-    setStatusMessage(tr("Found %1 device(s) (%2 with WFD IEs).")
-                         .arg(m_sinks.size())
-                         .arg(wfd));
+    mergeSinks();
+    updateScanStatus();
 }
 
 void CastEngine::onScanFinished()
 {
-    if (m_state == SessionState::Connecting || m_state == SessionState::Streaming)
-        return;
+    m_p2pScanDone = true;
+    finishScanIfReady();
+}
 
-    m_sinks = m_discovery->peers();
-    Q_EMIT sinksChanged();
-
-    if (m_sinks.isEmpty()) {
-        setStatusMessage(tr(
-            "No P2P devices found. The sink must be in wireless-display / Miracast mode."));
-        setState(SessionState::Idle);
-        return;
-    }
-
-    int wfd = 0;
-    for (const auto &sink : m_sinks) {
-        if (sink.wfdCapable)
-            ++wfd;
-    }
-    if (wfd == 0) {
-        setStatusMessage(tr("Found %1 P2P device(s) with no WFD IEs. "
-                            "wpa_supplicant may lack CONFIG_WIFI_DISPLAY, or they are not Miracast sinks.")
-                             .arg(m_sinks.size()));
-    } else {
-        setStatusMessage(tr("Scan finished. %1 Miracast display(s) available.")
-                             .arg(wfd));
-    }
-    setState(SessionState::Idle);
+void CastEngine::onDlnaScanFinished()
+{
+    m_dlnaScanDone = true;
+    finishScanIfReady();
 }
 
 void CastEngine::bindSession()
 {
     m_p2p = std::make_unique<P2PSession>();
+    m_dlna = std::make_unique<DlnaSession>();
     m_wfd = std::make_unique<WfdServer>();
     m_encoder = std::make_unique<GstEncoder>();
 
     m_connectTimer.setSingleShot(true);
     connect(&m_connectTimer, &QTimer::timeout, this, [this]() {
-        if (m_state == SessionState::Connecting)
+        if (m_state != SessionState::Connecting)
+            return;
+        const SinkDevice sink = sinkById(m_selectedSinkId);
+        if (sink.protocol == CastProtocol::Dlna) {
+            failSession(tr("Timed out waiting for the TV to fetch the HTTP stream. "
+                           "Allow inbound HTTP from the TV to this computer."));
+        } else {
             failSession(tr("Timed out forming the Wi-Fi Direct group or WFD session."));
+        }
     });
 
     connect(m_p2p.get(), &P2PSession::statusChanged, this, &CastEngine::setStatusMessage);
@@ -321,6 +395,9 @@ void CastEngine::bindSession()
             && (m_state == SessionState::Streaming || m_state == SessionState::Connecting))
             failSession(tr("Wi-Fi Direct group dropped."));
     });
+
+    connect(m_dlna.get(), &DlnaSession::statusChanged, this, &CastEngine::setStatusMessage);
+    connect(m_dlna.get(), &DlnaSession::failed, this, &CastEngine::failSession);
 
     connect(m_wfd.get(), &WfdServer::statusChanged, this, &CastEngine::setStatusMessage);
     connect(m_wfd.get(), &WfdServer::failed, this, &CastEngine::failSession);
@@ -369,6 +446,8 @@ void CastEngine::teardownSession()
     m_tearingDown = true;
     cancelPairing();
     m_connectTimer.stop();
+    if (m_dlna)
+        m_dlna->stop();
     if (m_encoder)
         m_encoder->stop();
     if (m_wfd)

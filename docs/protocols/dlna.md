@@ -1,4 +1,4 @@
-# DLNA / UPnP AV (planned)
+# DLNA / UPnP AV
 
 DLNA Digital Media Renderer (DMR) is a **same-LAN** path. The laptop stays on the access point. The TV pulls an HTTP media URL after a UPnP `SetAVTransportURI`. That is not Miracast. The UI must label these devices **DLNA**.
 
@@ -64,20 +64,23 @@ Keep widgets off UPnP. `CastEngine` already owns `Idle` / `Scanning` / `Connecti
 
 | Piece | Role |
 |-------|------|
-| `SinkDevice` | Add a protocol tag (`Miracast` / `Dlna`). Today the struct is WFD-only (`wfdCapable`, `p2pDevicePath`). |
+| `SinkDevice` | `protocol` is `Miracast` or `Dlna`; DLNA rows carry `avTransportUrl` |
 | `DlnaDiscovery` | SSDP search; merge MediaRenderers into `CastEngine::sinks()` |
 | `DlnaSession` | HTTP media server + AVTransport Play/Stop |
 | Shared capture / encode | Same `DisplaySource` + H.264 path as WFD; mux to HTTP instead of RTP |
 
 `connectToSink` branches on the tag. Pairing prompts stay P2P-only.
 
-Reuse a small UPnP stack: **GSSDP** (SSDP) + **GUPnP** (device/service) + **gupnp-av** (DIDL-Lite / ProtocolInfo helpers), or an equivalent Qt SSDP + SOAP helper. Do not start Rygel or another desktop UI. Do not route this through MiracleCast. GNOME Network Displays speaks Miracast and Chromecast, not DLNA — do not copy its Chromecast backend under this name. `dlna-cast` (ffmpeg + HLS + UPnP) is a CLI proof that live desktop→DMR works; first cut here prefers MPEG-TS / fMP4 so the existing encoder stays shared. HLS is a sink-specific fallback, not the default.
+First cut uses a **Qt SSDP + SOAP helper** (`QUdpSocket` + `QNetworkAccessManager`) so the DTK app does not grow a GLib main loop. GUPnP / GSSDP / gupnp-av remain acceptable if a later cut needs them. Do not start Rygel or another desktop UI. Do not route this through MiracleCast. GNOME Network Displays speaks Miracast and Chromecast, not DLNA — do not copy its Chromecast backend under this name. `dlna-cast` (ffmpeg + HLS + UPnP) is a CLI proof that live desktop→DMR works; this cut serves MPEG-TS so the existing encoder stays shared. HLS is a sink-specific fallback, not the default.
 
 ## First DLNA cut
 
+Implemented:
+
 1. Scan and list MediaRenderers next to P2P sinks, tagged **DLNA**.
-2. Connect = start HTTP + `SetAVTransportURI` + `Play` for the selected monitor, video-only if needed.
+2. Connect = HTTP + `SetAVTransportURI` + `Play` for the selected monitor (AAC in TS when the toggle is on).
 3. Disconnect = `Stop` and tear down HTTP.
-4. Device matrix: which TVs accept live TS vs which need a file-like stream.
+
+Still open: a measured device matrix (which TVs accept live TS vs which need a file-like stream). Video is capped at 1280×720@30.
 
 Chromecast, AirPlay, and “custom TCP on the same Wi-Fi” stay out of this document.

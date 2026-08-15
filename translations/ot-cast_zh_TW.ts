@@ -17,147 +17,228 @@
 <context>
     <name>CastEngine</name>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="29"/>
-        <source>Idle. Scan to search for Miracast displays.</source>
-        <translation>閒置。按「掃描」以搜尋 Miracast 顯示器。</translation>
-    </message>
-    <message>
-        <location filename="../src/engine/castengine.cpp" line="119"/>
+        <location filename="../src/engine/castengine.cpp" line="123"/>
         <source>Enter the pairing PIN for %1…</source>
         <translation>請輸入 %1 的配對 PIN…</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="121"/>
+        <location filename="../src/engine/castengine.cpp" line="125"/>
         <source>Confirm pairing on %1…</source>
         <translation>請在 %1 上確認配對…</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="143"/>
+        <location filename="../src/engine/castengine.cpp" line="147"/>
         <source>Stop the current session before scanning.</source>
         <translation>請先結束目前工作階段再掃描。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="148"/>
-        <location filename="../src/engine/castengine.cpp" line="265"/>
-        <source>Scanning for Miracast displays…</source>
-        <translation>正在掃描 Miracast 顯示器…</translation>
-    </message>
-    <message>
-        <location filename="../src/engine/castengine.cpp" line="163"/>
+        <location filename="../src/engine/castengine.cpp" line="175"/>
         <source>Select a display first.</source>
         <translation>請先選擇一台顯示器。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="169"/>
+        <location filename="../src/engine/castengine.cpp" line="181"/>
         <source>Unknown display.</source>
         <translation>未知顯示器。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="175"/>
+        <location filename="../src/engine/castengine.cpp" line="187"/>
         <source>Connecting…</source>
         <translation>正在連線…</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="180"/>
+        <location filename="../src/engine/castengine.cpp" line="194"/>
         <source>No capture backend for this session.</source>
         <translation>目前工作階段沒有可用的畫面擷取後端。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="199"/>
+        <location filename="../src/engine/castengine.cpp" line="227"/>
         <source>Disconnected.</source>
         <translation>已中斷連線。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="268"/>
-        <source>Found %1 device(s) (%2 with WFD IEs).</source>
-        <translation>找到 %1 台裝置（其中 %2 台帶有 WFD 資訊元素）。</translation>
+        <location filename="../src/engine/castengine.cpp" line="31"/>
+        <source>Idle. Scan to search for Miracast and DLNA displays.</source>
+        <translation>空閒。掃描以尋找 Miracast 和 DLNA 顯示器。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="282"/>
-        <source>No P2P devices found. The sink must be in wireless-display / Miracast mode.</source>
-        <translation>未找到 P2P 裝置。請將接收端設為無線顯示 / Miracast 模式。</translation>
+        <location filename="../src/engine/castengine.cpp" line="154"/>
+        <location filename="../src/engine/castengine.cpp" line="309"/>
+        <source>Scanning for Miracast and DLNA displays…</source>
+        <translation>正在掃描 Miracast 和 DLNA 顯示器…</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="294"/>
-        <source>Found %1 P2P device(s) with no WFD IEs. wpa_supplicant may lack CONFIG_WIFI_DISPLAY, or they are not Miracast sinks.</source>
-        <translation>找到 %1 台沒有 WFD 資訊元素的 P2P 裝置。wpa_supplicant 可能未啟用 CONFIG_WIFI_DISPLAY，或它們不是 Miracast 接收端。</translation>
+        <location filename="../src/engine/castengine.cpp" line="312"/>
+        <source>Found %1 Miracast, %2 DLNA.</source>
+        <translation>找到 %1 個 Miracast、%2 個 DLNA。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="298"/>
-        <source>Scan finished. %1 Miracast display(s) available.</source>
-        <translation>掃描完成。可用的 Miracast 顯示器：%1 台。</translation>
+        <location filename="../src/engine/castengine.cpp" line="338"/>
+        <source>No displays found. Put the TV in Miracast mode, or keep it on this Wi-Fi for DLNA.</source>
+        <translation>未找到顯示器。請將電視設為 Miracast 模式，或留在同一 Wi-Fi 上使用 DLNA。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="313"/>
+        <location filename="../src/engine/castengine.cpp" line="341"/>
+        <source>Scan finished. %1 DLNA renderer(s) available.</source>
+        <translation>掃描完成。找到 %1 個 DLNA 渲染器。</translation>
+    </message>
+    <message>
+        <location filename="../src/engine/castengine.cpp" line="343"/>
+        <source>Found %1 P2P device(s) with no WFD IEs and no DLNA renderers. wpa_supplicant may lack CONFIG_WIFI_DISPLAY.</source>
+        <translation>找到 %1 個沒有 WFD IE 的 P2P 裝置，且沒有 DLNA 渲染器。wpa_supplicant 可能未啟用 CONFIG_WIFI_DISPLAY。</translation>
+    </message>
+    <message>
+        <location filename="../src/engine/castengine.cpp" line="347"/>
+        <source>Scan finished. %1 Miracast, %2 DLNA.</source>
+        <translation>掃描完成。%1 個 Miracast、%2 個 DLNA。</translation>
+    </message>
+    <message>
+        <location filename="../src/engine/castengine.cpp" line="383"/>
+        <source>Timed out waiting for the TV to fetch the HTTP stream. Allow inbound HTTP from the TV to this computer.</source>
+        <translation>等待電視擷取 HTTP 串流逾時。請允許電視存取本機的 HTTP。</translation>
+    </message>
+    <message>
+        <location filename="../src/engine/castengine.cpp" line="386"/>
         <source>Timed out forming the Wi-Fi Direct group or WFD session.</source>
         <translation>建立 Wi-Fi Direct 群組或 WFD 工作階段逾時。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="322"/>
+        <location filename="../src/engine/castengine.cpp" line="396"/>
         <source>Wi-Fi Direct group dropped.</source>
         <translation>Wi-Fi Direct 群組已中斷。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="332"/>
+        <location filename="../src/engine/castengine.cpp" line="409"/>
         <source>Mirroring %1.</source>
         <translation>正在鏡像 %1。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="350"/>
+        <location filename="../src/engine/castengine.cpp" line="427"/>
         <source>Starting encoder (%1, %2, %3)…</source>
         <translation>正在啟動編碼器（%1，%2，%3）…</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="456"/>
+        <location filename="../src/engine/castengine.cpp" line="535"/>
         <source>%1 (%2×%3)%4</source>
         <translation>%1（%2×%3）%4</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="460"/>
+        <location filename="../src/engine/castengine.cpp" line="539"/>
         <source> · primary</source>
         <translation> · 主要</translation>
     </message>
 </context>
 <context>
+    <name>DlnaDiscovery</name>
+    <message>
+        <location filename="../src/discovery/dlnadiscovery.cpp" line="76"/>
+        <source>Could not listen for DLNA / SSDP replies (%1).</source>
+        <translation>無法監聽 DLNA / SSDP 回覆（%1）。</translation>
+    </message>
+    <message>
+        <location filename="../src/discovery/dlnadiscovery.cpp" line="89"/>
+        <source>Scanning for DLNA renderers…</source>
+        <translation>正在掃描 DLNA 渲染器…</translation>
+    </message>
+</context>
+<context>
+    <name>DlnaSession</name>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="76"/>
+        <source>This display is not a DLNA renderer.</source>
+        <translation>此顯示器不是 DLNA 渲染器。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="80"/>
+        <source>Encoder is missing.</source>
+        <translation>缺少編碼器。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="87"/>
+        <source>No LAN IPv4 address the TV can reach. Stay on the same Wi-Fi as the renderer.</source>
+        <translation>沒有電視能連到的區域網路 IPv4 位址。請與渲染器使用同一 Wi-Fi。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="92"/>
+        <source>Could not start the HTTP media server (%1).</source>
+        <translation>無法啟動 HTTP 媒體伺服器（%1）。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="101"/>
+        <source>Offering stream at %1</source>
+        <translation>正在透過 %1 提供串流</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="139"/>
+        <source>Asking %1 which video types it accepts…</source>
+        <translation>正在詢問 %1 支援的影片類型…</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="167"/>
+        <source>Sending the stream URL to %1…</source>
+        <translation>正在向 %1 傳送串流位址…</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="174"/>
+        <source>The TV rejected SetAVTransportURI. It may not play a live MPEG-TS stream.</source>
+        <translation>電視拒絕了 SetAVTransportURI。它可能無法播放即時 MPEG-TS 串流。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="185"/>
+        <source>The TV rejected Play.</source>
+        <translation>電視拒絕了 Play。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="190"/>
+        <source>Waiting for %1 to pull the HTTP stream…</source>
+        <translation>正在等待 %1 擷取 HTTP 串流…</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="294"/>
+        <source>Starting encoder for %1…</source>
+        <translation>正在為 %1 啟動編碼器…</translation>
+    </message>
+</context>
+<context>
     <name>GstEncoder</name>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="37"/>
+        <location filename="../src/session/gstencoder.cpp" line="43"/>
         <source> from %1</source>
         <translation> 來自 %1</translation>
     </message>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="56"/>
+        <location filename="../src/session/gstencoder.cpp" line="109"/>
         <source>Missing sink IP or RTP port.</source>
         <translation>缺少接收端 IP 或 RTP 連接埠。</translation>
     </message>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="64"/>
-        <location filename="../src/session/gstencoder.cpp" line="250"/>
+        <location filename="../src/session/gstencoder.cpp" line="65"/>
+        <location filename="../src/session/gstencoder.cpp" line="276"/>
         <source>no Pulse monitor, video only</source>
         <translation>沒有 Pulse 監聽來源，僅視訊</translation>
     </message>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="94"/>
+        <location filename="../src/session/gstencoder.cpp" line="99"/>
         <source>No working encoder. Need a 1.24-compatible mpegtsmux or ffmpeg with libx264.</source>
         <translation>沒有可用的編碼器。需要與 1.24 相容的 mpegtsmux，或含 libx264 的 ffmpeg。</translation>
     </message>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="212"/>
+        <location filename="../src/session/gstencoder.cpp" line="239"/>
         <source>gst-launch-1.0 failed to start.</source>
         <translation>gst-launch-1.0 啟動失敗。</translation>
     </message>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="225"/>
+        <location filename="../src/session/gstencoder.cpp" line="252"/>
         <source>ffmpeg not found (needed because GStreamer mpegtsmux will not load).</source>
         <translation>找不到 ffmpeg（因 GStreamer mpegtsmux 無法載入而需要它）。</translation>
     </message>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="277"/>
+        <location filename="../src/session/gstencoder.cpp" line="310"/>
         <source>ffmpeg failed to start.</source>
         <translation>ffmpeg 啟動失敗。</translation>
     </message>
     <message>
-        <location filename="../src/session/gstencoder.cpp" line="317"/>
+        <location filename="../src/session/gstencoder.cpp" line="350"/>
         <source>encoder exited with code %1</source>
         <translation>編碼器結束，返回碼 %1</translation>
     </message>
@@ -186,7 +267,7 @@
     </message>
     <message>
         <location filename="../src/ui/mainwindow.cpp" line="103"/>
-        <location filename="../src/ui/mainwindow.cpp" line="286"/>
+        <location filename="../src/ui/mainwindow.cpp" line="291"/>
         <source>Connect</source>
         <translation>連線</translation>
     </message>
@@ -212,57 +293,62 @@
     </message>
     <message>
         <location filename="../src/ui/mainwindow.cpp" line="172"/>
-        <source>No Miracast displays found</source>
-        <translation>找不到 Miracast 顯示器</translation>
+        <source>No displays found</source>
+        <translation>未找到顯示器</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="191"/>
-        <source>P2P · no WFD IEs</source>
-        <translation>P2P · 無 WFD 資訊元素</translation>
+        <location filename="../src/ui/mainwindow.cpp" line="189"/>
+        <source>DLNA</source>
+        <translation>DLNA</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="192"/>
-        <source>%1 · no WFD IEs</source>
-        <translation>%1 · 無 WFD 資訊元素</translation>
+        <location filename="../src/ui/mainwindow.cpp" line="190"/>
+        <source>Miracast</source>
+        <translation>Miracast</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="273"/>
+        <location filename="../src/ui/mainwindow.cpp" line="195"/>
+        <source> · no WFD IEs</source>
+        <translation> · 無 WFD IE</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/mainwindow.cpp" line="278"/>
         <source>the display</source>
         <translation>顯示器</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="280"/>
+        <location filename="../src/ui/mainwindow.cpp" line="285"/>
         <source>Enter pairing PIN</source>
         <translation>輸入配對 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="281"/>
+        <location filename="../src/ui/mainwindow.cpp" line="286"/>
         <source>Enter the PIN shown on %1.</source>
         <translation>請輸入 %1 上顯示的 PIN。</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="283"/>
+        <location filename="../src/ui/mainwindow.cpp" line="288"/>
         <source>4 or 8 digit PIN</source>
         <translation>4 位或 8 位 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="287"/>
-        <location filename="../src/ui/mainwindow.cpp" line="311"/>
+        <location filename="../src/ui/mainwindow.cpp" line="292"/>
+        <location filename="../src/ui/mainwindow.cpp" line="316"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="302"/>
+        <location filename="../src/ui/mainwindow.cpp" line="307"/>
         <source>Enter a 4- or 8-digit PIN</source>
         <translation>請輸入 4 位或 8 位 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="309"/>
+        <location filename="../src/ui/mainwindow.cpp" line="314"/>
         <source>Confirm pairing</source>
         <translation>確認配對</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="310"/>
+        <location filename="../src/ui/mainwindow.cpp" line="315"/>
         <source>Confirm the pairing request on %1.</source>
         <translation>請在 %1 上確認配對請求。</translation>
     </message>

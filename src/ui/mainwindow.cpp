@@ -169,7 +169,7 @@ void MainWindow::refreshSinkList()
 
     const auto sinks = m_engine->sinks();
     if (sinks.isEmpty()) {
-        auto *empty = new DStandardItem(tr("No Miracast displays found"));
+        auto *empty = new DStandardItem(tr("No displays found"));
         empty->setEnabled(false);
         empty->setTextColorRole(DPalette::TextTips);
         empty->setFontSize(DFontSizeManager::T8);
@@ -185,19 +185,24 @@ void MainWindow::refreshSinkList()
         item->setIcon(icon);
         item->setData(sink.id, Qt::UserRole);
         item->setFontSize(DFontSizeManager::T6);
-        QString detail = sink.address;
-        if (!sink.wfdCapable) {
-            detail = detail.isEmpty()
-                ? tr("P2P · no WFD IEs")
-                : tr("%1 · no WFD IEs").arg(sink.address);
-        }
-        if (!detail.isEmpty()) {
-            auto *sub = new DViewItemAction(Qt::AlignLeft, QSize(), QSize(), false);
-            sub->setText(detail);
-            sub->setTextColorRole(DPalette::TextTips);
-            sub->setFontSize(DFontSizeManager::T8);
-            item->setTextActionList({sub});
-        }
+        const QString protocol = (sink.protocol == CastProtocol::Dlna)
+            ? tr("DLNA")
+            : tr("Miracast");
+        QString detail = protocol;
+        if (!sink.address.isEmpty())
+            detail += QStringLiteral(" · ") + sink.address;
+        if (sink.protocol == CastProtocol::Miracast && !sink.wfdCapable)
+            detail += tr(" · no WFD IEs");
+        auto *sub = new DViewItemAction(Qt::AlignLeft, QSize(), QSize(), false);
+        sub->setText(detail);
+        sub->setTextColorRole(DPalette::TextTips);
+        sub->setFontSize(DFontSizeManager::T8);
+        item->setTextActionList({sub});
+        auto *badge = new DViewItemAction(Qt::AlignRight, QSize(), QSize(), false);
+        badge->setText(protocol);
+        badge->setTextColorRole(DPalette::TextTips);
+        badge->setFontSize(DFontSizeManager::T8);
+        item->setActionList(Qt::RightEdge, {badge});
         m_sinkModel->appendRow(item);
     }
     updateActions();

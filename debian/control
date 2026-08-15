@@ -32,10 +32,10 @@ Recommends:
  pipewire-pulse | pulseaudio,
 Description: Cast a desktop to Miracast and other wireless displays
  A DTK6 app from 01tool that discovers Wi-Fi Display sinks over
- NetworkManager P2P, completes WFD/RTSP, and streams the selected
- X11 monitor as H.264 (optional AAC) over RTP.
+ NetworkManager P2P and DLNA MediaRenderers on the LAN. Miracast
+ uses WFD/RTSP and RTP. DLNA serves a live MPEG-TS over HTTP and
+ calls AVTransport Play. The UI names the protocol on every row.
  .
- DLNA and other same-LAN protocols may be added later as separate
- backends. Wayland capture is stubbed until a ScreenCast portal exists.
+ Wayland capture is stubbed until a ScreenCast portal exists.
  .
  This is not an official Deepin / DDE component.

@@ -1,6 +1,6 @@
 # Cast (`ot-cast`)
 
-A 01tool DTK app that casts the local screen to a wireless display. The first backend is **Miracast** (Wi-Fi Display) on X11, with a Wayland capture stub. **DLNA** Digital Media Renderer on the same LAN is the planned fallback for TVs that do not implement WFD well. The UI must name the protocol; DLNA is not Miracast. See [docs/protocols/README.md](docs/protocols/README.md).
+A 01tool DTK app that casts the local screen to a wireless display. **Miracast** (Wi-Fi Display) runs on X11, with a Wayland capture stub. **DLNA** Digital Media Renderer on the same LAN is the fallback for TVs that do not implement WFD well. The UI names the protocol; DLNA is not Miracast. See [docs/protocols/README.md](docs/protocols/README.md).
 
 ## Verdict
 
@@ -10,7 +10,7 @@ A DTK app can provide this feature. DTK only covers the UI. Miracast (Wi-Fi Dire
 |------|-----------|
 | DTK app that looks native on DDE | Yes |
 | Mirror to many Miracast TVs/dongles on **X11** | Yes, with hardware caveats |
-| Reach TVs that only do **DLNA** well | Yes, as a labeled same-LAN backend (planned) |
+| Reach TVs that only do **DLNA** well | Yes, as a labeled same-LAN backend (live MPEG-TS) |
 | Same capture on **Wayland / Treeland** | Only after ScreenCast (or equivalent) exists |
 | One binary, both sessions, degrade gracefully | Yes — that should be the design |
 | Windows-quality “it just works” on every sink | No, not with current Linux WFD |
@@ -32,7 +32,7 @@ cmake --build build
 ./build/ot-cast
 ```
 
-Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), WFD RTSP on port 7236, and X11 grab of the **selected monitor** → scale to the sink’s WFD video mode → `x264enc` → MPEG-TS/RTP. Optional system audio (AAC-LC from the Pulse/PipeWire default-sink monitor) when the sink advertises AAC.
+Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), WFD RTSP on port 7236, **and** SSDP MediaRenderer discovery with HTTP MPEG-TS + AVTransport Play (labeled **DLNA**). X11 grab of the **selected monitor** → H.264 (optional AAC-LC from the Pulse/PipeWire default-sink monitor). Miracast scales to the sink’s WFD video mode and sends MPEG-TS/RTP. DLNA caps at 1280×720@30 and serves TS over HTTP.
 
 Runtime extras:
 

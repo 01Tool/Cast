@@ -5,7 +5,7 @@ Capture (X11 / Wayland) is shared. How frames reach the TV is not. The UI must s
 | Protocol | Document | Network | Status |
 |----------|----------|---------|--------|
 | Miracast / Wi-Fi Display | [miracast.md](miracast.md) | Wi-Fi Direct + RTSP + RTP | Implemented (X11 video, optional AAC). |
-| DLNA / UPnP AV | [dlna.md](dlna.md) | Same LAN, SSDP + HTTP + AVTransport | Planned. Many TVs do this more reliably than WFD. |
+| DLNA / UPnP AV | [dlna.md](dlna.md) | Same LAN, SSDP + HTTP + AVTransport | First cut (X11 MPEG-TS + AVTransport). |
 
 ## When to use which
 

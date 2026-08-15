@@ -16,7 +16,7 @@ if(BUILD_APP)
     find_package(Dtk6Gui REQUIRED)
     find_package(Dtk6Widget REQUIRED)
 elseif(BUILD_CHECKS)
-    find_package(Qt6 REQUIRED COMPONENTS Core)
+    find_package(Qt6 REQUIRED COMPONENTS Core Network)
 endif()
 
 if(BUILD_APP)
@@ -25,7 +25,12 @@ add_executable(ot-cast
     src/ui/mainwindow.cpp
     src/engine/castengine.cpp
     src/discovery/p2pdiscovery.cpp
+    src/discovery/dlnassdp.cpp
+    src/discovery/dlnadescription.cpp
+    src/discovery/dlnadiscovery.cpp
     src/session/p2psession.cpp
+    src/session/dlnaprofile.cpp
+    src/session/dlnasession.cpp
     src/session/nmsecretagent.cpp
     src/session/wfdserver.cpp
     src/session/wfdvideomode.cpp
@@ -95,6 +100,19 @@ target_include_directories(displaysource-check PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(displaysource-check PRIVATE Qt6::Core)
+
+add_executable(dlna-check
+    src/discovery/dlnassdp.cpp
+    src/discovery/dlnadescription.cpp
+    src/session/dlnaprofile.cpp
+    src/session/wfdvideomode.cpp
+    src/session/wfdaudiomode.cpp
+    tests/dlna-check.cpp
+)
+target_include_directories(dlna-check PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(dlna-check PRIVATE Qt6::Core Qt6::Network)
 endif()
 
 if(BUILD_APP)

@@ -6,8 +6,14 @@
 GstEncoder::GstEncoder(QObject *parent)
     : QObject(parent)
 {
+    m_process.setProcessChannelMode(QProcess::SeparateChannels);
     connect(&m_process, &QProcess::errorOccurred, this, &GstEncoder::onProcessError);
     connect(&m_process, &QProcess::finished, this, &GstEncoder::onFinished);
+}
+
+QIODevice *GstEncoder::tsPipe()
+{
+    return &m_process;
 }
 
 GstEncoder::~GstEncoder()
@@ -42,8 +48,8 @@ QString GstEncoder::streamDescription() const
     return text;
 }
 
-void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
-                       const WfdAudioMode &audio, const DisplaySource &source)
+bool GstEncoder::prepare(const WfdVideoMode &video, const WfdAudioMode &audio,
+                         const DisplaySource &source)
 {
     stop();
     m_video = video.isValid() ? video : defaultWfdVideoMode();
@@ -51,12 +57,7 @@ void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMod
     m_source = source;
     m_audioActive = false;
     m_audioNote.clear();
-
-    if (sinkIp.isEmpty() || rtpPort == 0) {
-        m_lastError = tr("Missing sink IP or RTP port.");
-        Q_EMIT failed(m_lastError);
-        return;
-    }
+    m_lastError.clear();
 
     const bool wantAudio = m_audio.enabled();
     const QString monitor = wantAudio ? desktopPulseMonitor() : QString();
@@ -64,7 +65,13 @@ void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMod
         m_audioNote = tr("no Pulse monitor, video only");
         qWarning() << m_audioNote;
     }
+    return true;
+}
 
+bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpPort)
+{
+    const bool wantAudio = m_audio.enabled();
+    const QString monitor = wantAudio ? desktopPulseMonitor() : QString();
     const bool gstVideo = gstHasElement(QStringLiteral("mpegtsmux"))
         && gstHasElement(QStringLiteral("h264parse"))
         && gstHasElement(QStringLiteral("ximagesrc"))
@@ -76,23 +83,44 @@ void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMod
         && gstHasElement(QStringLiteral("aacparse"))
         && !gstAacEncoder().isEmpty();
 
-    // Prefer ffmpeg when the sink wants AAC but this GStreamer is missing audio bits
-    // (common on this image: plugins-bad 1.26 vs gst 1.24, no gst-inspect in PATH).
     if (gstVideo && (!wantAudio || gstAudio || monitor.isEmpty())) {
-        if (startGst(sinkIp, rtpPort, gstAudio))
-            return;
+        if (startGst(sink, sinkIp, rtpPort, gstAudio))
+            return true;
     } else if (!gstVideo) {
-        qWarning() << "GStreamer mpegtsmux/h264parse unavailable, using ffmpeg rtp_mpegts";
+        qWarning() << "GStreamer mpegtsmux/h264parse unavailable, using ffmpeg";
     } else {
         qWarning() << "GStreamer AAC path unavailable, using ffmpeg for A/V";
     }
 
-    if (startFfmpeg(sinkIp, rtpPort, wantAudio && !monitor.isEmpty()))
-        return;
+    if (startFfmpeg(sink, sinkIp, rtpPort, wantAudio && !monitor.isEmpty()))
+        return true;
 
     if (m_lastError.isEmpty()) {
         m_lastError = tr("No working encoder. Need a 1.24-compatible mpegtsmux or ffmpeg with libx264.");
     }
+    return false;
+}
+
+void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
+                       const WfdAudioMode &audio, const DisplaySource &source)
+{
+    prepare(video, audio, source);
+    if (sinkIp.isEmpty() || rtpPort == 0) {
+        m_lastError = tr("Missing sink IP or RTP port.");
+        Q_EMIT failed(m_lastError);
+        return;
+    }
+    if (startPreferred(TsSink::Rtp, sinkIp, rtpPort))
+        return;
+    Q_EMIT failed(m_lastError);
+}
+
+void GstEncoder::startMpegTsPipe(const WfdVideoMode &video, const WfdAudioMode &audio,
+                                const DisplaySource &source)
+{
+    prepare(video, audio, source);
+    if (startPreferred(TsSink::Stdout, {}, 0))
+        return;
     Q_EMIT failed(m_lastError);
 }
 
@@ -155,7 +183,7 @@ QString GstEncoder::ximagesrcElement() const
     return element;
 }
 
-bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio)
+bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio)
 {
     const QString launch = QStandardPaths::findExecutable(QStringLiteral("gst-launch-1.0"));
     if (launch.isEmpty())
@@ -163,23 +191,25 @@ bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio
 
     const QString monitor = withAudio ? desktopPulseMonitor() : QString();
     const QString grab = ximagesrcElement();
+    const QString tsOut = (sink == TsSink::Stdout)
+        ? QStringLiteral("fdsink fd=1 sync=false")
+        : QStringLiteral("rtpmp2tpay pt=33 ! udpsink host=%1 port=%2 sync=false")
+              .arg(sinkIp)
+              .arg(rtpPort);
     QString pipeline;
     if (withAudio && !monitor.isEmpty()) {
         pipeline = QStringLiteral(
-                       "mpegtsmux name=mux alignment=7 ! rtpmp2tpay pt=33 ! "
-                       "udpsink host=%1 port=%2 sync=false "
-                       "%3 ! "
+                       "mpegtsmux name=mux alignment=7 ! %1 "
+                       "%2 ! "
                        "videoconvert ! videoscale ! "
-                       "video/x-raw,width=%4,height=%5,framerate=%6/1 ! "
-                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%6 ! "
+                       "video/x-raw,width=%3,height=%4,framerate=%5/1 ! "
+                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%5 ! "
                        "video/x-h264,profile=baseline ! "
                        "h264parse config-interval=1 ! queue ! mux. "
-                       "pulsesrc device=\"%7\" provide-clock=true do-timestamp=true ! "
-                       "audioconvert ! audioresample ! audio/x-raw,rate=%8,channels=2 ! "
-                       "%9 ! aacparse ! queue ! mux.")
-                       .arg(sinkIp)
-                       .arg(rtpPort)
-                       .arg(grab)
+                       "pulsesrc device=\"%6\" provide-clock=true do-timestamp=true ! "
+                       "audioconvert ! audioresample ! audio/x-raw,rate=%7,channels=2 ! "
+                       "%8 ! aacparse ! queue ! mux.")
+                       .arg(tsOut, grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
                        .arg(m_video.fps)
@@ -195,15 +225,12 @@ bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio
                        "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%4 ! "
                        "video/x-h264,profile=baseline ! "
                        "h264parse config-interval=1 ! "
-                       "mpegtsmux alignment=7 ! "
-                       "rtpmp2tpay pt=33 ! "
-                       "udpsink host=%5 port=%6 sync=false")
+                       "mpegtsmux alignment=7 ! %5")
                        .arg(grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
                        .arg(m_video.fps)
-                       .arg(sinkIp)
-                       .arg(rtpPort);
+                       .arg(tsOut);
     }
 
     qInfo() << "gst-launch" << pipeline;
@@ -218,7 +245,7 @@ bool GstEncoder::startGst(const QString &sinkIp, quint16 rtpPort, bool withAudio
     return true;
 }
 
-bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAudio)
+bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio)
 {
     const QString ffmpeg = QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
     if (ffmpeg.isEmpty()) {
@@ -227,7 +254,6 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAu
     }
 
     const QString display = qEnvironmentVariable("DISPLAY", QStringLiteral(":0"));
-    const QString url = QStringLiteral("rtp://%1:%2").arg(sinkIp).arg(rtpPort);
     const QString monitor = withAudio ? desktopPulseMonitor() : QString();
     QStringList args{
         QStringLiteral("-hide_banner"),
@@ -269,7 +295,14 @@ bool GstEncoder::startFfmpeg(const QString &sinkIp, quint16 rtpPort, bool withAu
         args << QStringLiteral("-an");
     }
 
-    args << QStringLiteral("-f") << QStringLiteral("rtp_mpegts") << url;
+    if (sink == TsSink::Stdout) {
+        args << QStringLiteral("-flush_packets") << QStringLiteral("1")
+             << QStringLiteral("-f") << QStringLiteral("mpegts")
+             << QStringLiteral("pipe:1");
+    } else {
+        args << QStringLiteral("-f") << QStringLiteral("rtp_mpegts")
+             << QStringLiteral("rtp://%1:%2").arg(sinkIp).arg(rtpPort);
+    }
 
     qInfo() << "ffmpeg" << args;
     m_process.start(ffmpeg, args);

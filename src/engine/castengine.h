@@ -12,6 +12,8 @@
 #include <memory>
 
 class CaptureBackend;
+class DlnaDiscovery;
+class DlnaSession;
 class GstEncoder;
 class NmSecretAgent;
 class P2PDiscovery;
@@ -87,8 +89,14 @@ private:
     void bindDiscovery();
     void bindSession();
     void bindPairing();
+    void mergeSinks();
+    void updateScanStatus();
+    void finishScanIfReady();
+    void connectMiracast(const SinkDevice &sink);
+    void connectDlna(const SinkDevice &sink);
     void onPeersChanged();
     void onScanFinished();
+    void onDlnaScanFinished();
     void onP2PActivated(const QString &localIpv4);
     void onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
                          const WfdAudioMode &audio);
@@ -107,10 +115,14 @@ private:
     QString m_selectedSinkId;
     std::unique_ptr<CaptureBackend> m_capture;
     std::unique_ptr<P2PDiscovery> m_discovery;
+    std::unique_ptr<DlnaDiscovery> m_dlnaDiscovery;
     std::unique_ptr<P2PSession> m_p2p;
+    std::unique_ptr<DlnaSession> m_dlna;
     std::unique_ptr<WfdServer> m_wfd;
     std::unique_ptr<GstEncoder> m_encoder;
     std::unique_ptr<NmSecretAgent> m_secrets;
+    bool m_p2pScanDone = true;
+    bool m_dlnaScanDone = true;
     QTimer m_connectTimer;
     QVector<DisplaySource> m_displays;
     QString m_selectedDisplayId;

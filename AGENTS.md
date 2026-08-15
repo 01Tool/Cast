@@ -21,7 +21,7 @@ DTK conventions: `~/.agents/skills/deepin-skills/dtk-development/SKILL.md` and i
 ## Product facts (do not violate)
 
 - This is a **DTK sender** (product name **Cast**, binary `ot-cast`) that mirrors the local screen.
-- **Miracast / WFD** is the first transport (Wi-Fi Direct + RTSP + RTP). **DLNA DMR** is the planned same-LAN fallback. Both may appear in one device list; each row must show its protocol.
+- **Miracast / WFD** is the first transport (Wi-Fi Direct + RTSP + RTP). **DLNA DMR** is the same-LAN fallback. Both may appear in one device list; each row must show its protocol.
 - **DTK is the UI only.** Discovery, P2P, WFD/RTSP, UPnP, capture, encode, and send live in `CastEngine` and backends — not in widgets.
 - **Reuse**, do not rewrite WFD. Start from `linuxdeepin/deepin-network-displays` / GNOME Network Displays. Do **not** base the desktop app on MiracleCast.
 - **One binary, two capture backends.** Detect the session with `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform`.

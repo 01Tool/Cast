@@ -13,10 +13,10 @@ DTK UI  (DApplication + DMainWindow)
 CastEngine (Qt, display-server agnostic)
     ├── Discovery:
     │     P2P  → NetworkManager + wpa_supplicant WFD IEs
-    │     DLNA → SSDP MediaRenderer   (planned)
+    │     DLNA → SSDP MediaRenderer
     ├── Session:
     │     WFD  → RTSP :7236 + RTP
-    │     DLNA → HTTP stream + AVTransport Play   (planned)
+    │     DLNA → HTTP stream + AVTransport Play
     └── Capture:
           X11     → ximagesrc / XShm
           Wayland → portal + PipeWire  (requires ScreenCast backend)
@@ -55,11 +55,11 @@ Subsystems:
 | Subsystem | Role | Preferred implementation |
 |-----------|------|--------------------------|
 | Discovery (WFD) | List Miracast sinks | NetworkManager P2P + `wpa_supplicant` WFD IEs |
-| Discovery (DLNA) | List MediaRenderers | SSDP; planned, see [protocols/dlna.md](protocols/dlna.md) |
+| Discovery (DLNA) | List MediaRenderers | Qt SSDP; see [protocols/dlna.md](protocols/dlna.md) |
 | Pairing | WPS PIN / PBC | NM SecretAgent; P2P only |
 | Session (WFD) | WFD RTSP handshake | GStreamer WFD bits from GNOME / deepin-network-displays |
-| Session (DLNA) | HTTP + `SetAVTransportURI` | Planned `DlnaSession` |
-| Sink identity | Protocol on every row | Extend `SinkDevice` with `Miracast` / `Dlna` (today it is WFD-only) |
+| Session (DLNA) | HTTP + `SetAVTransportURI` | `DlnaSession` |
+| Sink identity | Protocol on every row | `SinkDevice::protocol` is `Miracast` or `Dlna` |
 | Capture | Frames + optional system audio | Backend interface + Pulse/PipeWire monitor |
 | Encode | H.264 + AAC-LC | GStreamer (`x264enc` / `avenc_aac`) or ffmpeg |
 | Transport | RTP or HTTP | Same encoder, different mux/send path |
@@ -91,7 +91,7 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 3. X11 capture + GStreamer WFD send path (reuse deepin/GNOME network-displays where possible).
 4. Wayland `PortalCapture` stub that reports “ScreenCast unavailable”.
 5. Hardware-encoder tuning after video, optional AAC, and a monitor picker work.
-6. DLNA: SSDP list + HTTP live push to MediaRenderers, tagged in the UI. Use this when P2P/WFD is missing or unstable. See [protocols/dlna.md](protocols/dlna.md).
+6. DLNA: SSDP list + HTTP live MPEG-TS to MediaRenderers, tagged in the UI. Use this when P2P/WFD is missing or unstable. See [protocols/dlna.md](protocols/dlna.md).
 
 This order ships a usable X11 Miracast product first, then covers TVs that only do DMR well, without blocking on Treeland portal work.
 

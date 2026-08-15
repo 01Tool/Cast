@@ -33,7 +33,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | PulseAudio / `pipewire-pulse` | Default-sink `.monitor` for system audio |
 | `xdg-desktop-portal` | ScreenCast session on Wayland |
 | SSDP / UPnP AV / DLNA DMR | Same-LAN discovery (`MediaRenderer:1`) and `AVTransport` Play |
-| GUPnP / GSSDP / gupnp-av | Preferred C stack for SSDP + SOAP + DIDL-Lite when DLNA is implemented |
+| GUPnP / GSSDP / gupnp-av | Optional C stack; first cut uses Qt Network instead |
 
 ## DLNA / UPnP
 
@@ -175,3 +175,14 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Miracast + Chromecast, not DLNA; do not copy Chromecast | [feasibility.md](feasibility.md) Existing Deepin work; [protocols/README.md](protocols/README.md) out of scope |
 | 2026-08-15 | [link89/dlna-cast](https://github.com/link89/dlna-cast) | Live x11grab → HLS → UPnP Play; CLI reference only | [protocols/dlna.md](protocols/dlna.md) Engine fit |
 | 2026-08-15 | `AGENTS.md` Product facts | Explicit DLNA backend; never label a DMR as Miracast | [README.md](../README.md) Verdict; [protocols/README.md](protocols/README.md) |
+| 2026-08-15 | `docs/protocols/dlna.md` Required path / Engine fit | SSDP MediaRenderer, HTTP TS, AVTransport Play/Stop, Qt helper | `src/discovery/dlnadiscovery.cpp`; `src/session/dlnasession.cpp`; `src/engine/castengine.cpp` `connectDlna` |
+| 2026-08-15 | [UPnP AV Architecture:1](https://upnp.org/specs/av/UPnP-av-AVArchitecture-v1.pdf) | Control Point + ephemeral HTTP; not a ContentDirectory | `src/session/dlnasession.cpp` `setUriAndPlay` |
+| 2026-08-15 | [AVTransport:2](https://www.upnp.org/specs/av/UPnP-av-AVTransport-v2-Service.pdf) | `SetAVTransportURI`, `Play` Speed=1, `Stop` InstanceID 0 | `src/session/dlnasession.cpp` `setUriAndPlay` / `soapStop` |
+| 2026-08-15 | [ConnectionManager:3](https://upnp.org/specs/av/UPnP-av-ConnectionManager-v3-Service-20101231.pdf) | `GetProtocolInfo` Sink list | `src/session/dlnaprofile.cpp` `parseConnectionManagerSink` / `pickDlnaProfile` |
+| 2026-08-15 | [DLNA.org](https://www.dlna.org/) | `transferMode.dlna.org: Streaming`, `contentFeatures.dlna.org`, `OP=00` live | `src/session/dlnasession.cpp` `httpHeaders`; `src/session/dlnaprofile.cpp` `pickDlnaProfile` |
+| 2026-08-15 | `src/engine/sinkdevice.h` | `CastProtocol::Miracast` / `Dlna` plus AVTransport URLs | `src/discovery/dlnadiscovery.cpp` `toSink`; `src/ui/mainwindow.cpp` `refreshSinkList` |
+| 2026-08-15 | `docs/architecture.md` first cut §6 | Merge P2P + DLNA lists; widgets stay off UPnP | `src/engine/castengine.cpp` `mergeSinks` / `startScan` |
+| 2026-08-15 | `docs/platform/x11.md` Approach | Same H.264 encode; MPEG-TS on stdout for HTTP | `src/session/gstencoder.cpp` `startMpegTsPipe` |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/item-delegate.md` | `DViewItemAction` subtitle + right-edge protocol label | `src/ui/mainwindow.cpp` `refreshSinkList` |
+| 2026-08-15 | [Qt `QUdpSocket`](https://doc.qt.io/qt-6/qudpsocket.html) | SSDP M-SEARCH to `239.255.255.250:1900` | `src/discovery/dlnadiscovery.cpp` `sendMsearch` |
+| 2026-08-15 | [Qt `QTcpServer`](https://doc.qt.io/qt-6/qtcpserver.html) | HTTP GET/HEAD for live TS | `src/session/dlnasession.cpp` `handleClient` |
