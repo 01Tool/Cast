@@ -1,0 +1,39 @@
+Source: deepin-miracast
+Section: video
+Priority: optional
+Maintainer: Playhi <000902play@gmail.com>
+Build-Depends:
+ cmake,
+ debhelper-compat (= 13),
+ pkg-config,
+ qt6-base-dev,
+ qt6-tools-dev,
+ qt6-l10n-tools,
+ libdtk6core-dev,
+ libdtk6gui-dev,
+ libdtk6widget-dev,
+Standards-Version: 4.7.0
+Homepage: https://github.com/01Tool/Miracast
+Rules-Requires-Root: no
+
+Package: deepin-miracast
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ ffmpeg,
+ network-manager,
+ pulseaudio-utils,
+Recommends:
+ gstreamer1.0-tools,
+ gstreamer1.0-plugins-good,
+ gstreamer1.0-plugins-bad,
+ gstreamer1.0-libav,
+ pipewire-pulse | pulseaudio,
+Description: DTK sender that mirrors the screen to Miracast displays
+ A DTK6 desktop app that discovers Wi-Fi Display sinks over
+ NetworkManager P2P, completes WFD/RTSP, and streams the selected
+ X11 monitor as H.264 (optional AAC) over RTP.
+ .
+ Wayland capture is stubbed until a ScreenCast portal is available.
+ Do not treat this as universal sink support.

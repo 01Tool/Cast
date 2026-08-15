@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Miracast
+Name[zh_CN]=无线投屏
+Name[zh_TW]=無線投屏
+GenericName=Wireless Display
+GenericName[zh_CN]=无线显示
+GenericName[zh_TW]=無線顯示
+Comment=Mirror this computer to a Miracast wireless display
+Comment[zh_CN]=将此计算机的屏幕镜像到 Miracast 无线显示器
+Comment[zh_TW]=將此電腦的畫面鏡像到 Miracast 無線顯示器
+Exec=deepin-miracast
+Icon=video-display
+Terminal=false
+StartupNotify=true
+Categories=Network;Qt;
+Keywords=Miracast;WFD;Wi-Fi Display;cast;mirror;投屏;
+StartupWMClass=deepin-miracast

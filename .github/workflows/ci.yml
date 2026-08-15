@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Protocol checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config \
+            qt6-base-dev
+
+      - name: Configure checks only
+        run: cmake -S . -B build -DBUILD_APP=OFF -DBUILD_CHECKS=ON
+
+      - name: Build and run checks
+        run: |
+          cmake --build build -j"$(nproc)"
+          ./build/wfdvideomode-check
+          ./build/wfdaudiomode-check
+          ./build/displaysource-check
+
+  debian-source:
+    name: Debian source sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check packaging files
+        run: |
+          test -x debian/rules
+          grep -q 'debhelper-compat (= 13)' debian/control
+          grep -q 'libdtk6widget-dev' debian/control
+          grep -q 'org.deepin.miracast.desktop' CMakeLists.txt
+          test -f data/org.deepin.miracast.desktop
+          desktop-file-validate data/org.deepin.miracast.desktop || true

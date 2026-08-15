@@ -7,11 +7,19 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets DBus Network LinguistTools)
-find_package(Dtk6Core REQUIRED)
-find_package(Dtk6Gui REQUIRED)
-find_package(Dtk6Widget REQUIRED)
+option(BUILD_APP "Build the DTK desktop app (needs Dtk6)" ON)
+option(BUILD_CHECKS "Build protocol unit checks" ON)
 
+if(BUILD_APP)
+    find_package(Qt6 REQUIRED COMPONENTS Core Widgets DBus Network LinguistTools)
+    find_package(Dtk6Core REQUIRED)
+    find_package(Dtk6Gui REQUIRED)
+    find_package(Dtk6Widget REQUIRED)
+elseif(BUILD_CHECKS)
+    find_package(Qt6 REQUIRED COMPONENTS Core)
+endif()
+
+if(BUILD_APP)
 add_executable(deepin-miracast
     src/main.cpp
     src/ui/mainwindow.cpp
@@ -56,7 +64,10 @@ add_custom_command(TARGET deepin-miracast POST_BUILD
             $<TARGET_FILE_DIR:deepin-miracast>/translations
 )
 install(FILES ${QM_FILES} DESTINATION share/deepin-miracast/translations)
+install(FILES data/org.deepin.miracast.desktop DESTINATION share/applications)
+endif()
 
+if(BUILD_CHECKS)
 add_executable(wfdvideomode-check
     src/session/wfdvideomode.cpp
     tests/wfdvideomode-check.cpp
@@ -82,5 +93,8 @@ target_include_directories(displaysource-check PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(displaysource-check PRIVATE Qt6::Core)
+endif()
 
+if(BUILD_APP)
 install(TARGETS deepin-miracast RUNTIME DESTINATION bin)
+endif()

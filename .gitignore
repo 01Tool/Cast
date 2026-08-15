@@ -5,3 +5,16 @@ compile_commands.json
 *.autosave
 .cache/
 CMakeUserPresets.json
+/debian/.debhelper/
+/debian/deepin-miracast/
+/debian/files
+/debian/*.debhelper.log
+/debian/*.substvars
+/debian/debhelper-build-stamp
+/*.deb
+/*.dsc
+/*.tar.xz
+/*.tar.gz
+/*.build
+/*.buildinfo
+/*.changes

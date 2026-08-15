@@ -45,6 +45,23 @@ sudo apt install gstreamer1.0-tools pulseaudio-utils
 
 On this deepin image, `gstreamer1.0-plugins-bad` 1.24.6 ships `mpegtsmux`/`h264parse` built as 1.26, so GStreamer 1.24 will not load them. The encoder then uses `ffmpeg -f x11grab … -f rtp_mpegts`. A firewall must allow TCP 7236 and UDP RTP toward the sink.
 
+## Package
+
+Debian packaging lives in `debian/` (debhelper + CMake, DTK6). On a Deepin / DTK6 system:
+
+```bash
+sudo apt build-dep .
+dpkg-buildpackage -us -uc -b
+```
+
+That installs the binary to `/usr/bin/deepin-miracast`, translations to
+`/usr/share/deepin-miracast/translations`, and
+`data/org.deepin.miracast.desktop` into the applications menu.
+
+## Release
+
+Push a tag that matches `CMakeLists.txt` and `debian/changelog` (for example `v0.1.0`). The GitHub **Release** workflow runs the protocol checks and publishes a source tarball on the tag. Build the `.deb` on Deepin as above; Ubuntu runners do not ship DTK6.
+
 ## Documents
 
 | Document | Path |

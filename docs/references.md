@@ -122,3 +122,8 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `loadTranslator()` before UI; QM basename = `applicationName` | `src/main.cpp` `main`; `CMakeLists.txt` `qt6_add_translation`; `translations/deepin-miracast_zh_CN.ts` / `zh_TW.ts` |
 | 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.2 | Translator basename matches `applicationName`; no `tr()` for units | `src/main.cpp` `deepin-miracast`; `translations/deepin-miracast_*.ts` |
 | 2026-08-15 | `/usr/share/dde-clipboard/translations/` | Install `app_zh_CN.qm` / `app_zh_TW.qm` under `share/<app>/translations` | `CMakeLists.txt` `install(... share/deepin-miracast/translations)` |
+| 2026-08-15 | `/home/playhi/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §4 | `Build-Depends` DTK6 `-dev` packages; runtime via `${shlibs:Depends}` | `debian/control` |
+| 2026-08-15 | `/usr/share/applications/dde-file-manager.desktop` | `Type=Application`, `Exec`, `Icon`, `Categories`, `Name[zh_CN]` | `data/org.deepin.miracast.desktop` |
+| 2026-08-15 | [Debian debhelper compat 13](https://manpages.debian.org/bookworm/debhelper/debhelper.7.en.html) | `dh --buildsystem=cmake` | `debian/rules` |
+| 2026-08-15 | [softprops/action-gh-release](https://github.com/softprops/action-gh-release) | Tag `v*` → GitHub Release + source tarball | `.github/workflows/release.yml` |
+| 2026-08-15 | `docs/architecture.md` one-binary DTK6 app | Package the same binary; no MiracleCast | `debian/control` Description |

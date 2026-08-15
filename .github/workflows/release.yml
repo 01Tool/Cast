@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  checks:
+    name: Protocol checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config qt6-base-dev
+      - name: Build and run checks
+        run: |
+          cmake -S . -B build -DBUILD_APP=OFF -DBUILD_CHECKS=ON
+          cmake --build build -j"$(nproc)"
+          ./build/wfdvideomode-check
+          ./build/wfdaudiomode-check
+          ./build/displaysource-check
+
+  source-release:
+    name: GitHub source release
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build source archive
+        id: archive
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          CMAKE_VERSION="$(sed -n 's/^project(deepin-miracast VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+          CHANGELOG_VERSION="$(sed -n 's/^deepin-miracast (\([^)]*\)).*/\1/p' debian/changelog | head -1)"
+          if [ "${VERSION}" != "${CMAKE_VERSION}" ]; then
+            echo "Tag ${TAG} does not match CMake version ${CMAKE_VERSION}" >&2
+            exit 1
+          fi
+          if [ "${VERSION}" != "${CHANGELOG_VERSION}" ]; then
+            echo "Tag ${TAG} does not match debian/changelog ${CHANGELOG_VERSION}" >&2
+            exit 1
+          fi
+          PREFIX="deepin-miracast-${VERSION}"
+          git archive --format=tar.gz --prefix="${PREFIX}/" -o "${PREFIX}.tar.gz" HEAD
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tarball=${PREFIX}.tar.gz" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: deepin-miracast ${{ steps.archive.outputs.version }}
+          generate_release_notes: true
+          files: ${{ steps.archive.outputs.tarball }}
+          fail_on_unmatched_files: true
+          body: |
+            Source release of deepin-miracast ${{ steps.archive.outputs.version }}.
+
+            Build a `.deb` on Deepin / a DTK6 system:
+
+            ```
+            sudo apt build-dep .
+            dpkg-buildpackage -us -uc -b
+            ```
