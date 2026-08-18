@@ -200,3 +200,4 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-18 | [Qt `QNetworkInterface::IsPointToPoint`](https://doc.qt.io/qt-6/qnetworkinterface.html#InterfaceFlag-enum) | Skip point-to-point ifaces for SSDP and the HTTP advertise address | `src/discovery/dlnadiscovery.cpp` `sendMsearch`; `src/session/dlnaprofile.cpp` `pickLocalIpv4` |
 | 2026-08-18 | `docs/protocols/dlna.md` first cut | Raise live desktop to 1080p30; HD `MPEG_TS_HD_NA_ISO` | `src/session/dlnaprofile.cpp` `dlnaVideoMode` / `applyDlnaOutputMode` |
 | 2026-08-18 | local Tmall MagicBox_M18 session | 720p looked soft on a 4K source; 1080p + higher bitrate | `src/session/gstencoder.cpp` `videoBitrateKbps` |
+| 2026-08-18 | `debian/changelog` 0.1.0 | First public cut: X11 Miracast + labeled DLNA 1080p | `debian/changelog`; [README.md](../README.md) Release; `.github/workflows/release.yml` body |

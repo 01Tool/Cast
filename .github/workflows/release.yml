@@ -64,7 +64,15 @@ jobs:
           files: ${{ steps.archive.outputs.tarball }}
           fail_on_unmatched_files: true
           body: |
-            Source release of Cast (ot-cast) ${{ steps.archive.outputs.version }}.
+            First public source release of Cast (ot-cast) ${{ steps.archive.outputs.version }}.
+
+            **In this cut (X11):**
+            - Miracast: NetworkManager P2P, WPS PIN/PBC, WFD/RTSP, H.264 MPEG-TS/RTP
+            - DLNA: SSDP MediaRenderer, live HTTP MPEG-TS up to 1080p30, AVTransport Play
+            - Selected monitor, optional AAC, zh_CN / zh_TW
+            - Each device row is labeled **Miracast** or **DLNA**
+
+            Wayland capture is stubbed. Not an official Deepin component. Not every TV; not “low latency.”
 
             Build a `.deb` on Deepin / a DTK6 system:
 
@@ -72,3 +80,5 @@ jobs:
             sudo apt build-dep .
             dpkg-buildpackage -us -uc -b
             ```
+
+            Or `./scripts/package.sh` for `.deb` and AppImage.

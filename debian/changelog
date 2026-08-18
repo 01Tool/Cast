@@ -1,7 +1,13 @@
 ot-cast (0.1.0) unstable; urgency=medium
 
-  * Rename the product to Cast (ot-cast, com.01tool.cast).
-  * Initial package: P2P scan/connect, WFD video and optional AAC,
-    monitor picker, pairing prompts, zh_CN/zh_TW.
+  * First public release of Cast (ot-cast, com.01tool.cast).
+  * X11 sender: selected monitor, optional AAC from the Pulse/PipeWire
+    default-sink monitor.
+  * Miracast: NetworkManager P2P scan, WPS PIN/PBC pairing, WFD/RTSP
+    and H.264 MPEG-TS over RTP.
+  * DLNA: SSDP MediaRenderer discovery, live HTTP MPEG-TS (1080p30,
+    HD profile) and AVTransport Play. Each row is labeled Miracast or
+    DLNA.
+  * DTK6 UI with zh_CN and zh_TW. Wayland capture is stubbed.
 
- -- Playhi <000902play@gmail.com>  Sat, 15 Aug 2026 19:02:08 +0800
+ -- Playhi <000902play@gmail.com>  Tue, 18 Aug 2026 23:55:32 +0800

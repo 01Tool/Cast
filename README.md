@@ -68,7 +68,16 @@ The AppImage bundles Qt 6 and DTK6. It still needs host NetworkManager, `ffmpeg`
 
 ## Release
 
-Push a tag that matches `CMakeLists.txt` and `debian/changelog` (for example `v0.1.0`). The GitHub **Release** workflow runs the protocol checks and publishes a source tarball on the tag. Build the `.deb` on Deepin as above; Ubuntu runners do not ship DTK6.
+`0.1.0` is the first public cut: X11 only, Miracast plus labeled DLNA (live MPEG-TS up to 1080p30), optional AAC, zh_CN/zh_TW. Wayland capture is stubbed. Do not claim every TV or low latency.
+
+Push `main`, then a tag that matches `CMakeLists.txt` and `debian/changelog`:
+
+```bash
+git tag -s v0.1.0 -m "Cast 0.1.0"
+git push origin main v0.1.0
+```
+
+The GitHub **Release** workflow runs the protocol checks and publishes a source tarball on the tag. Build the `.deb` or AppImage on Deepin as above; Ubuntu runners do not ship DTK6.
 
 ## Documents
 
