@@ -198,3 +198,5 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-18 | local `ffmpeg` x11grab `bgr0` + libx264 baseline | Baseline rejects 4:4:4; need `format=yuv420p` | `src/session/gstencoder.cpp` `startFfmpeg` |
 | 2026-08-18 | `http://192.168.31.8:7300/mdr/desc.xml` | friendlyName `我的天猫魔盒`; Sink includes `video/mpeg` | [devices.md](devices.md); this session |
 | 2026-08-18 | [Qt `QNetworkInterface::IsPointToPoint`](https://doc.qt.io/qt-6/qnetworkinterface.html#InterfaceFlag-enum) | Skip point-to-point ifaces for SSDP and the HTTP advertise address | `src/discovery/dlnadiscovery.cpp` `sendMsearch`; `src/session/dlnaprofile.cpp` `pickLocalIpv4` |
+| 2026-08-18 | `docs/protocols/dlna.md` first cut | Raise live desktop to 1080p30; HD `MPEG_TS_HD_NA_ISO` | `src/session/dlnaprofile.cpp` `dlnaVideoMode` / `applyDlnaOutputMode` |
+| 2026-08-18 | local Tmall MagicBox_M18 session | 720p looked soft on a 4K source; 1080p + higher bitrate | `src/session/gstencoder.cpp` `videoBitrateKbps` |

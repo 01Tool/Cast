@@ -81,6 +81,6 @@ Implemented:
 2. Connect = HTTP + `SetAVTransportURI` + `Play` for the selected monitor (AAC in TS when the toggle is on).
 3. Disconnect = `Stop` and tear down HTTP.
 
-Still open: fill [../devices.md](../devices.md) from real TVs (live TS vs file-only). Video is capped at 1280×720@30. Scan classifies `GetProtocolInfo` as a **hint** only.
+Still open: fill [../devices.md](../devices.md) from real TVs (live TS vs file-only). Video is capped at 1920×1080@30 (HD MPEG-TS). Scan classifies `GetProtocolInfo` as a **hint** only.
 
 Chromecast, AirPlay, and “custom TCP on the same Wi-Fi” stay out of this document.

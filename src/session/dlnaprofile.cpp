@@ -7,7 +7,7 @@
 namespace {
 
 constexpr auto kDefaultFeatures =
-    "DLNA.ORG_PN=MPEG_TS_SD_NA_ISO;DLNA.ORG_OP=00;DLNA.ORG_CI=0;"
+    "DLNA.ORG_PN=MPEG_TS_HD_NA_ISO;DLNA.ORG_OP=00;DLNA.ORG_CI=0;"
     "DLNA.ORG_FLAGS=01700000000000000000000000000000";
 
 int even(int value)
@@ -165,6 +165,31 @@ DlnaProfile pickDlnaProfile(const QString &sinkProtocolInfo)
     return profile;
 }
 
+void applyDlnaOutputMode(DlnaProfile *profile, const WfdVideoMode &video)
+{
+    if (!profile)
+        return;
+    const QString pn = (video.width >= 1280 || video.height >= 720)
+        ? QStringLiteral("MPEG_TS_HD_NA_ISO")
+        : QStringLiteral("MPEG_TS_SD_NA_ISO");
+    QString extra = profile->contentFeatures;
+    const QString marker = QStringLiteral("DLNA.ORG_PN=");
+    const int pos = extra.toUpper().indexOf(marker);
+    if (pos >= 0) {
+        int end = extra.indexOf(QLatin1Char(';'), pos);
+        if (end < 0)
+            end = extra.size();
+        extra.replace(pos, end - pos, marker + pn);
+    } else if (extra.isEmpty() || extra == QLatin1String("*")) {
+        extra = QString::fromLatin1(kDefaultFeatures);
+        extra.replace(QLatin1String("MPEG_TS_HD_NA_ISO"), pn);
+    } else {
+        extra = marker + pn + QLatin1Char(';') + extra;
+    }
+    profile->contentFeatures = extra;
+    profile->protocolInfo = QStringLiteral("http-get:*:%1:%2").arg(profile->mime, extra);
+}
+
 DlnaMediaKind classifyDlnaSink(const QString &sinkProtocolInfo, QString *summary)
 {
     if (sinkProtocolInfo.trimmed().isEmpty()) {
@@ -292,8 +317,8 @@ WfdVideoMode dlnaVideoMode(const DisplaySource &source)
 
     int width = source.width;
     int height = source.height;
-    if (width > 1280 || height > 720) {
-        const double scale = qMin(1280.0 / width, 720.0 / height);
+    if (width > 1920 || height > 1080) {
+        const double scale = qMin(1920.0 / width, 1080.0 / height);
         width = int(width * scale);
         height = int(height * scale);
     }

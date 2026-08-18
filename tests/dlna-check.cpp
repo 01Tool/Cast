@@ -112,10 +112,20 @@ int main()
     source.width = 1920;
     source.height = 1080;
     const WfdVideoMode video = dlnaVideoMode(source);
-    expectTrue("cap width", video.width <= 1280);
-    expectTrue("cap height", video.height <= 720);
+    expectTrue("1080p stays", video.width == 1920 && video.height == 1080);
     expectTrue("even width", video.width % 2 == 0);
     expectTrue("30fps", video.fps == 30);
+
+    DisplaySource uhd;
+    uhd.width = 3840;
+    uhd.height = 2160;
+    const WfdVideoMode capped = dlnaVideoMode(uhd);
+    expectTrue("4k cap w", capped.width == 1920);
+    expectTrue("4k cap h", capped.height == 1080);
+
+    DlnaProfile hd = profile;
+    applyDlnaOutputMode(&hd, capped);
+    expectTrue("hd pn", hd.contentFeatures.contains(QLatin1String("MPEG_TS_HD_NA_ISO")));
 
     QString summary;
     expectTrue("ts hint",

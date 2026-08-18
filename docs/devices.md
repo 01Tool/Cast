@@ -9,7 +9,7 @@ This sender’s current payloads:
 | Path | What the TV must accept |
 |------|-------------------------|
 | Miracast | WFD RTSP :7236 + H.264 (optional AAC) in MPEG-TS over RTP |
-| DLNA | HTTP pull of **live** MPEG-TS (`video/mpeg`), H.264 baseline ≤1280×720@30, optional AAC. No `Content-Length`. `DLNA.ORG_OP=00` (no seek). |
+| DLNA | HTTP pull of **live** MPEG-TS (`video/mpeg`), H.264 main ≤1920×1080@30, optional AAC. No `Content-Length`. `DLNA.ORG_OP=00` (no seek). `MPEG_TS_HD_NA_ISO` when the output is HD. |
 
 ## How to test
 
@@ -57,7 +57,7 @@ HLS (`application/vnd.apple.mpegurl`) is noted in the summary. This cut does not
 
 | Date | Brand | Model | Firmware | Hint | Verdict | Audio | Notes / `device-matrix` line |
 |------|-------|-------|----------|------|---------|-------|------------------------------|
-| 2026-08-18 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` (`video/mpeg` plus mp4/avi) | `live-ts` | not tried | `192.168.31.8:7300`. `SetAVTransportURI`+`Play` ok; box GETs `/cast.ts`; `GetTransportInfo` = PLAYING/OK. First GET ~66 KiB then reconnect. Need `-pix_fmt yuv420p` (x11grab is bgr0; baseline rejects 4:4:4). |
+| 2026-08-18 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` (`video/mpeg` plus mp4/avi) | `live-ts` | not tried | `192.168.31.8:7300`. 720p looked soft from Mi27 4K. 1920×1080@30 H.264 main 8 Mbit also PLAYING/OK. First GET is a short probe, then reconnect. Need `yuv420p`. |
 
 ## Adding a row
 

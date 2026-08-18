@@ -51,6 +51,9 @@ private:
     bool startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpPort);
     bool startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio);
     bool startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio);
+    int videoBitrateKbps() const;
+    QString x264Preset(TsSink sink) const;
+    QString x264Profile(TsSink sink) const;
 
     QProcess m_process;
     QString m_lastError;

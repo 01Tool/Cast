@@ -196,24 +196,32 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
         : QStringLiteral("rtpmp2tpay pt=33 ! udpsink host=%1 port=%2 sync=false")
               .arg(sinkIp)
               .arg(rtpPort);
+    const QString preset = x264Preset(sink);
+    const QString profile = x264Profile(sink);
+    const int bitrate = videoBitrateKbps();
     QString pipeline;
     if (withAudio && !monitor.isEmpty()) {
+        const QString x264 = QStringLiteral(
+                                 "x264enc tune=zerolatency speed-preset=%1 bitrate=%2 key-int-max=%3 ! "
+                                 "video/x-h264,profile=%4")
+                                 .arg(preset)
+                                 .arg(bitrate)
+                                 .arg(m_video.fps)
+                                 .arg(profile);
         pipeline = QStringLiteral(
                        "mpegtsmux name=mux alignment=7 ! %1 "
                        "%2 ! "
                        "videoconvert ! videoscale ! "
                        "video/x-raw,width=%3,height=%4,framerate=%5/1 ! "
-                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%5 ! "
-                       "video/x-h264,profile=baseline ! "
-                       "h264parse config-interval=1 ! queue ! mux. "
-                       "pulsesrc device=\"%6\" provide-clock=true do-timestamp=true ! "
-                       "audioconvert ! audioresample ! audio/x-raw,rate=%7,channels=2 ! "
-                       "%8 ! aacparse ! queue ! mux.")
+                       "%6 ! h264parse config-interval=1 ! queue ! mux. "
+                       "pulsesrc device=\"%7\" provide-clock=true do-timestamp=true ! "
+                       "audioconvert ! audioresample ! audio/x-raw,rate=%8,channels=2 ! "
+                       "%9 ! aacparse ! queue ! mux.")
                        .arg(tsOut, grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
                        .arg(m_video.fps)
-                       .arg(monitor)
+                       .arg(x264, monitor)
                        .arg(m_audio.rate)
                        .arg(gstAacEncoder());
         m_audioActive = true;
@@ -222,15 +230,17 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
                        "%1 ! "
                        "videoconvert ! videoscale ! "
                        "video/x-raw,width=%2,height=%3,framerate=%4/1 ! "
-                       "x264enc tune=zerolatency speed-preset=ultrafast bitrate=4000 key-int-max=%4 ! "
-                       "video/x-h264,profile=baseline ! "
+                       "x264enc tune=zerolatency speed-preset=%5 bitrate=%6 key-int-max=%4 ! "
+                       "video/x-h264,profile=%7 ! "
                        "h264parse config-interval=1 ! "
-                       "mpegtsmux alignment=7 ! %5")
+                       "mpegtsmux alignment=7 ! %8")
                        .arg(grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
                        .arg(m_video.fps)
-                       .arg(tsOut);
+                       .arg(preset)
+                       .arg(bitrate)
+                       .arg(profile, tsOut);
     }
 
     qInfo() << "gst-launch" << pipeline;
@@ -277,14 +287,16 @@ bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort
     }
 
     args << QStringLiteral("-vf")
-         << QStringLiteral("scale=%1:%2,format=yuv420p").arg(m_video.width).arg(m_video.height)
+         << QStringLiteral("scale=%1:%2:flags=lanczos,format=yuv420p")
+                .arg(m_video.width)
+                .arg(m_video.height)
          << QStringLiteral("-pix_fmt") << QStringLiteral("yuv420p")
          << QStringLiteral("-c:v") << QStringLiteral("libx264")
-         << QStringLiteral("-preset") << QStringLiteral("ultrafast")
+         << QStringLiteral("-preset") << x264Preset(sink)
          << QStringLiteral("-tune") << QStringLiteral("zerolatency")
-         << QStringLiteral("-profile:v") << QStringLiteral("baseline")
+         << QStringLiteral("-profile:v") << x264Profile(sink)
          << QStringLiteral("-g") << QString::number(m_video.fps)
-         << QStringLiteral("-b:v") << QStringLiteral("4M");
+         << QStringLiteral("-b:v") << QStringLiteral("%1k").arg(videoBitrateKbps());
 
     if (m_audioActive) {
         args << QStringLiteral("-c:a") << QStringLiteral("aac")
@@ -353,4 +365,24 @@ void GstEncoder::onFinished(int exitCode, QProcess::ExitStatus status)
         return;
     }
     Q_EMIT stopped();
+}
+
+int GstEncoder::videoBitrateKbps() const
+{
+    const int pixels = m_video.width * m_video.height;
+    if (pixels >= 1920 * 1080)
+        return 8000;
+    if (pixels >= 1280 * 720)
+        return 5000;
+    return 3500;
+}
+
+QString GstEncoder::x264Preset(TsSink sink) const
+{
+    return (sink == TsSink::Stdout) ? QStringLiteral("veryfast") : QStringLiteral("ultrafast");
+}
+
+QString GstEncoder::x264Profile(TsSink sink) const
+{
+    return (sink == TsSink::Stdout) ? QStringLiteral("main") : QStringLiteral("baseline");
 }

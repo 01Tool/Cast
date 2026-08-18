@@ -71,6 +71,7 @@ void DlnaSession::start(const SinkDevice &sink, const DisplaySource &source, boo
     m_audioEnabled = audioEnabled;
     m_stopping = false;
     m_profile = pickDlnaProfile(sink.protocolInfo);
+    applyDlnaOutputMode(&m_profile, dlnaVideoMode(source));
 
     if (sink.protocol != CastProtocol::Dlna || !sink.avTransportUrl.isValid()) {
         fail(tr("This display is not a DLNA renderer."));
@@ -147,6 +148,7 @@ void DlnaSession::queryProtocolInfo()
                    if (!sinkInfo.isEmpty()) {
                        applyDlnaProtocolInfo(&m_sink, sinkInfo);
                        m_profile = pickDlnaProfile(sinkInfo);
+                       applyDlnaOutputMode(&m_profile, dlnaVideoMode(m_source));
                        qInfo() << "DLNA ProtocolInfo" << m_profile.protocolInfo
                                << dlnaMediaKindKey(m_sink.dlnaMedia)
                                << m_sink.dlnaMediaSummary;
@@ -160,6 +162,7 @@ void DlnaSession::queryProtocolInfo()
 
 void DlnaSession::setUriAndPlay()
 {
+    applyDlnaOutputMode(&m_profile, dlnaVideoMode(m_source));
     if (m_sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely) {
         Q_EMIT statusChanged(tr("%1 looks file-only (%2). Live MPEG-TS may fail.")
                                  .arg(m_sink.name, m_sink.dlnaMediaSummary));
