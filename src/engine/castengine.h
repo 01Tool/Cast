@@ -102,6 +102,7 @@ private:
                          const WfdAudioMode &audio);
     void failSession(const QString &message);
     void teardownSession();
+    void logDeviceMatrix(const SinkDevice &sink, const QString &result) const;
     void watchScreens();
     void refreshDisplays();
     SinkDevice sinkById(const QString &id) const;

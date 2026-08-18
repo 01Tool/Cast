@@ -193,6 +193,21 @@ void MainWindow::refreshSinkList()
             detail += QStringLiteral(" · ") + sink.address;
         if (sink.protocol == CastProtocol::Miracast && !sink.wfdCapable)
             detail += tr(" · no WFD IEs");
+        if (sink.protocol == CastProtocol::Dlna) {
+            switch (sink.dlnaMedia) {
+            case DlnaMediaKind::LiveTsLikely:
+                detail += tr(" · live TS likely");
+                break;
+            case DlnaMediaKind::FileOnlyLikely:
+                detail += tr(" · files only");
+                break;
+            case DlnaMediaKind::NoVideo:
+                detail += tr(" · no video");
+                break;
+            case DlnaMediaKind::Unknown:
+                break;
+            }
+        }
         auto *sub = new DViewItemAction(Qt::AlignLeft, QSize(), QSize(), false);
         sub->setText(detail);
         sub->setTextColorRole(DPalette::TextTips);

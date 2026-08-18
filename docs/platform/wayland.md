@@ -8,7 +8,7 @@ A Wayland client cannot screenshot the desktop by itself. Equal-quality mirrorin
 xdg-desktop-portal ScreenCast → PipeWire → encoder → WFD
 ```
 
-The app requests a ScreenCast session. The portal backend asks the compositor. Frames arrive as a PipeWire stream. The cast engine feeds that stream into the same encode path used on X11 (WFD RTP today; planned DLNA HTTP).
+The app requests a ScreenCast session. The portal backend asks the compositor. Frames arrive as a PipeWire stream. The cast engine feeds that stream into the same encode path used on X11 (WFD RTP or DLNA HTTP).
 
 This is the same approach GNOME Network Displays uses when the mutter (or other) screencast portal is available.
 
@@ -31,7 +31,7 @@ Grabbing via X11 APIs while `WAYLAND_DISPLAY` is set only sees **XWayland** wind
 1. Detect Wayland with `DGuiApplicationHelper::IsWaylandPlatform`.
 2. Try `PortalCapture` (create ScreenCast session, attach PipeWire).
 3. If the portal interface is missing or the session is denied, disable Connect and explain that this desktop session cannot share the screen.
-4. Keep the same encode and transports as X11 (WFD now, DLNA later); only the frame source changes.
+4. Keep the same encode and transports as X11 (WFD and DLNA); only the frame source changes.
 
 ## Desktop-environment work (outside this app)
 

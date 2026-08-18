@@ -117,6 +117,41 @@ int main()
     expectTrue("even width", video.width % 2 == 0);
     expectTrue("30fps", video.fps == 30);
 
+    QString summary;
+    expectTrue("ts hint",
+               classifyDlnaSink(sinkInfo, &summary) == DlnaMediaKind::LiveTsLikely);
+    expectTrue("ts summary", summary.contains(QLatin1String("MPEG_TS")));
+
+    expectTrue("file only",
+               classifyDlnaSink(QStringLiteral(
+                                    "http-get:*:video/mp4:DLNA.ORG_PN=AVC_MP4_MP_SD_AAC_MULT5"),
+                                &summary)
+                   == DlnaMediaKind::FileOnlyLikely);
+    expectTrue("mp4 summary", summary.contains(QLatin1String("AVC_MP4")));
+
+    expectTrue("hls file-only",
+               classifyDlnaSink(QStringLiteral("http-get:*:application/vnd.apple.mpegurl:*"),
+                                nullptr)
+                   == DlnaMediaKind::FileOnlyLikely);
+
+    expectTrue("audio only is no-video",
+               classifyDlnaSink(QStringLiteral("http-get:*:audio/mpeg:*"), nullptr)
+                   == DlnaMediaKind::NoVideo);
+
+    expectTrue("empty unknown", classifyDlnaSink(QString(), nullptr) == DlnaMediaKind::Unknown);
+
+    expectTrue("mixed prefers ts",
+               classifyDlnaSink(QStringLiteral(
+                                    "http-get:*:video/mp4:DLNA.ORG_PN=AVC_MP4_BL_CIF15_AAC,"
+                                    "http-get:*:video/mpeg:DLNA.ORG_PN=MPEG_TS_SD_NA_ISO"),
+                                nullptr)
+                   == DlnaMediaKind::LiveTsLikely);
+
+    SinkDevice classified;
+    applyDlnaProtocolInfo(&classified, QStringLiteral("http-get:*:video/mpeg:*"));
+    expectTrue("apply kind", classified.dlnaMedia == DlnaMediaKind::LiveTsLikely);
+    expectEq("kind key", dlnaMediaKindKey(classified.dlnaMedia), QStringLiteral("live-ts-likely"));
+
     const WfdAudioMode silent = dlnaAudioMode(false);
     expectTrue("audio off", !silent.enabled());
     const WfdAudioMode aac = dlnaAudioMode(true);

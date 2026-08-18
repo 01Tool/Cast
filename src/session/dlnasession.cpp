@@ -145,9 +145,11 @@ void DlnaSession::queryProtocolInfo()
                if (ok) {
                    const QString sinkInfo = parseConnectionManagerSink(body);
                    if (!sinkInfo.isEmpty()) {
-                       m_sink.protocolInfo = sinkInfo;
+                       applyDlnaProtocolInfo(&m_sink, sinkInfo);
                        m_profile = pickDlnaProfile(sinkInfo);
-                       qInfo() << "DLNA ProtocolInfo" << m_profile.protocolInfo;
+                       qInfo() << "DLNA ProtocolInfo" << m_profile.protocolInfo
+                               << dlnaMediaKindKey(m_sink.dlnaMedia)
+                               << m_sink.dlnaMediaSummary;
                    }
                } else {
                    qWarning() << "GetProtocolInfo failed, using default MPEG-TS profile";
@@ -158,6 +160,10 @@ void DlnaSession::queryProtocolInfo()
 
 void DlnaSession::setUriAndPlay()
 {
+    if (m_sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely) {
+        Q_EMIT statusChanged(tr("%1 looks file-only (%2). Live MPEG-TS may fail.")
+                                 .arg(m_sink.name, m_sink.dlnaMediaSummary));
+    }
     const QString didl = buildDidlLite(m_streamUrl, m_profile, QStringLiteral("Cast"));
     const QString setUri = QStringLiteral(
                                "<InstanceID>0</InstanceID>"
@@ -171,7 +177,13 @@ void DlnaSession::setUriAndPlay()
                if (!m_running)
                    return;
                if (!ok) {
-                   fail(tr("The TV rejected SetAVTransportURI. It may not play a live MPEG-TS stream."));
+                   if (m_sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely) {
+                       fail(tr("The TV rejected SetAVTransportURI. It looks file-only (%1), "
+                               "not a live MPEG-TS renderer.")
+                                .arg(m_sink.dlnaMediaSummary));
+                   } else {
+                       fail(tr("The TV rejected SetAVTransportURI. It may not play a live MPEG-TS stream."));
+                   }
                    qWarning() << body;
                    return;
                }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "capture/displaysource.h"
+#include "engine/sinkdevice.h"
 #include "session/wfdaudiomode.h"
 #include "session/wfdvideomode.h"
 
@@ -18,6 +19,8 @@ struct DlnaProfile {
 QString xmlEscape(const QString &text);
 QString parseConnectionManagerSink(const QByteArray &soapXml);
 DlnaProfile pickDlnaProfile(const QString &sinkProtocolInfo);
+DlnaMediaKind classifyDlnaSink(const QString &sinkProtocolInfo, QString *summary = nullptr);
+void applyDlnaProtocolInfo(SinkDevice *sink, const QString &sinkProtocolInfo);
 QString buildDidlLite(const QUrl &uri, const DlnaProfile &profile, const QString &title);
 QByteArray buildSoapEnvelope(const QString &serviceType, const QString &action,
                              const QString &innerXml);

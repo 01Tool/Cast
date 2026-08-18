@@ -2,7 +2,7 @@
 
 One DTK process, a display-server-agnostic cast engine, two capture backends, and **two labeled transports**. Widgets never call X11, Wayland, NetworkManager, or UPnP APIs directly.
 
-Miracast (Wi-Fi Direct + WFD) is the first transport. Many TVs and Linux chipsets implement it poorly, so DLNA Digital Media Renderer on the same LAN is the planned fallback. The device list must show the protocol. Do not present a DMR as a Miracast sink. See [protocols/README.md](protocols/README.md).
+Miracast (Wi-Fi Direct + WFD) is the first transport. Many TVs and Linux chipsets implement it poorly, so DLNA Digital Media Renderer on the same LAN is the same-LAN fallback. The device list must show the protocol. Do not present a DMR as a Miracast sink. See [protocols/README.md](protocols/README.md).
 
 ## Layers
 
@@ -45,7 +45,7 @@ Suggested CMake baseline (DTK6): `Qt6::Core`, `Qt6::Widgets`, `Dtk6::Core`, `Dtk
 A Qt object that owns the session state machine:
 
 1. **Idle** — Wi-Fi / P2P / LAN capability check
-2. **Scanning** — P2P peers with WFD IEs **and** (later) SSDP MediaRenderers
+2. **Scanning** — P2P peers with WFD IEs **and** SSDP MediaRenderers
 3. **Connecting** — P2P group + RTSP, **or** HTTP + AVTransport
 4. **Streaming** — capture → encode → RTP **or** HTTP
 5. **Failed / Stopped** — teardown; restore STA Wi-Fi after a P2P session
@@ -92,8 +92,9 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 4. Wayland `PortalCapture` stub that reports “ScreenCast unavailable”.
 5. Hardware-encoder tuning after video, optional AAC, and a monitor picker work.
 6. DLNA: SSDP list + HTTP live MPEG-TS to MediaRenderers, tagged in the UI. Use this when P2P/WFD is missing or unstable. See [protocols/dlna.md](protocols/dlna.md).
+7. Device matrix: record which TVs accept live TS vs file-only, separately from WFD. See [devices.md](devices.md).
 
-This order ships a usable X11 Miracast product first, then covers TVs that only do DMR well, without blocking on Treeland portal work.
+Items 1–6 are in the tree. Item 7 is filled from measured sessions, not from logos. Wayland still waits on ScreenCast.
 
 ## What not to put in widgets
 

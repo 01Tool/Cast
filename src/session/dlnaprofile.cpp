@@ -1,6 +1,7 @@
 #include "session/dlnaprofile.h"
 
 #include <QNetworkInterface>
+#include <QStringList>
 #include <QXmlStreamReader>
 
 namespace {
@@ -20,6 +21,53 @@ bool mimeLooksLikeMpegTs(const QString &mime)
         || mime.contains(QLatin1String("video/vnd.dlna.mpeg-tts"), Qt::CaseInsensitive)
         || mime.contains(QLatin1String("video/mp2t"), Qt::CaseInsensitive)
         || mime.contains(QLatin1String("video/x-mpegts"), Qt::CaseInsensitive);
+}
+
+bool extraLooksLikeMpegTs(const QString &extra)
+{
+    const QString u = extra.toUpper();
+    return u.contains(QLatin1String("MPEG_TS")) || u.contains(QLatin1String("AVC_TS"))
+        || u.contains(QLatin1String("HEVC_TS"));
+}
+
+bool mimeLooksLikeFileVideo(const QString &mime)
+{
+    const QString m = mime.toLower();
+    return m.contains(QLatin1String("video/mp4"))
+        || m.contains(QLatin1String("video/quicktime"))
+        || m.contains(QLatin1String("video/x-matroska"))
+        || m.contains(QLatin1String("video/webm"))
+        || m.contains(QLatin1String("video/x-msvideo"))
+        || m.contains(QLatin1String("video/avi"))
+        || m.contains(QLatin1String("video/x-ms-wmv"))
+        || m.contains(QLatin1String("video/x-ms-asf"));
+}
+
+bool extraLooksLikeFileVideo(const QString &extra)
+{
+    const QString u = extra.toUpper();
+    return u.contains(QLatin1String("AVC_MP4")) || u.contains(QLatin1String("MPEG4_P2"))
+        || u.contains(QLatin1String("MPEG4_P2_MP4")) || u.contains(QLatin1String("_MP4_"))
+        || u.contains(QLatin1String("WMVMED")) || u.contains(QLatin1String("WMVHIGH"))
+        || u.contains(QLatin1String("AVI"));
+}
+
+bool mimeLooksLikeHls(const QString &mime)
+{
+    return mime.contains(QLatin1String("mpegurl"), Qt::CaseInsensitive);
+}
+
+QString profileName(const QString &extra)
+{
+    const QString marker = QStringLiteral("DLNA.ORG_PN=");
+    const int pos = extra.toUpper().indexOf(marker);
+    if (pos < 0)
+        return {};
+    const int start = pos + marker.size();
+    int end = extra.indexOf(QLatin1Char(';'), start);
+    if (end < 0)
+        end = extra.size();
+    return extra.mid(start, end - start).trimmed();
 }
 
 QString fieldAfterColons(const QString &protocolInfo, int index)
@@ -115,6 +163,68 @@ DlnaProfile pickDlnaProfile(const QString &sinkProtocolInfo)
         return profile;
     }
     return profile;
+}
+
+DlnaMediaKind classifyDlnaSink(const QString &sinkProtocolInfo, QString *summary)
+{
+    if (sinkProtocolInfo.trimmed().isEmpty()) {
+        if (summary)
+            *summary = QString();
+        return DlnaMediaKind::Unknown;
+    }
+
+    bool hasTs = false;
+    bool hasFile = false;
+    bool hasHls = false;
+    bool hasVideo = false;
+    QStringList labels;
+    const QStringList entries = sinkProtocolInfo.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    for (QString entry : entries) {
+        entry = entry.trimmed();
+        if (!entry.startsWith(QLatin1String("http-get:"), Qt::CaseInsensitive))
+            continue;
+        const QString mime = fieldAfterColons(entry, 2);
+        const QString extra = fieldAfterColons(entry, 3);
+        const bool video = mime.contains(QLatin1String("video"), Qt::CaseInsensitive)
+            || mimeLooksLikeMpegTs(mime) || mimeLooksLikeHls(mime);
+        if (!video)
+            continue;
+        hasVideo = true;
+        if (mimeLooksLikeMpegTs(mime) || extraLooksLikeMpegTs(extra))
+            hasTs = true;
+        if (mimeLooksLikeFileVideo(mime) || extraLooksLikeFileVideo(extra))
+            hasFile = true;
+        if (mimeLooksLikeHls(mime))
+            hasHls = true;
+        const QString pn = profileName(extra);
+        const QString label = pn.isEmpty() ? mime : pn;
+        if (!label.isEmpty() && !labels.contains(label) && labels.size() < 4)
+            labels.append(label);
+    }
+
+    if (summary) {
+        if (hasHls && !labels.contains(QLatin1String("HLS")))
+            labels.append(QStringLiteral("HLS"));
+        *summary = labels.join(QStringLiteral(", "));
+    }
+
+    if (!hasVideo)
+        return DlnaMediaKind::NoVideo;
+    if (hasTs)
+        return DlnaMediaKind::LiveTsLikely;
+    if (hasFile || hasHls)
+        return DlnaMediaKind::FileOnlyLikely;
+    return DlnaMediaKind::Unknown;
+}
+
+void applyDlnaProtocolInfo(SinkDevice *sink, const QString &sinkProtocolInfo)
+{
+    if (!sink)
+        return;
+    sink->protocolInfo = sinkProtocolInfo;
+    QString summary;
+    sink->dlnaMedia = classifyDlnaSink(sinkProtocolInfo, &summary);
+    sink->dlnaMediaSummary = summary;
 }
 
 QString buildDidlLite(const QUrl &uri, const DlnaProfile &profile, const QString &title)

@@ -17,7 +17,7 @@ A DTK app can provide this feature. DTK only covers the UI. Miracast (Wi-Fi Dire
 
 **Bottom line:** the DTK app is the easy part. X11 Miracast works when WFD is reused and chipset limits are accepted. DLNA is the fallback when P2P/WFD is immature. Wayland capture is a desktop-environment dependency.
 
-Recommended first cut: DTK shell + X11 capture + NetworkManager P2P discovery, with a Wayland capture backend stubbed until the portal is ready.
+The X11 first cut is in the tree (DTK shell, P2P + DLNA, WFD send, live HTTP TS). Wayland capture stays stubbed until a ScreenCast portal exists.
 
 ## Build
 
@@ -80,9 +80,10 @@ Push a tag that matches `CMakeLists.txt` and `debian/changelog` (for example `v0
 | X11 screen capture | [docs/platform/x11.md](docs/platform/x11.md) |
 | Wayland / Treeland screen capture | [docs/platform/wayland.md](docs/platform/wayland.md) |
 | Hardware, P2P vs DLNA, sink, latency, and audio limits | [docs/constraints.md](docs/constraints.md) |
+| Measured TV / dongle matrix | [docs/devices.md](docs/devices.md) |
 | Miracast vs DLNA transports | [docs/protocols/README.md](docs/protocols/README.md) |
 | Miracast / Wi-Fi Display | [docs/protocols/miracast.md](docs/protocols/miracast.md) |
-| DLNA / UPnP AV (planned) | [docs/protocols/dlna.md](docs/protocols/dlna.md) |
+| DLNA / UPnP AV | [docs/protocols/dlna.md](docs/protocols/dlna.md) |
 | Existing projects and Deepin pieces to reuse | [docs/references.md](docs/references.md) |
 
 ## Existing Deepin pieces

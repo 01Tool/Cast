@@ -407,6 +407,10 @@ void CastEngine::bindSession()
         m_connectTimer.stop();
         setState(SessionState::Streaming);
         setStatusMessage(tr("Mirroring %1.").arg(m_encoder->streamDescription()));
+        const SinkDevice sink = sinkById(m_selectedSinkId);
+        logDeviceMatrix(sink, sink.protocol == CastProtocol::Dlna
+                                  ? QStringLiteral("live-ts")
+                                  : QStringLiteral("streaming"));
     });
     connect(m_encoder.get(), &GstEncoder::failed, this, &CastEngine::failSession);
 }
@@ -432,11 +436,42 @@ void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const W
 
 void CastEngine::failSession(const QString &message)
 {
+    const SinkDevice sink = sinkById(m_selectedSinkId);
+    QString result = QStringLiteral("failed");
+    if (sink.protocol == CastProtocol::Dlna) {
+        if (message.contains(QLatin1String("fetch the HTTP")))
+            result = QStringLiteral("no-get");
+        else if (sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely
+                 || message.contains(QLatin1String("file-only")))
+            result = QStringLiteral("file-only");
+        else if (message.contains(QLatin1String("SetAVTransportURI"))
+                 || message.contains(QLatin1String("Play")))
+            result = QStringLiteral("uri-reject");
+    } else if (message.contains(QLatin1String("Timed out"))
+               || message.contains(QLatin1String("group dropped"))) {
+        result = QStringLiteral("p2p-timeout");
+    }
+    logDeviceMatrix(sink, result);
+
     teardownSession();
     setState(SessionState::Failed);
     setStatusMessage(message);
     Q_EMIT errorOccurred(message);
     setState(SessionState::Idle);
+}
+
+void CastEngine::logDeviceMatrix(const SinkDevice &sink, const QString &result) const
+{
+    const QString protocol = (sink.protocol == CastProtocol::Dlna)
+        ? QStringLiteral("dlna")
+        : QStringLiteral("miracast");
+    qInfo() << "device-matrix"
+            << "protocol=" + protocol
+            << "name=" + sink.name
+            << "address=" + sink.address
+            << "hint=" + dlnaMediaKindKey(sink.dlnaMedia)
+            << "summary=" + sink.dlnaMediaSummary
+            << "result=" + result;
 }
 
 void CastEngine::teardownSession()

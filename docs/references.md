@@ -70,6 +70,7 @@ Live desktop over DMR is HTTP pull, not WFD RTP. See [protocols/dlna.md](protoco
 - [protocols/README.md](protocols/README.md)
 - [protocols/dlna.md](protocols/dlna.md)
 - [protocols/miracast.md](protocols/miracast.md)
+- [devices.md](devices.md)
 
 ## Where used
 
@@ -186,3 +187,10 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/item-delegate.md` | `DViewItemAction` subtitle + right-edge protocol label | `src/ui/mainwindow.cpp` `refreshSinkList` |
 | 2026-08-15 | [Qt `QUdpSocket`](https://doc.qt.io/qt-6/qudpsocket.html) | SSDP M-SEARCH to `239.255.255.250:1900` | `src/discovery/dlnadiscovery.cpp` `sendMsearch` |
 | 2026-08-15 | [Qt `QTcpServer`](https://doc.qt.io/qt-6/qtcpserver.html) | HTTP GET/HEAD for live TS | `src/session/dlnasession.cpp` `handleClient` |
+| 2026-08-15 | `docs/constraints.md` §3 | Separate Miracast / DLNA measured lists; no universal claim | [devices.md](devices.md); `src/session/dlnaprofile.cpp` `classifyDlnaSink` |
+| 2026-08-15 | `docs/protocols/dlna.md` Limits | Some DMRs only play finite files; ProtocolInfo must match | [devices.md](devices.md) DLNA table; `src/session/dlnaprofile.cpp` `classifyDlnaSink` |
+| 2026-08-15 | [ConnectionManager:3](https://upnp.org/specs/av/UPnP-av-ConnectionManager-v3-Service-20101231.pdf) | `GetProtocolInfo` Sink during scan to hint live TS vs file | `src/discovery/dlnadiscovery.cpp` `queryProtocolInfo` |
+| 2026-08-15 | [DLNA.org](https://www.dlna.org/) | `DLNA.ORG_PN` MPEG_TS / AVC_TS vs AVC_MP4 | `src/session/dlnaprofile.cpp` `classifyDlnaSink` |
+| 2026-08-15 | `docs/architecture.md` first cut §7 | Device matrix filled from sessions, not logos | [devices.md](devices.md); `src/engine/castengine.cpp` `logDeviceMatrix` |
+| 2026-08-15 | `AGENTS.md` Product facts | Audio is optional AAC; no universal sink claim | [AGENTS.md](../AGENTS.md); [README.md](../README.md) document map |
+| 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/item-delegate.md` | Subtitle shows DLNA live-TS / files-only hint | `src/ui/mainwindow.cpp` `refreshSinkList` |

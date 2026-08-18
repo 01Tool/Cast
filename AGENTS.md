@@ -13,6 +13,7 @@ Mandatory rules for every agent working in this repository. Read this file and t
 | [docs/platform/x11.md](docs/platform/x11.md) | X11 grab (`ximagesrc` / XShm) |
 | [docs/platform/wayland.md](docs/platform/wayland.md) | Portal + PipeWire; DDE ScreenCast gap |
 | [docs/constraints.md](docs/constraints.md) | Chipset, P2P vs DLNA, sinks, latency, audio |
+| [docs/devices.md](docs/devices.md) | Measured Miracast / DLNA sink matrix (fill from tests) |
 | [docs/protocols/README.md](docs/protocols/README.md) | Miracast vs DLNA transports |
 | [docs/references.md](docs/references.md) | Known projects **and** the usage log you must update |
 
@@ -29,8 +30,8 @@ DTK conventions: `~/.agents/skills/deepin-skills/dtk-development/SKILL.md` and i
 - **Never X11-grab on Wayland.** That only sees XWayland windows. Fail with a clear error if ScreenCast is missing.
 - Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, UPnP/SSDP, or GStreamer APIs directly.
 - True Miracast is **Wi-Fi Direct**, not “same LAN then stream.” DLNA is allowed as an **explicit** backend. Do not label a DMR as Miracast. Do not add Chromecast under either name.
-- Do not claim universal sink support or “low latency” without a measured device matrix.
-- Video-only is a valid first release. Audio (AAC + sync) is later.
+- Do not claim universal sink support or “low latency” without a measured row in [docs/devices.md](docs/devices.md).
+- Video-only is still valid. AAC-LC is sent when the user enables system audio **and** the path allows it (WFD: sink lists AAC; DLNA: AAC in MPEG-TS).
 
 ## DTK / engineering
 

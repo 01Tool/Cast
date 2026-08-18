@@ -40,7 +40,7 @@ The UI must say which protocol a row uses. Do not list a DMR under â€œMiracast.â
 
 ## 3. Sink compatibility
 
-Samsung, LG, Xiaomi, and cheap HDMI dongles implement WFD differently (RTSP order, CEA/VESA modes, HDCP assumptions, audio). DLNA renderers differ on live HTTP (some only play finite files). Keep **separate** tested-sink lists for Miracast and DLNA. Do not claim universal compatibility.
+Samsung, LG, Xiaomi, and cheap HDMI dongles implement WFD differently (RTSP order, CEA/VESA modes, HDCP assumptions, audio). DLNA renderers differ on live HTTP (some only play finite files). Keep **separate** tested-sink lists in [devices.md](devices.md). A ProtocolInfo hint is not a measurement. Do not claim universal compatibility.
 
 ## 4. Latency
 

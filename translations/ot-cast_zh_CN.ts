@@ -113,17 +113,17 @@
         <translation>正在镜像 %1。</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="427"/>
+        <location filename="../src/engine/castengine.cpp" line="431"/>
         <source>Starting encoder (%1, %2, %3)…</source>
         <translation>正在启动编码器（%1，%2，%3）…</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="535"/>
+        <location filename="../src/engine/castengine.cpp" line="570"/>
         <source>%1 (%2×%3)%4</source>
         <translation>%1（%2×%3）%4</translation>
     </message>
     <message>
-        <location filename="../src/engine/castengine.cpp" line="539"/>
+        <location filename="../src/engine/castengine.cpp" line="574"/>
         <source> · primary</source>
         <translation> · 主屏</translation>
     </message>
@@ -131,12 +131,12 @@
 <context>
     <name>DlnaDiscovery</name>
     <message>
-        <location filename="../src/discovery/dlnadiscovery.cpp" line="76"/>
+        <location filename="../src/discovery/dlnadiscovery.cpp" line="77"/>
         <source>Could not listen for DLNA / SSDP replies (%1).</source>
         <translation>无法监听 DLNA / SSDP 回复（%1）。</translation>
     </message>
     <message>
-        <location filename="../src/discovery/dlnadiscovery.cpp" line="89"/>
+        <location filename="../src/discovery/dlnadiscovery.cpp" line="90"/>
         <source>Scanning for DLNA renderers…</source>
         <translation>正在扫描 DLNA 渲染器…</translation>
     </message>
@@ -174,27 +174,37 @@
         <translation>正在询问 %1 支持的视频类型…</translation>
     </message>
     <message>
-        <location filename="../src/session/dlnasession.cpp" line="167"/>
+        <location filename="../src/session/dlnasession.cpp" line="164"/>
+        <source>%1 looks file-only (%2). Live MPEG-TS may fail.</source>
+        <translation>%1 看起来只支持文件（%2）。实时 MPEG-TS 可能失败。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="173"/>
         <source>Sending the stream URL to %1…</source>
         <translation>正在向 %1 发送流地址…</translation>
     </message>
     <message>
-        <location filename="../src/session/dlnasession.cpp" line="174"/>
+        <location filename="../src/session/dlnasession.cpp" line="181"/>
+        <source>The TV rejected SetAVTransportURI. It looks file-only (%1), not a live MPEG-TS renderer.</source>
+        <translation>电视拒绝了 SetAVTransportURI。它看起来只支持文件（%1），不是实时 MPEG-TS 渲染器。</translation>
+    </message>
+    <message>
+        <location filename="../src/session/dlnasession.cpp" line="185"/>
         <source>The TV rejected SetAVTransportURI. It may not play a live MPEG-TS stream.</source>
         <translation>电视拒绝了 SetAVTransportURI。它可能无法播放实时 MPEG-TS 流。</translation>
     </message>
     <message>
-        <location filename="../src/session/dlnasession.cpp" line="185"/>
+        <location filename="../src/session/dlnasession.cpp" line="197"/>
         <source>The TV rejected Play.</source>
         <translation>电视拒绝了 Play。</translation>
     </message>
     <message>
-        <location filename="../src/session/dlnasession.cpp" line="190"/>
+        <location filename="../src/session/dlnasession.cpp" line="202"/>
         <source>Waiting for %1 to pull the HTTP stream…</source>
         <translation>正在等待 %1 拉取 HTTP 流…</translation>
     </message>
     <message>
-        <location filename="../src/session/dlnasession.cpp" line="294"/>
+        <location filename="../src/session/dlnasession.cpp" line="313"/>
         <source>Starting encoder for %1…</source>
         <translation>正在为 %1 启动编码器…</translation>
     </message>
@@ -267,7 +277,7 @@
     </message>
     <message>
         <location filename="../src/ui/mainwindow.cpp" line="103"/>
-        <location filename="../src/ui/mainwindow.cpp" line="291"/>
+        <location filename="../src/ui/mainwindow.cpp" line="306"/>
         <source>Connect</source>
         <translation>连接</translation>
     </message>
@@ -312,43 +322,58 @@
         <translation> · 无 WFD IE</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="278"/>
+        <location filename="../src/ui/mainwindow.cpp" line="199"/>
+        <source> · live TS likely</source>
+        <translation> · 可能支持实时 TS</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/mainwindow.cpp" line="202"/>
+        <source> · files only</source>
+        <translation> · 仅文件</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/mainwindow.cpp" line="205"/>
+        <source> · no video</source>
+        <translation> · 无视频</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/mainwindow.cpp" line="293"/>
         <source>the display</source>
         <translation>显示器</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="285"/>
+        <location filename="../src/ui/mainwindow.cpp" line="300"/>
         <source>Enter pairing PIN</source>
         <translation>输入配对 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="286"/>
+        <location filename="../src/ui/mainwindow.cpp" line="301"/>
         <source>Enter the PIN shown on %1.</source>
         <translation>请输入 %1 上显示的 PIN。</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="288"/>
+        <location filename="../src/ui/mainwindow.cpp" line="303"/>
         <source>4 or 8 digit PIN</source>
         <translation>4 位或 8 位 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="292"/>
-        <location filename="../src/ui/mainwindow.cpp" line="316"/>
+        <location filename="../src/ui/mainwindow.cpp" line="307"/>
+        <location filename="../src/ui/mainwindow.cpp" line="331"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="307"/>
+        <location filename="../src/ui/mainwindow.cpp" line="322"/>
         <source>Enter a 4- or 8-digit PIN</source>
         <translation>请输入 4 位或 8 位 PIN</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="314"/>
+        <location filename="../src/ui/mainwindow.cpp" line="329"/>
         <source>Confirm pairing</source>
         <translation>确认配对</translation>
     </message>
     <message>
-        <location filename="../src/ui/mainwindow.cpp" line="315"/>
+        <location filename="../src/ui/mainwindow.cpp" line="330"/>
         <source>Confirm the pairing request on %1.</source>
         <translation>请在 %1 上确认配对请求。</translation>
     </message>

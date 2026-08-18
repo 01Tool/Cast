@@ -2,6 +2,7 @@
 
 #include "discovery/dlnadescription.h"
 #include "discovery/dlnassdp.h"
+#include "session/dlnaprofile.h"
 
 #include <QDebug>
 #include <QNetworkDatagram>
@@ -185,8 +186,11 @@ void DlnaDiscovery::fetchDescription(const QUrl &location, const QHostAddress &p
         const auto found = parseMediaRenderers(reply->readAll(), location);
         if (found.isEmpty())
             return;
-        for (const DlnaRendererDesc &desc : found)
-            ingestRenderer(toSink(desc, peer));
+        for (const DlnaRendererDesc &desc : found) {
+            const SinkDevice sink = toSink(desc, peer);
+            ingestRenderer(sink);
+            queryProtocolInfo(sink.id);
+        }
     });
 }
 
@@ -195,6 +199,53 @@ void DlnaDiscovery::ingestRenderer(const SinkDevice &sink)
     if (sink.id.isEmpty())
         return;
     m_renderers.insert(sink.id, sink);
-    qInfo() << "DLNA renderer" << sink.name << sink.address << sink.avTransportUrl;
+    const bool classified =
+        !sink.protocolInfo.isEmpty() || !sink.connectionManagerUrl.isValid();
+    if (classified) {
+        qInfo() << "device-matrix"
+                << "protocol=dlna"
+                << "name=" + sink.name
+                << "address=" + sink.address
+                << "hint=" + dlnaMediaKindKey(sink.dlnaMedia)
+                << "summary=" + sink.dlnaMediaSummary
+                << "result=untested";
+    }
+    qInfo() << "DLNA renderer" << sink.name << sink.address << sink.avTransportUrl
+            << dlnaMediaKindKey(sink.dlnaMedia) << sink.dlnaMediaSummary;
     Q_EMIT renderersChanged();
+}
+
+void DlnaDiscovery::queryProtocolInfo(const QString &sinkId)
+{
+    const SinkDevice sink = m_renderers.value(sinkId);
+    if (!sink.connectionManagerUrl.isValid())
+        return;
+
+    QNetworkRequest request(sink.connectionManagerUrl);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("text/xml; charset=\"utf-8\""));
+    request.setRawHeader(
+        "SOAPAction",
+        QByteArray("\"urn:schemas-upnp-org:service:ConnectionManager:1#GetProtocolInfo\""));
+    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("ot-cast/0.1"));
+    request.setTransferTimeout(5000);
+    QNetworkReply *reply = m_nam.post(
+        request,
+        buildSoapEnvelope(QStringLiteral("urn:schemas-upnp-org:service:ConnectionManager:1"),
+                          QStringLiteral("GetProtocolInfo"), QString()));
+    connect(reply, &QNetworkReply::finished, this, [this, reply, sinkId]() {
+        reply->deleteLater();
+        if (!m_renderers.contains(sinkId))
+            return;
+        if (reply->error() != QNetworkReply::NoError) {
+            qWarning() << "GetProtocolInfo" << sinkId << reply->errorString();
+            return;
+        }
+        const QString sinkInfo = parseConnectionManagerSink(reply->readAll());
+        if (sinkInfo.isEmpty())
+            return;
+        SinkDevice updated = m_renderers.value(sinkId);
+        applyDlnaProtocolInfo(&updated, sinkInfo);
+        ingestRenderer(updated);
+    });
 }

@@ -45,6 +45,7 @@ private:
     void handleSsdp(const QByteArray &datagram, const QHostAddress &peer);
     void fetchDescription(const QUrl &location, const QHostAddress &peer);
     void ingestRenderer(const SinkDevice &sink);
+    void queryProtocolInfo(const QString &sinkId);
 
     QUdpSocket m_socket;
     QNetworkAccessManager m_nam;
