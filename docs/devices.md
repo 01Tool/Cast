@@ -57,7 +57,7 @@ HLS (`application/vnd.apple.mpegurl`) is noted in the summary. This cut does not
 
 | Date | Brand | Model | Firmware | Hint | Verdict | Audio | Notes / `device-matrix` line |
 |------|-------|-------|----------|------|---------|-------|------------------------------|
-| — | — | — | — | — | *none measured in this repo* | — | Live TS vs file-only is the first question |
+| 2026-08-18 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` (`video/mpeg` plus mp4/avi) | `live-ts` | not tried | `192.168.31.8:7300`. `SetAVTransportURI`+`Play` ok; box GETs `/cast.ts`; `GetTransportInfo` = PLAYING/OK. First GET ~66 KiB then reconnect. Need `-pix_fmt yuv420p` (x11grab is bgr0; baseline rejects 4:4:4). |
 
 ## Adding a row
 

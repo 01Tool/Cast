@@ -194,3 +194,7 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `docs/architecture.md` first cut §7 | Device matrix filled from sessions, not logos | [devices.md](devices.md); `src/engine/castengine.cpp` `logDeviceMatrix` |
 | 2026-08-15 | `AGENTS.md` Product facts | Audio is optional AAC; no universal sink claim | [AGENTS.md](../AGENTS.md); [README.md](../README.md) document map |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/item-delegate.md` | Subtitle shows DLNA live-TS / files-only hint | `src/ui/mainwindow.cpp` `refreshSinkList` |
+| 2026-08-18 | `docs/devices.md` How to test | Measured Tmall MagicBox_M18 live MPEG-TS from Mi27 | [devices.md](devices.md) DLNA table |
+| 2026-08-18 | local `ffmpeg` x11grab `bgr0` + libx264 baseline | Baseline rejects 4:4:4; need `format=yuv420p` | `src/session/gstencoder.cpp` `startFfmpeg` |
+| 2026-08-18 | `http://192.168.31.8:7300/mdr/desc.xml` | friendlyName `我的天猫魔盒`; Sink includes `video/mpeg` | [devices.md](devices.md); this session |
+| 2026-08-18 | [Qt `QNetworkInterface::IsPointToPoint`](https://doc.qt.io/qt-6/qnetworkinterface.html#InterfaceFlag-enum) | Skip point-to-point ifaces for SSDP and the HTTP advertise address | `src/discovery/dlnadiscovery.cpp` `sendMsearch`; `src/session/dlnaprofile.cpp` `pickLocalIpv4` |

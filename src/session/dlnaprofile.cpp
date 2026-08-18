@@ -262,7 +262,8 @@ QHostAddress pickLocalIpv4(const QHostAddress &peer)
     const auto ifaces = QNetworkInterface::allInterfaces();
     for (const QNetworkInterface &iface : ifaces) {
         if (!(iface.flags() & QNetworkInterface::IsUp)
-            || (iface.flags() & QNetworkInterface::IsLoopBack))
+            || (iface.flags() & QNetworkInterface::IsLoopBack)
+            || (iface.flags() & QNetworkInterface::IsPointToPoint))
             continue;
         for (const QNetworkAddressEntry &entry : iface.addressEntries()) {
             const QHostAddress ip = entry.ip();

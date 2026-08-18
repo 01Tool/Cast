@@ -117,7 +117,11 @@ void DlnaDiscovery::sendMsearch()
     const auto ifaces = QNetworkInterface::allInterfaces();
     for (const QNetworkInterface &iface : ifaces) {
         if (!(iface.flags() & QNetworkInterface::IsUp)
-            || (iface.flags() & QNetworkInterface::IsLoopBack))
+            || (iface.flags() & QNetworkInterface::IsLoopBack)
+            || (iface.flags() & QNetworkInterface::IsPointToPoint))
+            continue;
+        if (iface.name().startsWith(QLatin1String("p2p"))
+            || iface.name().startsWith(QLatin1String("wifi-p2p")))
             continue;
         bool hasV4 = false;
         for (const QNetworkAddressEntry &entry : iface.addressEntries()) {

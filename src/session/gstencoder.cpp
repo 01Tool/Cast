@@ -277,7 +277,8 @@ bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort
     }
 
     args << QStringLiteral("-vf")
-         << QStringLiteral("scale=%1:%2").arg(m_video.width).arg(m_video.height)
+         << QStringLiteral("scale=%1:%2,format=yuv420p").arg(m_video.width).arg(m_video.height)
+         << QStringLiteral("-pix_fmt") << QStringLiteral("yuv420p")
          << QStringLiteral("-c:v") << QStringLiteral("libx264")
          << QStringLiteral("-preset") << QStringLiteral("ultrafast")
          << QStringLiteral("-tune") << QStringLiteral("zerolatency")
