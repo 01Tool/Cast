@@ -22,6 +22,7 @@ class MainWindow : public DTK_WIDGET_NAMESPACE::DMainWindow
 
 public:
     explicit MainWindow(CastEngine *engine, QWidget *parent = nullptr);
+    void showAndRaise();
 
 private:
     void setupUi();

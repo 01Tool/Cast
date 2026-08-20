@@ -201,3 +201,13 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-18 | `docs/protocols/dlna.md` first cut | Raise live desktop to 1080p30; HD `MPEG_TS_HD_NA_ISO` | `src/session/dlnaprofile.cpp` `dlnaVideoMode` / `applyDlnaOutputMode` |
 | 2026-08-18 | local Tmall MagicBox_M18 session | 720p looked soft on a 4K source; 1080p + higher bitrate | `src/session/gstencoder.cpp` `videoBitrateKbps` |
 | 2026-08-18 | `debian/changelog` 0.1.0 | First public cut: X11 Miracast + labeled DLNA 1080p | `debian/changelog`; [README.md](../README.md) Release; `.github/workflows/release.yml` body |
+| 2026-08-18 | `~/.agents/skills/deepin/dde-tray-development/SKILL.md` | V2 IID, Type_Quick vs Type_Tray, load translator in init | `src/tray/casttrayplugin.cpp` `CastTrayPlugin` |
+| 2026-08-18 | `~/.agents/skills/deepin/dde-tray-development/references/quick-panel-guide.md` | `QUICK_ITEM_KEY`, `setFixedHeight(QUICK_ITEM_HEIGHT)`, `requestSetAppletVisible` | `src/tray/casttrayplugin.cpp` `itemWidget` / `showDetail`; `src/tray/quickpanel.cpp`; `src/tray/detailwidget.cpp` |
+| 2026-08-18 | `~/.agents/skills/deepin/dde-tray-development/references/tray-plugin-spec.md` | `PluginsItemInterfaceV2`, `itemAdded`, JSON `api` 2.0.0 | `src/tray/casttrayplugin.cpp`; `src/tray/ot-cast-tray.json` |
+| 2026-08-18 | `~/.agents/skills/deepin/dde-tray-development/references/message-protocol.md` | `getSupportFlag`, `itemActiveState` | `src/tray/casttrayplugin.cpp` `message` / `notifyActive` |
+| 2026-08-18 | `~/.agents/skills/deepin/dde-tray-development/references/context-menu.md` | Menu JSON + `invokedMenuItem` | `src/tray/casttrayplugin.cpp` `itemContextMenu` |
+| 2026-08-18 | `/usr/include/dde-dock/pluginsiteminterface_v2.h` | `ModuleInterface_iid_V2` | `src/tray/casttrayplugin.h` |
+| 2026-08-18 | `/usr/share/dsg/configs/org.deepin.ds.dock/org.deepin.ds.dock.tray.json` | Unlisted quick plugins append at the end | plugin `pluginName` `ot-cast` |
+| 2026-08-18 | `~/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `newInstanceStarted` raises the window | `src/main.cpp` `main` |
+| 2026-08-18 | `docs/architecture.md` DTK UI only | Tray plugin uses D-Bus, not NM/GST/UPnP | `src/tray/castclient.cpp`; `src/dbus/castdbusservice.cpp` |
+| 2026-08-21 | `debian/changelog` 0.2.0 | Version bump with DDE quick-panel plugin | `CMakeLists.txt`; `src/main.cpp`; [README.md](../README.md) Release |

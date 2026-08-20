@@ -1,3 +1,13 @@
+ot-cast (0.2.0) unstable; urgency=medium
+
+  * DDE quick panel (libot-cast-tray.so): scan and connect through the
+    ot-cast D-Bus API. The plugin does not talk to NetworkManager or
+    GStreamer.
+  * ot-cast --background for tray-started sessions; pairing still
+    raises the main window.
+
+ -- Playhi <000902play@gmail.com>  Fri, 21 Aug 2026 00:30:23 +0800
+
 ot-cast (0.1.0) unstable; urgency=medium
 
   * First public release of Cast (ot-cast, com.01tool.cast).
@@ -9,5 +19,6 @@ ot-cast (0.1.0) unstable; urgency=medium
     HD profile) and AVTransport Play. Each row is labeled Miracast or
     DLNA.
   * DTK6 UI with zh_CN and zh_TW. Wayland capture is stubbed.
+  * DDE quick panel: scan and connect via the ot-cast D-Bus API.
 
  -- Playhi <000902play@gmail.com>  Tue, 18 Aug 2026 23:55:32 +0800

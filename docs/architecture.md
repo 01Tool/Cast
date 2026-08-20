@@ -9,6 +9,9 @@ Miracast (Wi-Fi Direct + WFD) is the first transport. Many TVs and Linux chipset
 ```
 DTK UI  (DApplication + DMainWindow)
     │  scan / connect / status / errors  (protocol visible on each row)
+    │
+DDE quick panel (ot-cast-tray)  — D-Bus only, no NM/GST/UPnP
+    │  com.ot01tool.Cast / com.ot01tool.Cast1
     ▼
 CastEngine (Qt, display-server agnostic)
     ├── Discovery:
@@ -36,7 +39,9 @@ Responsibilities:
 - Choose which monitor to mirror
 - Toggle system audio (AAC when the sink supports it)
 
-The UI talks only to `CastEngine` signals and slots (or an equivalent Qt interface). It does not open NetworkManager, GStreamer, portal, or UPnP connections itself.
+The window talks only to `CastEngine` signals and slots. The DDE quick-panel plugin talks only to the session D-Bus API that `ot-cast` exports (`com.ot01tool.Cast`). Neither UI opens NetworkManager, GStreamer, portal, or UPnP connections.
+
+Clicking the Cast tile starts `ot-cast --background` if needed, scans, and opens a sink list. Pairing PIN/PBC raises the main window.
 
 Suggested CMake baseline (DTK6): `Qt6::Core`, `Qt6::Widgets`, `Dtk6::Core`, `Dtk6::Gui`, `Dtk6::Widget`. Add GStreamer / libnm / portal packages when the engine is wired.
 
@@ -93,6 +98,7 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 5. Hardware-encoder tuning after video, optional AAC, and a monitor picker work.
 6. DLNA: SSDP list + HTTP live MPEG-TS to MediaRenderers, tagged in the UI. Use this when P2P/WFD is missing or unstable. See [protocols/dlna.md](protocols/dlna.md).
 7. Device matrix: record which TVs accept live TS vs file-only, separately from WFD. See [devices.md](devices.md).
+8. DDE quick panel: D-Bus scan/connect, no protocol code in the plugin.
 
 Items 1–6 are in the tree. Item 7 is filled from measured sessions, not from logos. Wayland still waits on ScreenCast.
 

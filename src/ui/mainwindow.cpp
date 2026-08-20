@@ -42,6 +42,16 @@ MainWindow::MainWindow(CastEngine *engine, QWidget *parent)
     updateActions();
 }
 
+void MainWindow::showAndRaise()
+{
+    if (isMinimized())
+        showNormal();
+    else
+        show();
+    raise();
+    activateWindow();
+}
+
 void MainWindow::setupUi()
 {
     auto *central = new QWidget(this);

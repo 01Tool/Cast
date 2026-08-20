@@ -1,3 +1,5 @@
+#include "dbus/castdbus.h"
+#include "dbus/castdbusservice.h"
 #include "engine/castengine.h"
 #include "ui/mainwindow.h"
 
@@ -7,6 +9,7 @@
 #include <DWidgetUtil>
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QIcon>
 
 DWIDGET_USE_NAMESPACE
@@ -18,7 +21,7 @@ int main(int argc, char *argv[])
     DApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("01tool"));
     app.setApplicationName(QStringLiteral("ot-cast"));
-    app.setApplicationVersion(QStringLiteral("0.1.0"));
+    app.setApplicationVersion(QStringLiteral("0.2.0"));
     app.setApplicationHomePage(QStringLiteral("https://01tool.com"));
     app.setProductIcon(DIconTheme::findQIcon(QStringLiteral("ot-cast"),
                                               DIconTheme::findQIcon(QStringLiteral("video-display"))));
@@ -35,11 +38,21 @@ int main(int argc, char *argv[])
     DLogManager::registerConsoleAppender();
     DLogManager::registerFileAppender();
 
+    const bool background = app.arguments().contains(QStringLiteral("--background"));
+
     CastEngine engine;
     MainWindow window(&engine);
     window.resize(720, 520);
     Dtk::Widget::moveToCenter(&window);
-    window.show();
+
+    CastDBusService dbus(&engine);
+    if (!dbus.registerService())
+        qWarning() << "Could not register" << CastDBus::service << "on the session bus";
+    QObject::connect(&dbus, &CastDBusService::raiseRequested, &window, &MainWindow::showAndRaise);
+    QObject::connect(&app, &DApplication::newInstanceStarted, &window, &MainWindow::showAndRaise);
+
+    if (!background)
+        window.show();
 
     return app.exec();
 }

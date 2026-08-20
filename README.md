@@ -32,7 +32,7 @@ cmake --build build
 ./build/ot-cast
 ```
 
-Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), WFD RTSP on port 7236, **and** SSDP MediaRenderer discovery with HTTP MPEG-TS + AVTransport Play (labeled **DLNA**). X11 grab of the **selected monitor** → H.264 (optional AAC-LC from the Pulse/PipeWire default-sink monitor). Miracast scales to the sink’s WFD video mode and sends MPEG-TS/RTP. DLNA caps at 1280×720@30 and serves TS over HTTP.
+Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), WFD RTSP on port 7236, **and** SSDP MediaRenderer discovery with HTTP MPEG-TS + AVTransport Play (labeled **DLNA**). X11 grab of the **selected monitor** → H.264 (optional AAC-LC from the Pulse/PipeWire default-sink monitor). Miracast scales to the sink’s WFD video mode and sends MPEG-TS/RTP. DLNA caps at 1920×1080@30. A DDE quick-panel plugin (`libot-cast-tray.so`) scans and connects through the app over D-Bus; it does not talk to NetworkManager or GStreamer itself.
 
 Runtime extras:
 
@@ -68,13 +68,13 @@ The AppImage bundles Qt 6 and DTK6. It still needs host NetworkManager, `ffmpeg`
 
 ## Release
 
-`0.1.0` is the first public cut: X11 only, Miracast plus labeled DLNA (live MPEG-TS up to 1080p30), optional AAC, zh_CN/zh_TW. Wayland capture is stubbed. Do not claim every TV or low latency.
+`0.2.0` adds a DDE quick-panel plugin for scan and connect. The X11 sender is still Miracast plus labeled DLNA (live MPEG-TS up to 1080p30), optional AAC, zh_CN/zh_TW. Wayland capture is stubbed. Do not claim every TV or low latency.
 
 Push `main`, then a tag that matches `CMakeLists.txt` and `debian/changelog`:
 
 ```bash
-git tag -s v0.1.0 -m "Cast 0.1.0"
-git push origin main v0.1.0
+git tag -s v0.2.0 -m "Cast 0.2.0"
+git push origin main v0.2.0
 ```
 
 The GitHub **Release** workflow runs the protocol checks and publishes a source tarball on the tag. Build the `.deb` or AppImage on Deepin as above; Ubuntu runners do not ship DTK6.

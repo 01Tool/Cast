@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(ot-cast VERSION 0.1.0 LANGUAGES CXX)
+project(ot-cast VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_APP "Build the DTK desktop app (needs Dtk6)" ON)
 option(BUILD_CHECKS "Build protocol unit checks" ON)
+option(BUILD_TRAY_PLUGIN "Build the DDE quick-panel plugin (needs dde-tray-loader-dev)" ON)
 
 if(BUILD_APP)
     find_package(Qt6 REQUIRED COMPONENTS Core Widgets DBus Network LinguistTools)
@@ -38,6 +39,7 @@ add_executable(ot-cast
     src/session/gstencoder.cpp
     src/capture/x11capture.cpp
     src/capture/portalcapture.cpp
+    src/dbus/castdbusservice.cpp
 )
 
 target_include_directories(ot-cast PRIVATE
@@ -117,4 +119,45 @@ endif()
 
 if(BUILD_APP)
 install(TARGETS ot-cast RUNTIME DESTINATION bin)
+endif()
+
+if(BUILD_TRAY_PLUGIN AND BUILD_APP)
+    find_path(DDE_DOCK_INCLUDE_DIR pluginsiteminterface_v2.h
+        PATHS /usr/include/dde-dock)
+    if(NOT DDE_DOCK_INCLUDE_DIR)
+        message(FATAL_ERROR "dde-tray-loader-dev is required for BUILD_TRAY_PLUGIN (pluginsiteminterface_v2.h)")
+    endif()
+    add_library(ot-cast-tray MODULE
+        src/tray/casttrayplugin.cpp
+        src/tray/castclient.cpp
+        src/tray/quickpanel.cpp
+        src/tray/detailwidget.cpp
+    )
+    set_target_properties(ot-cast-tray PROPERTIES
+        PREFIX "lib"
+        OUTPUT_NAME "ot-cast-tray"
+        AUTOMOC ON
+    )
+    target_include_directories(ot-cast-tray PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/tray
+        ${DDE_DOCK_INCLUDE_DIR}
+    )
+    target_link_libraries(ot-cast-tray PRIVATE
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::DBus
+        Dtk6::Core
+        Dtk6::Gui
+        Dtk6::Widget
+    )
+    set(TRAY_TS_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/translations/ot-cast-tray_zh_CN.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/translations/ot-cast-tray_zh_TW.ts
+    )
+    qt6_add_translation(TRAY_QM_FILES ${TRAY_TS_FILES})
+    add_custom_target(ot-cast-tray-translations ALL DEPENDS ${TRAY_QM_FILES})
+    add_dependencies(ot-cast-tray ot-cast-tray-translations)
+    install(TARGETS ot-cast-tray LIBRARY DESTINATION lib/dde-dock/plugins)
+    install(FILES ${TRAY_QM_FILES} DESTINATION share/ot-cast/translations)
 endif()

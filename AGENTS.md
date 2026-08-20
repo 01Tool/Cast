@@ -28,7 +28,7 @@ DTK conventions: `~/.agents/skills/deepin-skills/dtk-development/SKILL.md` and i
 - **One binary, two capture backends.** Detect the session with `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform`.
 - **X11 first.** Implement `X11Capture`. Stub `PortalCapture` until DDE ScreenCast (or equivalent) exists.
 - **Never X11-grab on Wayland.** That only sees XWayland windows. Fail with a clear error if ScreenCast is missing.
-- Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, UPnP/SSDP, or GStreamer APIs directly.
+- Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, UPnP/SSDP, or GStreamer APIs directly. The DDE tray plugin is UI only: it calls the `ot-cast` D-Bus API, never CastEngine internals.
 - True Miracast is **Wi-Fi Direct**, not “same LAN then stream.” DLNA is allowed as an **explicit** backend. Do not label a DMR as Miracast. Do not add Chromecast under either name.
 - Do not claim universal sink support or “low latency” without a measured row in [docs/devices.md](docs/devices.md).
 - Video-only is still valid. AAC-LC is sent when the user enables system audio **and** the path allows it (WFD: sink lists AAC; DLNA: AAC in MPEG-TS).
