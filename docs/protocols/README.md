@@ -4,7 +4,7 @@ Capture (X11 / Wayland) is shared. How frames reach the TV is not. The UI must s
 
 | Protocol | Document | Network | Status |
 |----------|----------|---------|--------|
-| Miracast / Wi-Fi Display | [miracast.md](miracast.md) | Wi-Fi Direct + RTSP + RTP | Implemented (X11 video, optional AAC). |
+| Miracast / Wi-Fi Display | [miracast.md](miracast.md) | Wi-Fi Direct **or** MS-MICE on the LAN, then RTSP + RTP | Implemented (X11 video, optional AAC). LAN path first for Windows Connect. |
 | DLNA / UPnP AV | [dlna.md](dlna.md) | Same LAN, SSDP + HTTP + AVTransport | First cut (X11 MPEG-TS + AVTransport). |
 
 ## When to use which
@@ -13,7 +13,8 @@ Many living-room TVs print a Miracast logo and still reject Linux WFD senders (c
 
 | Situation | Use |
 |-----------|-----|
-| TV / dongle has a working WFD IE and the phy can form a P2P group | **Miracast** (no shared AP required) |
+| TV / dongle has a working WFD IE and the phy can form a P2P group | **Miracast** over Wi-Fi Direct (no shared AP required) |
+| Windows Connect / Android on the same Wi-Fi, TCP 7250 open | **Miracast** over MS-MICE (same WFD RTSP, no WPS PIN) |
 | P2P missing, STA Wi-Fi must stay up, or WFD handshake fails | **DLNA** on the current LAN |
 | Same TV shows both a WFD peer and a DMR | Two rows (or two actions). User picks. |
 | Device is Chromecast / AirPlay only | Out of scope. Do not fake it as either name. |

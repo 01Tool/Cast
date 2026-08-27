@@ -36,6 +36,8 @@ P2PSession::P2PSession(QObject *parent)
     : QObject(parent)
 {
     qDBusRegisterMetaType<ConnectionMap>();
+    m_statePoll.setInterval(1000);
+    connect(&m_statePoll, &QTimer::timeout, this, &P2PSession::pollActiveState);
 }
 
 P2PSession::~P2PSession()
@@ -120,6 +122,7 @@ void P2PSession::activate(const SinkDevice &sink)
 
 void P2PSession::deactivate()
 {
+    m_statePoll.stop();
     unwatchActiveConnection();
     if (!m_activePath.isEmpty()) {
         QDBusInterface nm(QString::fromLatin1(kNmService),
@@ -151,14 +154,8 @@ void P2PSession::onAddFinished(QDBusPendingCallWatcher *watcher)
     m_activePath = reply.argumentAt<1>().path();
     qInfo() << "P2P active connection" << m_activePath;
     watchActiveConnection(m_activePath);
-
-    const QVariant stateVar = readProperty(m_activePath,
-                                           QString::fromLatin1(kActiveIface),
-                                           QStringLiteral("State"));
-    bool ok = false;
-    const quint32 state = stateVar.toUInt(&ok);
-    if (ok && state == kActiveStateActivated)
-        finishActivated();
+    m_statePoll.start();
+    pollActiveState();
 }
 
 void P2PSession::onActiveProperties(const QString &interface,
@@ -175,14 +172,28 @@ void P2PSession::onActiveProperties(const QString &interface,
     const quint32 state = changed.value(QStringLiteral("State")).toUInt(&ok);
     if (!ok)
         return;
-    if (state == kActiveStateActivated)
-        finishActivated();
-    else if (state == kActiveStateDeactivated) {
-        m_active = false;
-        m_activePath.clear();
-        unwatchActiveConnection();
-        Q_EMIT deactivated();
-    }
+    handleActiveState(state);
+}
+
+void P2PSession::onActiveStateChanged(uint state, uint reason)
+{
+    qInfo() << "P2P Active.StateChanged" << state << "reason" << reason;
+    handleActiveState(state);
+}
+
+void P2PSession::pollActiveState()
+{
+    if (m_activePath.isEmpty())
+        return;
+    const QVariant stateVar = readProperty(m_activePath,
+                                           QString::fromLatin1(kActiveIface),
+                                           QStringLiteral("State"));
+    bool ok = false;
+    const quint32 state = stateVar.toUInt(&ok);
+    if (!ok)
+        return;
+    qInfo() << "P2P active state poll" << state << "ipv4" << queryLocalIpv4();
+    handleActiveState(state);
 }
 
 QVariant P2PSession::readProperty(const QString &path,
@@ -205,24 +216,39 @@ QVariant P2PSession::readProperty(const QString &path,
 
 void P2PSession::watchActiveConnection(const QString &path)
 {
-    QDBusConnection::systemBus().connect(QString::fromLatin1(kNmService),
-                                         path,
-                                         QString::fromLatin1(kPropsIface),
-                                         QStringLiteral("PropertiesChanged"),
-                                         this,
-                                         SLOT(onActiveProperties(QString,QVariantMap,QStringList)));
+    auto bus = QDBusConnection::systemBus();
+    bus.connect(QString::fromLatin1(kNmService), path, QString::fromLatin1(kPropsIface),
+                QStringLiteral("PropertiesChanged"), this,
+                SLOT(onActiveProperties(QString,QVariantMap,QStringList)));
+    bus.connect(QString::fromLatin1(kNmService), path, QString::fromLatin1(kActiveIface),
+                QStringLiteral("StateChanged"), this,
+                SLOT(onActiveStateChanged(uint,uint)));
 }
 
 void P2PSession::unwatchActiveConnection()
 {
     if (m_activePath.isEmpty())
         return;
-    QDBusConnection::systemBus().disconnect(QString::fromLatin1(kNmService),
-                                            m_activePath,
-                                            QString::fromLatin1(kPropsIface),
-                                            QStringLiteral("PropertiesChanged"),
-                                            this,
-                                            SLOT(onActiveProperties(QString,QVariantMap,QStringList)));
+    auto bus = QDBusConnection::systemBus();
+    bus.disconnect(QString::fromLatin1(kNmService), m_activePath, QString::fromLatin1(kPropsIface),
+                   QStringLiteral("PropertiesChanged"), this,
+                   SLOT(onActiveProperties(QString,QVariantMap,QStringList)));
+    bus.disconnect(QString::fromLatin1(kNmService), m_activePath, QString::fromLatin1(kActiveIface),
+                   QStringLiteral("StateChanged"), this,
+                   SLOT(onActiveStateChanged(uint,uint)));
+}
+
+void P2PSession::handleActiveState(quint32 state)
+{
+    if (state == kActiveStateActivated)
+        finishActivated();
+    else if (state == kActiveStateDeactivated) {
+        m_statePoll.stop();
+        m_active = false;
+        unwatchActiveConnection();
+        m_activePath.clear();
+        Q_EMIT deactivated();
+    }
 }
 
 QString P2PSession::queryLocalIpv4() const
@@ -258,7 +284,12 @@ QString P2PSession::queryLocalIpv4() const
 
 void P2PSession::finishActivated()
 {
+    if (m_active)
+        return;
     m_localIpv4 = queryLocalIpv4();
+    if (m_localIpv4.isEmpty())
+        return;
+    m_statePoll.stop();
     m_active = true;
     qInfo() << "P2P group up, local IPv4" << m_localIpv4;
     Q_EMIT activated(m_localIpv4);

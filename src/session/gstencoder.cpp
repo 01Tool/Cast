@@ -211,7 +211,7 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
         pipeline = QStringLiteral(
                        "mpegtsmux name=mux alignment=7 ! %1 "
                        "%2 ! "
-                       "videoconvert ! videoscale ! "
+                       "videoconvert ! videoscale add-borders=true method=4 ! "
                        "video/x-raw,width=%3,height=%4,framerate=%5/1 ! "
                        "%6 ! h264parse config-interval=1 ! queue ! mux. "
                        "pulsesrc device=\"%7\" provide-clock=true do-timestamp=true ! "
@@ -228,7 +228,7 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
     } else {
         pipeline = QStringLiteral(
                        "%1 ! "
-                       "videoconvert ! videoscale ! "
+                       "videoconvert ! videoscale add-borders=true method=4 ! "
                        "video/x-raw,width=%2,height=%3,framerate=%4/1 ! "
                        "x264enc tune=zerolatency speed-preset=%5 bitrate=%6 key-int-max=%4 ! "
                        "video/x-h264,profile=%7 ! "
@@ -287,7 +287,8 @@ bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort
     }
 
     args << QStringLiteral("-vf")
-         << QStringLiteral("scale=%1:%2:flags=lanczos,format=yuv420p")
+         << QStringLiteral("scale=%1:%2:force_original_aspect_ratio=decrease:flags=lanczos,"
+                           "pad=%1:%2:(ow-iw)/2:(oh-ih)/2,format=yuv420p")
                 .arg(m_video.width)
                 .arg(m_video.height)
          << QStringLiteral("-pix_fmt") << QStringLiteral("yuv420p")

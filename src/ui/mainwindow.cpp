@@ -199,9 +199,12 @@ void MainWindow::refreshSinkList()
             ? tr("DLNA")
             : tr("Miracast");
         QString detail = protocol;
-        if (!sink.address.isEmpty())
-            detail += QStringLiteral(" · ") + sink.address;
-        if (sink.protocol == CastProtocol::Miracast && !sink.wfdCapable)
+        if (sink.protocol == CastProtocol::Miracast && sink.miceCapable)
+            detail += tr(" · LAN");
+        const QString shownAddress = !sink.miceHost.isEmpty() ? sink.miceHost : sink.address;
+        if (!shownAddress.isEmpty())
+            detail += QStringLiteral(" · ") + shownAddress;
+        if (sink.protocol == CastProtocol::Miracast && !sink.wfdCapable && !sink.miceCapable)
             detail += tr(" · no WFD IEs");
         if (sink.protocol == CastProtocol::Dlna) {
             switch (sink.dlnaMedia) {

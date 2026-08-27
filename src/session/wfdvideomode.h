@@ -26,5 +26,7 @@ WfdVideoMode defaultWfdVideoMode();
 QByteArray wfdSourceFormatsParameter();
 
 // Parse a GET_PARAMETER body (or a bare wfd_video_formats value) and pick one mode.
-// Prefers progressive, then ≤30 fps, then the largest resolution the sink listed.
-WfdVideoMode selectWfdVideoMode(const QByteArray &getParameterBody);
+// Prefers progressive, then ≤30 fps, then the closest aspect ratio to the captured
+// screen (when sourceWidth/Height are set), then the largest resolution the sink listed.
+WfdVideoMode selectWfdVideoMode(const QByteArray &getParameterBody, int sourceWidth = 0,
+                                int sourceHeight = 0);

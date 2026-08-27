@@ -5,6 +5,7 @@
 #include <QDBusObjectPath>
 #include <QObject>
 #include <QString>
+#include <QTimer>
 
 class QDBusPendingCallWatcher;
 
@@ -35,16 +36,20 @@ private Q_SLOTS:
     void onActiveProperties(const QString &interface,
                             const QVariantMap &changed,
                             const QStringList &invalidated);
+    void onActiveStateChanged(uint state, uint reason);
+    void pollActiveState();
 
 private:
     QVariant readProperty(const QString &path, const QString &interface, const QString &name) const;
     void watchActiveConnection(const QString &path);
     void unwatchActiveConnection();
+    void handleActiveState(quint32 state);
     QString queryLocalIpv4() const;
     void finishActivated();
 
     QString m_activePath;
     QString m_localIpv4;
     QString m_lastError;
+    QTimer m_statePoll;
     bool m_active = false;
 };

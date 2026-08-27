@@ -10,6 +10,15 @@ namespace {
 
 constexpr quint16 kWfdPort = 7236;
 
+QString ipv4String(const QHostAddress &address)
+{
+    bool ok = false;
+    const quint32 v4 = address.toIPv4Address(&ok);
+    if (ok)
+        return QHostAddress(v4).toString();
+    return address.toString();
+}
+
 QByteArray headerValue(const QByteArray &raw, const QByteArray &name)
 {
     const QByteArray prefix = name + ":";
@@ -31,11 +40,13 @@ int headerInt(const QByteArray &raw, const QByteArray &name, int fallback = 0)
 } // namespace
 
 WfdSession::WfdSession(QTcpSocket *socket, const QString &localIpv4, bool audioWanted,
-                       QObject *parent)
+                       int sourceWidth, int sourceHeight, QObject *parent)
     : QObject(parent)
     , m_socket(socket)
     , m_localIpv4(localIpv4)
     , m_audioWanted(audioWanted)
+    , m_sourceWidth(sourceWidth)
+    , m_sourceHeight(sourceHeight)
 {
     m_socket->setParent(this);
     connect(m_socket, &QTcpSocket::readyRead, this, &WfdSession::onReadyRead);
@@ -142,7 +153,7 @@ void WfdSession::handleRequest(const QString &method, int cseq, const QByteArray
 
     if (method == QLatin1String("PLAY")) {
         sendResponse(cseq, "Session: 1\r\nRange: npt=now-\r\n");
-        const QString ip = m_socket->peerAddress().toString();
+        const QString ip = ipv4String(m_socket->peerAddress());
         qInfo() << "WFD PLAY" << ip << m_rtpPort << m_video.description() << m_audio.description();
         Q_EMIT playRequested(ip, m_rtpPort, m_video, m_audio);
         return;
@@ -241,7 +252,7 @@ void WfdSession::parseSinkParams(const QByteArray &body)
     const auto match = portsRe.match(QString::fromLatin1(body));
     if (match.hasMatch())
         m_rtpPort = static_cast<quint16>(match.captured(1).toUInt());
-    m_video = selectWfdVideoMode(body);
+    m_video = selectWfdVideoMode(body, m_sourceWidth, m_sourceHeight);
     m_audio = selectWfdAudioMode(body, m_audioWanted);
     qInfo() << "WFD sink RTP port" << m_rtpPort << "video" << m_video.description()
             << "audio" << m_audio.description();
@@ -257,12 +268,15 @@ WfdServer::~WfdServer()
     stop();
 }
 
-bool WfdServer::listen(const QString &localIpv4, bool audioWanted)
+bool WfdServer::listen(const QString &localIpv4, bool audioWanted, int sourceWidth,
+                       int sourceHeight)
 {
     stop();
     m_localIpv4 = localIpv4;
     m_audioWanted = audioWanted;
-    if (!m_server.listen(QHostAddress::Any, kWfdPort)) {
+    m_sourceWidth = sourceWidth;
+    m_sourceHeight = sourceHeight;
+    if (!m_server.listen(QHostAddress::AnyIPv4, kWfdPort)) {
         Q_EMIT failed(tr("Cannot listen on RTSP port %1: %2")
                           .arg(kWfdPort)
                           .arg(m_server.errorString()));
@@ -294,7 +308,8 @@ void WfdServer::onNewConnection()
         socket->deleteLater();
         return;
     }
-    m_session = new WfdSession(socket, m_localIpv4, m_audioWanted, this);
+    m_session = new WfdSession(socket, m_localIpv4, m_audioWanted, m_sourceWidth, m_sourceHeight,
+                               this);
     connect(m_session, &WfdSession::playRequested, this, &WfdServer::playRequested);
     connect(m_session, &WfdSession::statusChanged, this, &WfdServer::statusChanged);
     connect(m_session, &WfdSession::sessionClosed, this, [this]() {

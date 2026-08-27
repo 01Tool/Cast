@@ -14,7 +14,7 @@ class WfdSession : public QObject
 
 public:
     explicit WfdSession(QTcpSocket *socket, const QString &localIpv4, bool audioWanted,
-                       QObject *parent = nullptr);
+                       int sourceWidth, int sourceHeight, QObject *parent = nullptr);
 
 Q_SIGNALS:
     void playRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
@@ -50,6 +50,8 @@ private:
     WfdVideoMode m_video;
     WfdAudioMode m_audio;
     bool m_audioWanted = false;
+    int m_sourceWidth = 0;
+    int m_sourceHeight = 0;
     bool m_sentM1 = false;
     bool m_gotM2 = false;
 };
@@ -62,7 +64,8 @@ public:
     explicit WfdServer(QObject *parent = nullptr);
     ~WfdServer() override;
 
-    bool listen(const QString &localIpv4, bool audioWanted);
+    bool listen(const QString &localIpv4, bool audioWanted, int sourceWidth = 0,
+                int sourceHeight = 0);
     void stop();
 
 Q_SIGNALS:
@@ -79,4 +82,6 @@ private:
     WfdSession *m_session = nullptr;
     QString m_localIpv4;
     bool m_audioWanted = false;
+    int m_sourceWidth = 0;
+    int m_sourceHeight = 0;
 };

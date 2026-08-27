@@ -27,13 +27,15 @@ sudo gdbus call --system \
   fi.w1.wpa_supplicant1 WFDIEs
 ```
 
-## 2. Miracast is P2P; DLNA is same-LAN
+## 2. Miracast is WFD; DLNA is same-LAN HTTP
 
-WFD typically forms a Wi-Fi Direct group between source and sink. That often drops or splits the current AP connection. Linux success also depends on the chipset and the TV’s RTSP. **Many devices do not implement Miracast well enough to be the only path.**
+Classic WFD forms a Wi-Fi Direct group. That often drops or splits the current AP connection. Linux success also depends on the chipset and the TV’s RTSP. **Many devices do not implement P2P Miracast well enough to be the only path.**
 
-Cast therefore ships (and will ship) **two named protocols**:
+Windows 10+ “Projecting to this PC” and many Android phones on the **same Wi-Fi** use **MS-MICE** (TCP 7250, then the same WFD RTSP :7236). No WPS PIN when the sink has PIN off. That is still Miracast. It is not DLNA.
 
-- **Miracast / WFD:** P2P + RTSP + RTP. Works without a shared AP. Disrupts STA Wi-Fi more often. Implemented first.
+Cast therefore ships **two named protocols**:
+
+- **Miracast / WFD:** P2P + RTSP + RTP, **or** MS-MICE on the current LAN then the same RTSP + RTP. P2P works without a shared AP. MICE leaves STA Wi-Fi up.
 - **DLNA / UPnP AV:** SSDP + HTTP + AVTransport on the existing LAN. Leaves STA Wi-Fi up. Shipped because more TVs expose a Digital Media Renderer than a reliable WFD sink. See [protocols/dlna.md](protocols/dlna.md).
 
 The UI must say which protocol a row uses. Do not list a DMR under “Miracast.” Chromecast and custom TCP are still different products; do not add them under either name.
@@ -62,7 +64,7 @@ GNOME Network Displays is one of the few Linux senders that attempts synchronize
 
 Prefer:
 
-- GNOME Network Displays / `deepin-network-displays` for the WFD + GStreamer path
+- GNOME Network Displays / `deepin-network-displays` for the WFD + GStreamer path (including MS-MICE since 0.91)
 - NetworkManager P2P so the rest of the desktop keeps a network stack
 
 ## 7. Security and permissions
@@ -70,5 +72,6 @@ Prefer:
 - X11 grab can capture the whole desktop without a user picker.
 - Wayland capture should go through the portal so the user consents and can choose a monitor.
 - P2P groups are a new L2 network; firewall rules that assume “only the AP” will break the RTP/RTSP path (a common GNOME Network Displays support issue).
-- DLNA needs the opposite: the TV must open HTTP back to the laptop on the STA LAN. Outbound-only firewalls will fail `Play`.
-- Many sinks use WPS push-button; others show an 8-digit PIN on the TV. The app registers an in-process NetworkManager SecretAgent so those prompts stay in the DTK window instead of depending on nm-applet.
+- MS-MICE: the laptop connects **out** to TCP 7250 on the display; the display then connects **in** to TCP 7236 on the laptop, then UDP RTP. Block inbound 7236 and Windows never starts RTSP.
+- DLNA needs the opposite of outbound-only: the TV must open HTTP back to the laptop on the STA LAN. Outbound-only firewalls will fail `Play`.
+- Many P2P sinks use WPS push-button; others show an 8-digit PIN on the TV. The app registers an in-process NetworkManager SecretAgent so those prompts stay in the DTK window instead of depending on nm-applet. MS-MICE with PIN off (typical Windows “Projecting to this PC” on a secure LAN) does not prompt.

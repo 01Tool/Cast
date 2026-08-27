@@ -2,7 +2,7 @@
 
 One DTK process, a display-server-agnostic cast engine, two capture backends, and **two labeled transports**. Widgets never call X11, Wayland, NetworkManager, or UPnP APIs directly.
 
-Miracast (Wi-Fi Direct + WFD) is the first transport. Many TVs and Linux chipsets implement it poorly, so DLNA Digital Media Renderer on the same LAN is the same-LAN fallback. The device list must show the protocol. Do not present a DMR as a Miracast sink. See [protocols/README.md](protocols/README.md).
+Miracast (Wi-Fi Display: Wi-Fi Direct **or** MS-MICE, then WFD RTSP + RTP) is the first transport. Many TVs and Linux chipsets implement P2P poorly, so DLNA Digital Media Renderer on the same LAN is the HTTP fallback. The device list must show the protocol. Do not present a DMR as a Miracast sink. See [protocols/README.md](protocols/README.md).
 
 ## Layers
 
@@ -16,9 +16,10 @@ DDE quick panel (ot-cast-tray)  — D-Bus only, no NM/GST/UPnP
 CastEngine (Qt, display-server agnostic)
     ├── Discovery:
     │     P2P  → NetworkManager + wpa_supplicant WFD IEs
+    │     MICE → mDNS `_display._tcp` + neighbor MAC (Windows Connect)
     │     DLNA → SSDP MediaRenderer
     ├── Session:
-    │     WFD  → RTSP :7236 + RTP
+    │     WFD  → RTSP :7236 + RTP (P2P group **or** MS-MICE TCP 7250)
     │     DLNA → HTTP stream + AVTransport Play
     └── Capture:
           X11     → ximagesrc / XShm
@@ -41,7 +42,7 @@ Responsibilities:
 
 The window talks only to `CastEngine` signals and slots. The DDE quick-panel plugin talks only to the session D-Bus API that `ot-cast` exports (`com.ot01tool.Cast`). Neither UI opens NetworkManager, GStreamer, portal, or UPnP connections.
 
-Clicking the Cast tile starts `ot-cast --background` if needed, scans, and opens a sink list. Pairing PIN/PBC raises the main window.
+Clicking the Cast tile starts `ot-cast --background` if needed, scans, and opens a sink list. Pairing PIN/PBC raises the main window. MS-MICE with PIN off does not prompt.
 
 Suggested CMake baseline (DTK6): `Qt6::Core`, `Qt6::Widgets`, `Dtk6::Core`, `Dtk6::Gui`, `Dtk6::Widget`. Add GStreamer / libnm / portal packages when the engine is wired.
 
@@ -50,8 +51,8 @@ Suggested CMake baseline (DTK6): `Qt6::Core`, `Qt6::Widgets`, `Dtk6::Core`, `Dtk
 A Qt object that owns the session state machine:
 
 1. **Idle** — Wi-Fi / P2P / LAN capability check
-2. **Scanning** — P2P peers with WFD IEs **and** SSDP MediaRenderers
-3. **Connecting** — P2P group + RTSP, **or** HTTP + AVTransport
+2. **Scanning** — P2P peers with WFD IEs, mDNS `_display._tcp` (MS-MICE), **and** SSDP MediaRenderers
+3. **Connecting** — MS-MICE :7250 then RTSP, **or** P2P group + RTSP, **or** HTTP + AVTransport
 4. **Streaming** — capture → encode → RTP **or** HTTP
 5. **Failed / Stopped** — teardown; restore STA Wi-Fi after a P2P session
 
@@ -60,9 +61,11 @@ Subsystems:
 | Subsystem | Role | Preferred implementation |
 |-----------|------|--------------------------|
 | Discovery (WFD) | List Miracast sinks | NetworkManager P2P + `wpa_supplicant` WFD IEs |
+| Discovery (MICE) | Same-LAN Windows Connect | mDNS `_display._tcp` + ARP/neighbor of the P2P MAC |
 | Discovery (DLNA) | List MediaRenderers | Qt SSDP; see [protocols/dlna.md](protocols/dlna.md) |
-| Pairing | WPS PIN / PBC | NM SecretAgent; P2P only |
+| Pairing | WPS PIN / PBC | NM SecretAgent; P2P only. MS-MICE with PIN off needs no prompt. |
 | Session (WFD) | WFD RTSP handshake | GStreamer WFD bits from GNOME / deepin-network-displays |
+| Session (MICE) | TCP 7250 then WFD | `SOURCE_READY` / `STOP_PROJECTION`; reuse `WfdServer` |
 | Session (DLNA) | HTTP + `SetAVTransportURI` | `DlnaSession` |
 | Sink identity | Protocol on every row | `SinkDevice::protocol` is `Miracast` or `Dlna` |
 | Capture | Frames + optional system audio | Backend interface + Pulse/PipeWire monitor |
@@ -99,8 +102,9 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 6. DLNA: SSDP list + HTTP live MPEG-TS to MediaRenderers, tagged in the UI. Use this when P2P/WFD is missing or unstable. See [protocols/dlna.md](protocols/dlna.md).
 7. Device matrix: record which TVs accept live TS vs file-only, separately from WFD. See [devices.md](devices.md).
 8. DDE quick panel: D-Bus scan/connect, no protocol code in the plugin.
+9. MS-MICE for Windows Connect / Android-on-the-same-LAN: try TCP 7250 before P2P.
 
-Items 1–6 are in the tree. Item 7 is filled from measured sessions, not from logos. Wayland still waits on ScreenCast.
+Items 1–6 and 8–9 are in the tree. Item 7 is filled from measured sessions, not from logos (Windows Connect over MS-MICE and Tmall MagicBox over DLNA). Wayland still waits on ScreenCast. X11 grab uses physical pixels (`QScreen::geometry() × devicePixelRatio()`). WFD mode selection prefers the captured monitor’s aspect ratio and letterboxes.
 
 ## What not to put in widgets
 
@@ -108,6 +112,7 @@ Items 1–6 are in the tree. Item 7 is filled from measured sessions, not from l
 - `xdg-desktop-portal` D-Bus calls
 - NetworkManager / `wpa_supplicant` D-Bus
 - SSDP / UPnP SOAP / local HTTP bind
+- mDNS `_display._tcp` / TCP 7250 MS-MICE
 - Encoder bitrate / RTP socket details
 
 Those belong in `CastEngine` and the capture backends so X11 and Wayland stay swappable.

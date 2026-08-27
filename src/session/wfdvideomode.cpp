@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QList>
+#include <QtGlobal>
 
 namespace {
 
@@ -132,8 +133,15 @@ void collect(QList<Candidate> *out,
     }
 }
 
-// Prefer progressive, then ≤30 fps (software encode), then larger frames.
-bool betterThan(const Candidate &a, const Candidate &b)
+qint64 aspectMismatch(int width, int height, int sourceWidth, int sourceHeight)
+{
+    if (sourceWidth <= 0 || sourceHeight <= 0)
+        return 0;
+    return qAbs(qint64(width) * sourceHeight - qint64(height) * sourceWidth);
+}
+
+// Prefer progressive, then ≤30 fps, then the source's aspect ratio, then larger frames.
+bool betterThan(const Candidate &a, const Candidate &b, int sourceWidth, int sourceHeight)
 {
     if (a.res->interlaced != b.res->interlaced)
         return !a.res->interlaced;
@@ -141,6 +149,12 @@ bool betterThan(const Candidate &a, const Candidate &b)
     const bool bLow = b.res->fps <= 30;
     if (aLow != bLow)
         return aLow;
+    if (sourceWidth > 0 && sourceHeight > 0) {
+        const qint64 aAr = aspectMismatch(a.res->width, a.res->height, sourceWidth, sourceHeight);
+        const qint64 bAr = aspectMismatch(b.res->width, b.res->height, sourceWidth, sourceHeight);
+        if (aAr != bAr)
+            return aAr < bAr;
+    }
     const int aPixels = a.res->width * a.res->height;
     const int bPixels = b.res->width * b.res->height;
     if (aPixels != bPixels)
@@ -184,14 +198,27 @@ bool parseHex32(const QByteArray &token, quint32 *out)
     return true;
 }
 
-bool parseDec(const QByteArray &token, int *out)
+// WFD max-hres / max-vres are hex (Windows sends 0780 0438). Tests also use decimal 1280 720.
+bool parseExtent(const QByteArray &token, int *out)
 {
-    if (token == "none") {
+    QByteArray cleaned = token.trimmed();
+    while (cleaned.endsWith(',') || cleaned.endsWith(';') || cleaned.endsWith('\r'))
+        cleaned.chop(1);
+    if (cleaned == "none") {
         *out = 0;
         return true;
     }
+    if (cleaned.isEmpty())
+        return false;
+    bool hexHint = cleaned.size() == 4 && cleaned.startsWith('0');
+    for (char c : cleaned) {
+        if ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+            hexHint = true;
+            break;
+        }
+    }
     bool ok = false;
-    const int value = token.toInt(&ok, 10);
+    const int value = cleaned.toInt(&ok, hexHint ? 16 : 10);
     if (!ok || value < 0)
         return false;
     *out = value;
@@ -240,10 +267,12 @@ QByteArray wfdSourceFormatsParameter()
     return formatsLine(sourceMask(kCea), sourceMask(kVesa), sourceMask(kHh));
 }
 
-WfdVideoMode selectWfdVideoMode(const QByteArray &getParameterBody)
+WfdVideoMode selectWfdVideoMode(const QByteArray &getParameterBody, int sourceWidth,
+                                int sourceHeight)
 {
     const WfdVideoMode fallback = defaultWfdVideoMode();
-    const QByteArray value = formatsValue(getParameterBody);
+    QByteArray value = formatsValue(getParameterBody);
+    value.replace(',', ' ');
     if (value.isEmpty() || value == "none")
         return fallback;
 
@@ -254,34 +283,53 @@ WfdVideoMode selectWfdVideoMode(const QByteArray &getParameterBody)
         if (!token.isEmpty())
             parts.append(token);
     }
-    // native pref profile level cea vesa hh …
+    // native preferred-display-mode, then one or more H.264 codec blocks:
+    // profile level cea vesa hh latency min-slice slice-enc frc max-hres max-vres
     if (parts.size() < 7)
         return fallback;
 
-    quint32 cea = 0;
-    quint32 vesa = 0;
-    quint32 hh = 0;
-    if (!parseHex32(parts.at(4), &cea) || !parseHex32(parts.at(5), &vesa)
-        || !parseHex32(parts.at(6), &hh)) {
-        qWarning() << "Could not parse wfd_video_formats bitmaps" << value;
-        return fallback;
-    }
-
-    int maxWidth = 0;
-    int maxHeight = 0;
-    if (parts.size() >= 13) {
-        parseDec(parts.at(11), &maxWidth);
-        parseDec(parts.at(12), &maxHeight);
-    }
-
     QList<Candidate> sinkModes;
-    collect(&sinkModes, WfdVideoMode::Table::Cea, kCea, cea, maxWidth, maxHeight, true);
-    collect(&sinkModes, WfdVideoMode::Table::Vesa, kVesa, vesa, maxWidth, maxHeight, true);
-    collect(&sinkModes, WfdVideoMode::Table::Hh, kHh, hh, maxWidth, maxHeight, true);
+    auto collectCodec = [&](quint32 cea, quint32 vesa, quint32 hh, int maxWidth, int maxHeight,
+                            bool progressiveOnly) {
+        collect(&sinkModes, WfdVideoMode::Table::Cea, kCea, cea, maxWidth, maxHeight,
+                progressiveOnly);
+        collect(&sinkModes, WfdVideoMode::Table::Vesa, kVesa, vesa, maxWidth, maxHeight,
+                progressiveOnly);
+        collect(&sinkModes, WfdVideoMode::Table::Hh, kHh, hh, maxWidth, maxHeight, progressiveOnly);
+    };
+
+    int index = 2;
+    while (index + 4 < parts.size()) {
+        quint32 cea = 0;
+        quint32 vesa = 0;
+        quint32 hh = 0;
+        if (!parseHex32(parts.at(index + 2), &cea) || !parseHex32(parts.at(index + 3), &vesa)
+            || !parseHex32(parts.at(index + 4), &hh)) {
+            qWarning() << "Could not parse wfd_video_formats bitmaps" << value;
+            break;
+        }
+        int maxWidth = 0;
+        int maxHeight = 0;
+        if (index + 10 < parts.size()) {
+            parseExtent(parts.at(index + 9), &maxWidth);
+            parseExtent(parts.at(index + 10), &maxHeight);
+        }
+        collectCodec(cea, vesa, hh, maxWidth, maxHeight, true);
+        if (index + 10 < parts.size())
+            index += 11;
+        else
+            break;
+    }
     if (sinkModes.isEmpty()) {
-        collect(&sinkModes, WfdVideoMode::Table::Cea, kCea, cea, maxWidth, maxHeight, false);
-        collect(&sinkModes, WfdVideoMode::Table::Vesa, kVesa, vesa, maxWidth, maxHeight, false);
-        collect(&sinkModes, WfdVideoMode::Table::Hh, kHh, hh, maxWidth, maxHeight, false);
+        index = 2;
+        if (index + 4 < parts.size()) {
+            quint32 cea = 0;
+            quint32 vesa = 0;
+            quint32 hh = 0;
+            if (parseHex32(parts.at(4), &cea) && parseHex32(parts.at(5), &vesa)
+                && parseHex32(parts.at(6), &hh))
+                collectCodec(cea, vesa, hh, 0, 0, false);
+        }
     }
     if (sinkModes.isEmpty()) {
         qWarning() << "Sink wfd_video_formats has no known modes" << value;
@@ -303,11 +351,12 @@ WfdVideoMode selectWfdVideoMode(const QByteArray &getParameterBody)
 
     Candidate best = pool.first();
     for (int i = 1; i < pool.size(); ++i) {
-        if (betterThan(pool.at(i), best))
+        if (betterThan(pool.at(i), best, sourceWidth, sourceHeight))
             best = pool.at(i);
     }
 
     const WfdVideoMode mode = fromCandidate(best);
-    qInfo() << "Selected WFD video mode" << mode.description() << "from" << value;
+    qInfo() << "Selected WFD video mode" << mode.description() << "source"
+            << sourceWidth << "x" << sourceHeight << "from" << value;
     return mode;
 }

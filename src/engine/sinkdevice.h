@@ -38,7 +38,10 @@ struct SinkDevice
     QString address;
     CastProtocol protocol = CastProtocol::Miracast;
     QString p2pDevicePath;
+    QString p2pMac;
+    QString miceHost;
     bool wfdCapable = false;
+    bool miceCapable = false;
     QUrl locationUrl;
     QString udn;
     QUrl avTransportUrl;

@@ -18,7 +18,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 
 | Project | Role |
 |---------|------|
-| [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Closest production open-source sender. Miracast + Chromecast (not DLNA). PipeWire portal, X11 fallback, NetworkManager P2P. Still described as experimental. |
+| [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Closest production open-source sender. Miracast + Chromecast (not DLNA). PipeWire portal, X11 fallback, NetworkManager P2P, MS-MICE since 0.91. Still described as experimental. |
 | [MiracleCast](https://github.com/albfan/miraclecast) | Low-level WFD toolkit. Poor desktop fit (often needs NM/wpa stopped). Do not use as the app base. |
 | [FluxCast](https://github.com/IlyaP358/fluxcast) | Newer Python WFD client; native wlroots path, ~1 s latency reported. Useful as a protocol reference, not as the DTK UI. |
 
@@ -33,7 +33,15 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | PulseAudio / `pipewire-pulse` | Default-sink `.monitor` for system audio |
 | `xdg-desktop-portal` | ScreenCast session on Wayland |
 | SSDP / UPnP AV / DLNA DMR | Same-LAN discovery (`MediaRenderer:1`) and `AVTransport` Play |
+| MS-MICE TCP 7250 | Windows Connect / Android same-LAN Miracast; then WFD RTSP :7236 |
+| mDNS `_display._tcp` | MS-MICE sink advertisement (TXT `p2pMAC`) |
 | GUPnP / GSSDP / gupnp-av | Optional C stack; first cut uses Qt Network instead |
+
+## Microsoft
+
+| Document | Role |
+|----------|------|
+| [MS-MICE](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-mice/9598ca72-d937-466c-95f6-70401bb10bdb) | Miracast over Infrastructure: TCP 7250 `SOURCE_READY` / `STOP_PROJECTION`, then WFD RTSP :7236. Still Miracast, not DLNA. |
 
 ## DLNA / UPnP
 
@@ -58,7 +66,7 @@ Live desktop over DMR is HTTP pull, not WFD RTP. See [protocols/dlna.md](protoco
 - Arch Wiki XDG Desktop Portal table (verify when targeting a DDE release): `xdg-desktop-portal-dde` Screenshot yes, ScreenCast historically no.
 - X11 `ximagesrc` lives in `gstreamer1.0-plugins-good`. Missing that plugin is a common “fallback to X11 failed” cause.
 - WFD `wfd_audio_codecs` AAC bit 0 is 48 kHz stereo; bit 1 is 44.1 kHz. This sender muxes AAC-LC into MPEG-TS and skips audio when the sink lists only LPCM.
-- Multi-monitor: crop the selected `QScreen::geometry()`; do not grab the virtual union of all outputs.
+- Multi-monitor: crop the selected `QScreen` after converting DIP `geometry()` to X11 physical pixels (`devicePixelRatio()`); do not grab the virtual union of all outputs.
 
 ## Related local docs
 
@@ -117,6 +125,9 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `docs/platform/x11.md` Approach | Scale to sink-negotiated size after `ximagesrc` | `src/session/wfdvideomode.cpp` `selectWfdVideoMode`; `src/session/wfdserver.cpp` `parseSinkParams` / `sendSetParameter`; `src/session/gstencoder.cpp` `startGst` / `startFfmpeg` |
 | 2026-08-15 | `docs/architecture.md` first cut §3 | X11 + GStreamer WFD send; widgets stay off the pipeline | `src/session/wfdvideomode.*`; `src/engine/castengine.cpp` `onPlayRequested` |
 | 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-params.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-params.c) | CEA / VESA / HH `resolution_table` bit maps | `src/session/wfdvideomode.cpp` `kCea` / `kVesa` / `kHh` |
+| 2026-08-28 | Wi-Fi Display `wfd_video_formats` | native + preferred, then repeated H.264 codec blocks (`profile level cea vesa hh … max-hres max-vres`) | `src/session/wfdvideomode.cpp` `selectWfdVideoMode` |
+| 2026-08-28 | [ffmpeg `scale` / `pad`](https://ffmpeg.org/ffmpeg-filters.html#scale-1) | `force_original_aspect_ratio=decrease` then `pad` so 16:9 is not stretched to 16:10 | `src/session/gstencoder.cpp` `startFfmpeg` |
+| 2026-08-28 | [GStreamer `videoscale`](https://gstreamer.freedesktop.org/documentation/videoscale/index.html) | `add-borders=true` keeps the captured aspect ratio | `src/session/gstencoder.cpp` `startGst` |
 | 2026-08-15 | [GNOME Network Displays `src/wfd/wfd-media-factory.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-media-factory.c) | `videoscale` to negotiated raw size before `x264enc` | `src/session/gstencoder.cpp` `startGst` |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/SKILL.md` | DTK6-only app; Qt logs; no widget-layer protocol work | this change stays in `src/session` / `src/engine` |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` | CMake `add_executable` + `Qt6::Core` test helper | `CMakeLists.txt` `wfdvideomode-check` |
@@ -131,6 +142,8 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-15 | `docs/platform/x11.md` Limits | One output, not the virtual desktop union; primary default | `src/engine/castengine.cpp` `refreshDisplays` / `selectedDisplay`; `src/session/gstencoder.cpp` `ximagesrcElement` / `startFfmpeg` |
 | 2026-08-15 | `docs/architecture.md` Capture backend | `start(DisplaySource)`; widgets must not grab | `src/capture/capturebackend.h`; `src/capture/x11capture.cpp` `start`; `src/ui/mainwindow.cpp` `refreshDisplayList` |
 | 2026-08-15 | [Qt `QScreen`](https://doc.qt.io/qt-6/qscreen.html) | `geometry()`, `name()`, `manufacturer()` / `model()`, primary screen | `src/engine/castengine.cpp` `refreshDisplays` |
+| 2026-08-27 | [Qt `QScreen::devicePixelRatio`](https://doc.qt.io/qt-6/qscreen.html#devicePixelRatio-prop) | `geometry()` is DIP; x11grab/ximagesrc use X11 physical pixels | `src/capture/displaysource.h` `scaleToNativePixels`; `src/engine/castengine.cpp` `refreshDisplays` |
+| 2026-08-27 | `docs/platform/x11.md` Limits | One output; HiDPI crop must use native pixels | `src/engine/castengine.cpp` `refreshDisplays`; [platform/x11.md](platform/x11.md) Limits |
 | 2026-08-15 | [GStreamer `ximagesrc`](https://gstreamer.freedesktop.org/documentation/ximagesrc/index.html) | `startx` / `starty` / `endx` / `endy` inclusive crop | `src/capture/displaysource.h` `ximagesrcRegionProperties`; `src/session/gstencoder.cpp` `ximagesrcElement` |
 | 2026-08-15 | [ffmpeg x11grab](https://ffmpeg.org/ffmpeg-devices.html#x11grab) | `-video_size WxH -i :0+x,y` | `src/capture/displaysource.h` `x11grabSize` / `x11grabInputSpecifier`; `src/session/gstencoder.cpp` `startFfmpeg` |
 | 2026-08-15 | `~/.agents/skills/deepin/dtk-development/references/widgets/input.md` | `DComboBox` + `currentIndexChanged` | `src/ui/mainwindow.cpp` `setupUi` / `refreshDisplayList` |
@@ -211,3 +224,22 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-18 | `~/.agents/skills/deepin/dtk-development/references/widgets/application.md` | `newInstanceStarted` raises the window | `src/main.cpp` `main` |
 | 2026-08-18 | `docs/architecture.md` DTK UI only | Tray plugin uses D-Bus, not NM/GST/UPnP | `src/tray/castclient.cpp`; `src/dbus/castdbusservice.cpp` |
 | 2026-08-21 | `debian/changelog` 0.2.0 | Version bump with DDE quick-panel plugin | `CMakeLists.txt`; `src/main.cpp`; [README.md](../README.md) Release |
+| 2026-08-27 | `docs/devices.md` How to test | Measured Windows Connect sink `DESKTOP-CDKV2MA` | [devices.md](devices.md) Miracast table |
+| 2026-08-27 | [NM Connection.Active StateChanged](https://networkmanager.dev/docs/api/1.44.4/gdbus-org.freedesktop.NetworkManager.Connection.Active.html) | `StateChanged (u,u)` plus poll until IPv4 exists | `src/session/p2psession.cpp` `watchActiveConnection` / `pollActiveState` |
+| 2026-08-27 | [MS-MICE](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-mice/9598ca72-d937-466c-95f6-70401bb10bdb) §2.2 / §4.2–4.3 | `SOURCE_READY` 0x01, `STOP_PROJECTION` 0x02, UTF-16LE Friendly Name, RTSP Port 7236, Source ID 16 bytes, TCP 7250 | `src/session/miceprotocol.cpp` `encodeMiceSourceReady` / `encodeMiceStopProjection`; `src/session/micesession.cpp` `announce` |
+| 2026-08-27 | [MS-MICE](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-mice/940d808c-97f8-418e-a8a9-c471dc0d21bb) projection | Listen RTSP 7236 first, then send Source Ready; PIN optional when sink does not require it | `src/engine/castengine.cpp` `onMiceActivated`; [protocols/miracast.md](protocols/miracast.md) |
+| 2026-08-27 | [GNOME Network Displays `nd-wfd-mice-sink.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/nd-wfd-mice-sink.c) | SOURCE_READY TLVs, TCP 7250, reuse WFD RTSP server | `src/session/micesession.cpp`; `src/engine/castengine.cpp` `connectMiracast` |
+| 2026-08-27 | [GNOME Network Displays `nd-wfd-mice-provider.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/nd-wfd-mice-provider.c) | mDNS `_display._tcp`, TXT `p2pMAC`, merge with P2P | `src/discovery/micediscovery.cpp`; `src/engine/castengine.cpp` `mergeSinks` |
+| 2026-08-27 | [RFC 6762](https://www.rfc-editor.org/rfc/rfc6762) | mDNS QU bit (qclass 0x8001) so replies can unicast | `src/session/miceprotocol.cpp` `buildMdnsDisplayPtrQuery` |
+| 2026-08-27 | [IEEE 802.11 locally administered address](https://standards.ieee.org/wp-content/uploads/import/documents/tutorials/eui.pdf) | Toggle bit 1 of the first octet: Windows P2P MAC vs STA MAC | `src/session/miceprotocol.cpp` `toggleMacLaa` / `macsRelated` |
+| 2026-08-27 | `/proc/net/arp` | Map STA MAC to IPv4 when mDNS is empty | `src/discovery/micediscovery.cpp` `ipv4ForHardwareAddress` |
+| 2026-08-27 | `docs/architecture.md` Session / first cut §9 | MICE before P2P; widgets stay off 7250/mDNS | `src/engine/castengine.cpp` `connectMiracast` / `fallbackToP2p` |
+| 2026-08-27 | `docs/constraints.md` §2 | MS-MICE is still Miracast, not DLNA | [protocols/README.md](protocols/README.md); [devices.md](devices.md) `DESKTOP-CDKV2MA` |
+| 2026-08-27 | `docs/protocols/miracast.md` | LAN MS-MICE then WFD RTSP | `src/session/micesession.cpp`; `src/ui/mainwindow.cpp` `refreshSinkList` LAN mark |
+| 2026-08-27 | [Qt `QHostAddress::toIPv4Address`](https://doc.qt.io/qt-6/qhostaddress.html#toIPv4Address) | Dual-stack sockets report `::ffff:a.b.c.d`; ffmpeg `rtp://` needs IPv4 | `src/session/wfdserver.cpp` `ipv4String` / `WfdSession::handleRequest` PLAY |
+| 2026-08-27 | [GNOME Network Displays `src/wfd/wfd-params.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/wfd/wfd-params.c) | `max-hres` / `max-vres` are hex (`0780` = 1920) | `src/session/wfdvideomode.cpp` `parseExtent` |
+| 2026-08-28 | `AGENTS.md` Product facts | MS-MICE is WFD, not DLNA; widgets stay off 7250/mDNS | [AGENTS.md](../AGENTS.md); [architecture.md](architecture.md); [README.md](../README.md) |
+| 2026-08-28 | `docs/feasibility.md` | MICE is engine work; GNOME has it, Deepin fork is the WFD start | [feasibility.md](feasibility.md) What DTK does not cover |
+| 2026-08-28 | `docs/platform/x11.md` Limits | Physical-pixel crop; letterbox to sink mode | [platform/x11.md](platform/x11.md); [protocols/miracast.md](protocols/miracast.md) |
+| 2026-08-28 | `docs/devices.md` Miracast table | Measured `DESKTOP-CDKV2MA` MS-MICE 1920×1080@30 + AAC | [devices.md](devices.md) |
+| 2026-08-28 | [MS-MICE](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-mice/9598ca72-d937-466c-95f6-70401bb10bdb) | Catalog: LAN Miracast over infrastructure | this file Microsoft table |

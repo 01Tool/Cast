@@ -2,7 +2,7 @@
 
 A DTK application can expose screen casting. The toolkit is sufficient for a native DDE UI. It is not sufficient for the protocol, capture, or transport work.
 
-Miracast (Wi-Fi Display) is feasible on X11 when the chipset and TV cooperate. That combination is often missing. DLNA Digital Media Renderer on the same LAN is a separate, more widely implemented path and should be offered **as DLNA**, not as a silent Miracast substitute.
+Miracast (Wi-Fi Display) is feasible on X11 when the chipset and TV cooperate. That combination is often missing on P2P. Same-LAN **Windows Connect** uses MS-MICE (TCP 7250, then the same WFD RTSP) and does not need WPS. DLNA Digital Media Renderer on the same LAN is a separate, more widely implemented **HTTP** path and should be offered **as DLNA**, not as a silent Miracast substitute.
 
 ## What DTK covers
 
@@ -23,6 +23,7 @@ These layers must live under the UI, in a display-server-agnostic engine plus pl
 | Layer | Job |
 |------|-----|
 | Wi-Fi Direct / P2P | Find a WFD sink, form a P2P group |
+| MS-MICE | Same-LAN Windows Connect (TCP 7250, then WFD RTSP) |
 | WFD / RTSP | Capability exchange and session setup |
 | DLNA / UPnP | Find a MediaRenderer; HTTP + AVTransport |
 | Capture | Desktop frames and optional system audio |
@@ -34,6 +35,7 @@ These layers must live under the UI, in a display-server-agnostic engine plus pl
 |------|-----|------------|
 | UI | Scan, pair, connect, status | Yes — this is the DTK app |
 | Wi-Fi Direct / P2P | Find a WFD sink, form a P2P group | No — NetworkManager + `wpa_supplicant` |
+| MS-MICE | LAN Windows Connect / Android | No — mDNS `_display._tcp` + TCP 7250 in the engine |
 | WFD / RTSP | Capability exchange, session | No — reuse GStreamer / existing WFD code |
 | DLNA / UPnP | SSDP, HTTP media, AVTransport | No — Qt SSDP + SOAP in the engine |
 | Capture | Frames + optional audio | No — X11 grab vs portal / PipeWire |
@@ -47,9 +49,9 @@ This is not a green field. Deepin already shipped pieces of the same feature:
 - deepin 23 added a **无线投屏** entry in the quick panel. The tray assets live in `dde-tray-loader` as `wireless-casting`.
 - The official release note describes searching the same network for Miracast-capable devices and casting the desktop.
 
-A new DTK app should treat those as the starting point: reuse the WFD/P2P stack, replace or wrap the UI with DTK, and add an explicit X11 / Wayland capture split. A full WFD rewrite is usually the wrong first move.
+A new DTK app should treat those as the starting point: reuse the WFD/P2P stack (and GNOME’s MS-MICE source path), replace or wrap the UI with DTK, and add an explicit X11 / Wayland capture split. A full WFD rewrite is usually the wrong first move.
 
-Those pieces do **not** cover DLNA. GNOME Network Displays (and the Deepin fork) speak Miracast and Chromecast. Chromecast stays out of this app. The DMR path in [protocols/dlna.md](protocols/dlna.md) is new engine work (GUPnP/GSSDP or equivalent), still behind `CastEngine`.
+Those pieces do **not** cover DLNA. GNOME Network Displays (and the Deepin fork) speak Miracast (P2P + MICE) and Chromecast. Chromecast stays out of this app. The DMR path in [protocols/dlna.md](protocols/dlna.md) is new engine work (GUPnP/GSSDP or equivalent), still behind `CastEngine`.
 
 ## X11 vs Wayland in one sentence
 

@@ -86,7 +86,9 @@ QString CastDBusService::SinksJson() const
         row.insert(QStringLiteral("protocol"),
                    sink.protocol == CastProtocol::Dlna ? QStringLiteral("DLNA")
                                                        : QStringLiteral("Miracast"));
-        row.insert(QStringLiteral("address"), sink.address);
+        row.insert(QStringLiteral("address"),
+                   sink.miceHost.isEmpty() ? sink.address : sink.miceHost);
+        row.insert(QStringLiteral("mice"), sink.miceCapable);
         rows.append(row);
     }
     return QString::fromUtf8(QJsonDocument(rows).toJson(QJsonDocument::Compact));

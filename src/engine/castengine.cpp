@@ -3,9 +3,11 @@
 #include "capture/portalcapture.h"
 #include "capture/x11capture.h"
 #include "discovery/dlnadiscovery.h"
+#include "discovery/micediscovery.h"
 #include "discovery/p2pdiscovery.h"
 #include "session/dlnasession.h"
 #include "session/gstencoder.h"
+#include "session/micesession.h"
 #include "session/nmsecretagent.h"
 #include "session/p2psession.h"
 #include "session/wfdserver.h"
@@ -38,6 +40,8 @@ CastEngine::~CastEngine()
         m_discovery->stopScan();
     if (m_dlnaDiscovery)
         m_dlnaDiscovery->stopScan();
+    if (m_miceDiscovery)
+        m_miceDiscovery->stopScan();
     if (m_capture)
         m_capture->stop();
 }
@@ -150,12 +154,15 @@ void CastEngine::startScan()
 
     m_p2pScanDone = false;
     m_dlnaScanDone = false;
+    m_miceScanDone = false;
     setState(SessionState::Scanning);
     setStatusMessage(tr("Scanning for Miracast and DLNA displays…"));
     if (m_discovery)
         m_discovery->startScan(P2PDiscovery::DefaultScanSeconds);
     if (m_dlnaDiscovery)
         m_dlnaDiscovery->startScan(DlnaDiscovery::DefaultScanSeconds);
+    if (m_miceDiscovery)
+        m_miceDiscovery->startScan(MiceDiscovery::DefaultScanSeconds);
 }
 
 void CastEngine::stopScan()
@@ -167,6 +174,8 @@ void CastEngine::stopScan()
         m_discovery->stopScan();
     if (m_dlnaDiscovery)
         m_dlnaDiscovery->stopScan();
+    if (m_miceDiscovery)
+        m_miceDiscovery->stopScan();
 }
 
 void CastEngine::connectToSink(const QString &id)
@@ -189,6 +198,8 @@ void CastEngine::connectToSink(const QString &id)
         m_discovery->stopScan();
     if (m_dlnaDiscovery && m_dlnaDiscovery->scanning())
         m_dlnaDiscovery->stopScan();
+    if (m_miceDiscovery && m_miceDiscovery->scanning())
+        m_miceDiscovery->stopScan();
 
     if (!m_capture) {
         failSession(tr("No capture backend for this session."));
@@ -209,7 +220,31 @@ void CastEngine::connectToSink(const QString &id)
 
 void CastEngine::connectMiracast(const SinkDevice &sink)
 {
-    m_connectTimer.start(30000);
+    m_tryingMice = true;
+    m_connectTimer.start(20000);
+    setStatusMessage(tr("Trying LAN Miracast (same Wi-Fi as the display)…"));
+    m_mice->start(sink);
+}
+
+void CastEngine::fallbackToP2p(const QString &why)
+{
+    if (!m_tryingMice)
+        return;
+    qInfo() << "MICE fallback to P2P" << why;
+
+    const SinkDevice sink = sinkById(m_selectedSinkId);
+    if (sink.p2pDevicePath.isEmpty()) {
+        failSession(why);
+        return;
+    }
+
+    m_tryingMice = false;
+    if (m_mice)
+        m_mice->stop();
+    if (m_wfd)
+        m_wfd->stop();
+    setStatusMessage(tr("LAN Miracast did not start. Trying Wi-Fi Direct…"));
+    m_connectTimer.start(90000);
     m_p2p->activate(sink);
 }
 
@@ -271,6 +306,7 @@ void CastEngine::bindDiscovery()
 {
     m_discovery = std::make_unique<P2PDiscovery>();
     m_dlnaDiscovery = std::make_unique<DlnaDiscovery>();
+    m_miceDiscovery = std::make_unique<MiceDiscovery>();
     connect(m_discovery.get(), &P2PDiscovery::peersChanged, this, &CastEngine::onPeersChanged);
     connect(m_discovery.get(), &P2PDiscovery::scanFinished, this, &CastEngine::onScanFinished);
     connect(m_discovery.get(), &P2PDiscovery::errorOccurred, this, &CastEngine::errorOccurred);
@@ -279,13 +315,45 @@ void CastEngine::bindDiscovery()
     connect(m_dlnaDiscovery.get(), &DlnaDiscovery::scanFinished, this,
             &CastEngine::onDlnaScanFinished);
     connect(m_dlnaDiscovery.get(), &DlnaDiscovery::errorOccurred, this, &CastEngine::errorOccurred);
+    connect(m_miceDiscovery.get(), &MiceDiscovery::sinksChanged, this, &CastEngine::onPeersChanged);
+    connect(m_miceDiscovery.get(), &MiceDiscovery::scanFinished, this,
+            &CastEngine::onMiceScanFinished);
 }
 
 void CastEngine::mergeSinks()
 {
-    QVector<SinkDevice> next;
-    if (m_discovery)
-        next += m_discovery->peers();
+    QVector<SinkDevice> p2p = m_discovery ? m_discovery->peers() : QVector<SinkDevice>{};
+    const QVector<SinkDevice> mice = m_miceDiscovery ? m_miceDiscovery->sinks()
+                                                     : QVector<SinkDevice>{};
+    QVector<bool> miceUsed(mice.size(), false);
+
+    for (SinkDevice &peer : p2p) {
+        const QString mac = peer.p2pMac.isEmpty() ? peer.address : peer.p2pMac;
+        for (int i = 0; i < mice.size(); ++i) {
+            if (miceUsed.at(i))
+                continue;
+            if (!MiceDiscovery::matchesP2p(mice.at(i), peer))
+                continue;
+            peer.miceHost = mice.at(i).miceHost;
+            peer.miceCapable = true;
+            if (peer.p2pMac.isEmpty())
+                peer.p2pMac = mice.at(i).p2pMac;
+            miceUsed[i] = true;
+        }
+        if (peer.miceHost.isEmpty() && !mac.isEmpty()) {
+            const QString ip = MiceDiscovery::ipv4ForHardwareAddress(mac);
+            if (!ip.isEmpty()) {
+                peer.miceHost = ip;
+                peer.miceCapable = true;
+            }
+        }
+    }
+
+    QVector<SinkDevice> next = p2p;
+    for (int i = 0; i < mice.size(); ++i) {
+        if (!miceUsed.at(i))
+            next.append(mice.at(i));
+    }
     if (m_dlnaDiscovery)
         next += m_dlnaDiscovery->renderers();
     m_sinks = next;
@@ -314,7 +382,7 @@ void CastEngine::updateScanStatus()
 
 void CastEngine::finishScanIfReady()
 {
-    if (!m_p2pScanDone || !m_dlnaScanDone)
+    if (!m_p2pScanDone || !m_dlnaScanDone || !m_miceScanDone)
         return;
     if (m_state == SessionState::Connecting || m_state == SessionState::Streaming)
         return;
@@ -367,10 +435,17 @@ void CastEngine::onDlnaScanFinished()
     finishScanIfReady();
 }
 
+void CastEngine::onMiceScanFinished()
+{
+    m_miceScanDone = true;
+    finishScanIfReady();
+}
+
 void CastEngine::bindSession()
 {
     m_p2p = std::make_unique<P2PSession>();
     m_dlna = std::make_unique<DlnaSession>();
+    m_mice = std::make_unique<MiceSession>();
     m_wfd = std::make_unique<WfdServer>();
     m_encoder = std::make_unique<GstEncoder>();
 
@@ -382,6 +457,9 @@ void CastEngine::bindSession()
         if (sink.protocol == CastProtocol::Dlna) {
             failSession(tr("Timed out waiting for the TV to fetch the HTTP stream. "
                            "Allow inbound HTTP from the TV to this computer."));
+        } else if (m_tryingMice) {
+            fallbackToP2p(tr("Timed out waiting for WFD on the LAN. Allow inbound TCP 7236 "
+                             "from the display, then retry."));
         } else {
             failSession(tr("Timed out forming the Wi-Fi Direct group or WFD session."));
         }
@@ -396,6 +474,23 @@ void CastEngine::bindSession()
             failSession(tr("Wi-Fi Direct group dropped."));
     });
 
+    connect(m_mice.get(), &MiceSession::statusChanged, this, &CastEngine::setStatusMessage);
+    connect(m_mice.get(), &MiceSession::activated, this, &CastEngine::onMiceActivated);
+    connect(m_mice.get(), &MiceSession::unavailable, this, [this](const QString &message) {
+        if (m_state != SessionState::Connecting)
+            return;
+        fallbackToP2p(message);
+    });
+    connect(m_mice.get(), &MiceSession::failed, this, [this](const QString &message) {
+        if (m_tearingDown)
+            return;
+        if (m_tryingMice && m_state == SessionState::Connecting) {
+            fallbackToP2p(message);
+            return;
+        }
+        failSession(message);
+    });
+
     connect(m_dlna.get(), &DlnaSession::statusChanged, this, &CastEngine::setStatusMessage);
     connect(m_dlna.get(), &DlnaSession::failed, this, &CastEngine::failSession);
 
@@ -405,6 +500,7 @@ void CastEngine::bindSession()
 
     connect(m_encoder.get(), &GstEncoder::started, this, [this]() {
         m_connectTimer.stop();
+        m_tryingMice = false;
         setState(SessionState::Streaming);
         setStatusMessage(tr("Mirroring %1.").arg(m_encoder->streamDescription()));
         const SinkDevice sink = sinkById(m_selectedSinkId);
@@ -419,8 +515,18 @@ void CastEngine::onP2PActivated(const QString &localIpv4)
 {
     if (m_state != SessionState::Connecting)
         return;
-    if (!m_wfd->listen(localIpv4, m_audioEnabled))
+    if (!m_wfd->listen(localIpv4, m_audioEnabled, m_sessionSource.width, m_sessionSource.height))
         return;
+}
+
+void CastEngine::onMiceActivated(const QString &localIpv4)
+{
+    if (m_state != SessionState::Connecting)
+        return;
+    if (!m_wfd->listen(localIpv4, m_audioEnabled, m_sessionSource.width, m_sessionSource.height))
+        return;
+    if (!m_mice->announce())
+        fallbackToP2p(tr("Could not send SOURCE_READY on TCP 7250."));
 }
 
 void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
@@ -447,6 +553,8 @@ void CastEngine::failSession(const QString &message)
         else if (message.contains(QLatin1String("SetAVTransportURI"))
                  || message.contains(QLatin1String("Play")))
             result = QStringLiteral("uri-reject");
+    } else if (m_tryingMice) {
+        result = QStringLiteral("mice-timeout");
     } else if (message.contains(QLatin1String("Timed out"))
                || message.contains(QLatin1String("group dropped"))) {
         result = QStringLiteral("p2p-timeout");
@@ -465,10 +573,16 @@ void CastEngine::logDeviceMatrix(const SinkDevice &sink, const QString &result) 
     const QString protocol = (sink.protocol == CastProtocol::Dlna)
         ? QStringLiteral("dlna")
         : QStringLiteral("miracast");
+    const QString transport = (sink.protocol == CastProtocol::Dlna)
+        ? QStringLiteral("http")
+        : (sink.miceCapable || (m_mice && m_mice->active()) ? QStringLiteral("mice")
+                                                            : QStringLiteral("p2p"));
     qInfo() << "device-matrix"
             << "protocol=" + protocol
             << "name=" + sink.name
             << "address=" + sink.address
+            << "miceHost=" + sink.miceHost
+            << "transport=" + transport
             << "hint=" + dlnaMediaKindKey(sink.dlnaMedia)
             << "summary=" + sink.dlnaMediaSummary
             << "result=" + result;
@@ -481,12 +595,15 @@ void CastEngine::teardownSession()
     m_tearingDown = true;
     cancelPairing();
     m_connectTimer.stop();
+    m_tryingMice = false;
     if (m_dlna)
         m_dlna->stop();
     if (m_encoder)
         m_encoder->stop();
     if (m_wfd)
         m_wfd->stop();
+    if (m_mice)
+        m_mice->stop();
     if (m_p2p)
         m_p2p->deactivate();
     if (m_capture)
@@ -561,11 +678,14 @@ void CastEngine::refreshDisplays()
                 title = model;
             if (title.isEmpty())
                 title = source.id;
-            const QRect g = screen->geometry();
+            const qreal dpr = screen->devicePixelRatio();
+            const QRect g = scaleToNativePixels(screen->geometry(), dpr);
             source.x = g.x();
             source.y = g.y();
             source.width = g.width();
             source.height = g.height();
+            qInfo() << "monitor" << source.id << "logical" << screen->geometry() << "dpr" << dpr
+                    << "native" << g;
             source.primary = (screen == primary);
             source.name = tr("%1 (%2×%3)%4")
                               .arg(title)

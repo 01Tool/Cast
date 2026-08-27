@@ -246,6 +246,7 @@ SinkDevice P2PDiscovery::readPeer(const QString &path, const QString &devicePath
     sink.address = readProperty(QString::fromLatin1(kNmService), path,
                                 QString::fromLatin1(kPeerIface),
                                 QStringLiteral("HwAddress")).toString();
+    sink.p2pMac = sink.address;
     const QByteArray ies = readProperty(QString::fromLatin1(kNmService), path,
                                         QString::fromLatin1(kPeerIface),
                                         QStringLiteral("WfdIEs")).toByteArray();

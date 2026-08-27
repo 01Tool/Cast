@@ -15,5 +15,5 @@ Icon=ot-cast
 Terminal=false
 StartupNotify=true
 Categories=Network;Qt;
-Keywords=Miracast;WFD;DLNA;Wi-Fi Display;cast;mirror;投屏;
+Keywords=Miracast;WFD;MS-MICE;DLNA;Wi-Fi Display;Windows Connect;cast;mirror;投屏;
 StartupWMClass=ot-cast

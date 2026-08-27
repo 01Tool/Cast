@@ -1,9 +1,12 @@
 #pragma once
 
+#include <QRect>
 #include <QString>
+#include <QtGlobal>
 
-// One output in the virtual desktop. Geometry is in root-window coordinates
-// (QScreen::geometry), which ximagesrc / x11grab use for a crop.
+// One output in the virtual desktop. Geometry is X11 root-window (physical)
+// pixels for ximagesrc / x11grab. Convert QScreen DIP geometry with
+// scaleToNativePixels() first; do not pass QScreen::geometry() unchanged.
 struct DisplaySource {
     QString id;
     QString name;
@@ -56,4 +59,17 @@ inline QString x11grabInputSpecifier(const QString &display, const DisplaySource
     if (!source.isValid())
         return display;
     return QStringLiteral("%1+%2,%3").arg(display).arg(source.x).arg(source.y);
+}
+
+// QScreen::geometry() is device-independent pixels. x11grab / ximagesrc crop the
+// X11 root in physical pixels. A 4K panel at 200% scale is 1920×1080 in Qt and
+// 3840×2160 on the wire; using the logical size grabs only the top-left quarter.
+inline QRect scaleToNativePixels(const QRect &logical, qreal devicePixelRatio)
+{
+    if (!logical.isValid() || devicePixelRatio <= 0.0 || qFuzzyCompare(devicePixelRatio, qreal(1)))
+        return logical;
+    return QRect(qRound(logical.x() * devicePixelRatio),
+                 qRound(logical.y() * devicePixelRatio),
+                 qRound(logical.width() * devicePixelRatio),
+                 qRound(logical.height() * devicePixelRatio));
 }

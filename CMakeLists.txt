@@ -29,7 +29,10 @@ add_executable(ot-cast
     src/discovery/dlnassdp.cpp
     src/discovery/dlnadescription.cpp
     src/discovery/dlnadiscovery.cpp
+    src/discovery/micediscovery.cpp
     src/session/p2psession.cpp
+    src/session/miceprotocol.cpp
+    src/session/micesession.cpp
     src/session/dlnaprofile.cpp
     src/session/dlnasession.cpp
     src/session/nmsecretagent.cpp
@@ -115,6 +118,15 @@ target_include_directories(dlna-check PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(dlna-check PRIVATE Qt6::Core Qt6::Network)
+
+add_executable(mice-check
+    src/session/miceprotocol.cpp
+    tests/mice-check.cpp
+)
+target_include_directories(mice-check PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(mice-check PRIVATE Qt6::Core)
 endif()
 
 if(BUILD_APP)

@@ -8,13 +8,13 @@ This sender’s current payloads:
 
 | Path | What the TV must accept |
 |------|-------------------------|
-| Miracast | WFD RTSP :7236 + H.264 (optional AAC) in MPEG-TS over RTP |
+| Miracast | WFD RTSP :7236 + H.264 (optional AAC) in MPEG-TS over RTP. Same-LAN Windows Connect also needs TCP 7250 (`SOURCE_READY`) before RTSP. |
 | DLNA | HTTP pull of **live** MPEG-TS (`video/mpeg`), H.264 main ≤1920×1080@30, optional AAC. No `Content-Length`. `DLNA.ORG_OP=00` (no seek). `MPEG_TS_HD_NA_ISO` when the output is HD. |
 
 ## How to test
 
 1. X11 session. Note adapter (`iw phy`), `wpa_supplicant` WFD (`gdbus … WFDIEs`), and whether STA Wi-Fi stays up.
-2. Scan. Confirm the row is labeled **Miracast** or **DLNA**. Do not merge them.
+2. Scan. Confirm the row is labeled **Miracast** or **DLNA**. Do not merge them. A Windows Connect PC may show **Miracast · LAN** (MS-MICE) as well as a P2P MAC.
 3. Connect the selected monitor. Try video-only first, then audio.
 4. Record the verdict and a short note (pairing, RTSP reject, no HTTP GET, black screen, …).
 5. Paste the `device-matrix` line from the log (`~/.cache/ot-cast/` or the console). The engine prints one on scan classify, stream start, and failure.
@@ -26,6 +26,7 @@ This sender’s current payloads:
 | `streaming` | Picture on the sink |
 | `no-wfd-ie` | P2P peer, empty WFD IEs |
 | `p2p-timeout` | No group / no RTSP |
+| `mice-timeout` | TCP 7250 or LAN RTSP never reached Streaming |
 | `live-ts` | DLNA pulled `/cast.ts` and played |
 | `file-only` | DMR plays files; live TS rejected or never fetched |
 | `no-get` | `Play` ok, TV never HTTP-GETs the laptop |
@@ -51,7 +52,7 @@ HLS (`application/vnd.apple.mpegurl`) is noted in the summary. This cut does not
 
 | Date | Brand | Model | Adapter / phy | WFD IEs | Verdict | Audio | Latency (ms) | Notes |
 |------|-------|-------|---------------|---------|---------|-------|--------------|-------|
-| — | — | — | — | — | *none measured in this repo* | — | — | Add a row after a real session |
+| 2026-08-27 | Microsoft (Windows Connect) | `DESKTOP-CDKV2MA` | Intel AX210 `wlp4s0` | yes `00000600111c440006` (sink, RTSP 7236) | `streaming` | AAC 48 kHz | — | Android first-connect with no PIN is **MS-MICE**, not WPS. STA `192.168.196.16`. Cast: mDNS + ARP LAA MAC → TCP 7250 → WFD RTSP. HiDPI grab is 3840×2160. Windows lists VESA 16:10 **and** CEA 16:9; pick 1920×1080@30 to match Mi 27, letterbox if needed. Dual-stack PLAY must yield IPv4 for ffmpeg RTP. |
 
 ## DLNA
 
