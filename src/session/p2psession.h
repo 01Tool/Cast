@@ -19,6 +19,7 @@ public:
 
     bool active() const;
     QString localIpv4() const;
+    QString peerIpv4() const;
     QString lastError() const;
 
 public Q_SLOTS:
@@ -45,10 +46,12 @@ private:
     void unwatchActiveConnection();
     void handleActiveState(quint32 state);
     QString queryLocalIpv4() const;
+    QString queryPeerIpv4() const;
     void finishActivated();
 
     QString m_activePath;
     QString m_localIpv4;
+    QString m_peerIpv4;
     QString m_lastError;
     QTimer m_statePoll;
     bool m_active = false;

@@ -243,3 +243,7 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-28 | `docs/platform/x11.md` Limits | Physical-pixel crop; letterbox to sink mode | [platform/x11.md](platform/x11.md); [protocols/miracast.md](protocols/miracast.md) |
 | 2026-08-28 | `docs/devices.md` Miracast table | Measured `DESKTOP-CDKV2MA` MS-MICE 1920×1080@30 + AAC | [devices.md](devices.md) |
 | 2026-08-28 | [MS-MICE](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-mice/9598ca72-d937-466c-95f6-70401bb10bdb) | Catalog: LAN Miracast over infrastructure | this file Microsoft table |
+| 2026-08-30 | [GNOME Network Displays `nd-wfd-p2p-sink.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/nd-wfd-p2p-sink.c) | Source listens RTSP :7236 after NM P2P; firewall zone for inbound 7236 | `src/session/wfdserver.cpp` `listen` / `dial`; `src/session/p2psession.cpp` `activate` |
+| 2026-08-30 | Wi-Fi Display RTSP role | Sink should connect to source:7236; MediaTek GO often waits instead | `src/session/wfdserver.cpp` `WfdServer::dial`; `src/engine/castengine.cpp` `onP2PActivated` |
+| 2026-08-30 | `docs/devices.md` How to test | Measured Xiaomi Pad 7S Pro 12.5 P2P-client, no RTSP | [devices.md](devices.md) Miracast table |
+| 2026-08-30 | [wpa_supplicant D-Bus WPS `DeviceName`](https://w1.fi/wpa_supplicant/devel/dbus.html) | Empty WPS name → Xiaomi prompt `Sender: `; set to hostname | `src/discovery/p2pdiscovery.cpp` `tryAdvertiseSourceName` |

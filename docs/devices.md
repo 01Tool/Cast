@@ -53,6 +53,7 @@ HLS (`application/vnd.apple.mpegurl`) is noted in the summary. This cut does not
 | Date | Brand | Model | Adapter / phy | WFD IEs | Verdict | Audio | Latency (ms) | Notes |
 |------|-------|-------|---------------|---------|---------|-------|--------------|-------|
 | 2026-08-27 | Microsoft (Windows Connect) | `DESKTOP-CDKV2MA` | Intel AX210 `wlp4s0` | yes `00000600111c440006` (sink, RTSP 7236) | `streaming` | AAC 48 kHz | — | Android first-connect with no PIN is **MS-MICE**, not WPS. STA `192.168.196.16`. Cast: mDNS + ARP LAA MAC → TCP 7250 → WFD RTSP. HiDPI grab is 3840×2160. Windows lists VESA 16:10 **and** CEA 16:9; pick 1920×1080@30 to match Mi 27, letterbox if needed. Dual-stack PLAY must yield IPv4 for ffmpeg RTP. |
+| 2026-08-30 | Xiaomi (MediaTek) | Pad 7S Pro 12.5 | Intel AX210 `wlp4s0` | yes `00000600111c440032` (primary sink, RTSP 7236) | `streaming` | not in this session | — | P2P MAC `36:E5:24:A6:07:5E`. No MS-MICE. Pad is P2P GO; this PC is client `192.168.49.128`. WFD spec listen on :7236 is not enough — source must **dial GO `192.168.49.1:7236`**. Empty `Sender:` was empty `wpa_supplicant` WPS `DeviceName`; now `playhi-PC`. 1920×1080@30 after SETUP RTP 15550. |
 
 ## DLNA
 

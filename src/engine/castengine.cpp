@@ -220,10 +220,17 @@ void CastEngine::connectToSink(const QString &id)
 
 void CastEngine::connectMiracast(const SinkDevice &sink)
 {
-    m_tryingMice = true;
-    m_connectTimer.start(20000);
-    setStatusMessage(tr("Trying LAN Miracast (same Wi-Fi as the display)…"));
-    m_mice->start(sink);
+    if (sink.miceCapable || !sink.miceHost.isEmpty()) {
+        m_tryingMice = true;
+        m_connectTimer.start(20000);
+        setStatusMessage(tr("Trying LAN Miracast (same Wi-Fi as the display)…"));
+        m_mice->start(sink);
+        return;
+    }
+    m_tryingMice = false;
+    m_connectTimer.start(90000);
+    setStatusMessage(tr("Forming Wi-Fi Direct group…"));
+    m_p2p->activate(sink);
 }
 
 void CastEngine::fallbackToP2p(const QString &why)
@@ -517,6 +524,9 @@ void CastEngine::onP2PActivated(const QString &localIpv4)
         return;
     if (!m_wfd->listen(localIpv4, m_audioEnabled, m_sessionSource.width, m_sessionSource.height))
         return;
+    const QString peer = m_p2p->peerIpv4();
+    if (!peer.isEmpty() && peer != localIpv4)
+        m_wfd->dial(peer);
 }
 
 void CastEngine::onMiceActivated(const QString &localIpv4)

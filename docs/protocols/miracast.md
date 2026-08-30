@@ -20,4 +20,6 @@ X11 grab uses **physical** pixels (`QScreen::geometry() × devicePixelRatio()`).
 
 `wfd_video_formats` can list several H.264 codec blocks (CEA 16:9 **and** VESA 16:10 on Windows). Cast prefers a progressive ≤30 fps mode whose aspect ratio matches the captured monitor, honors hex `max-hres`/`max-vres`, and **letterboxes** instead of stretching.
 
+WFD says the **sink** opens TCP 7236 to the source. Many Android / MediaTek sinks become P2P GO and instead wait for the source to dial **GO:7236**. After the group is up Cast still listens, and also tries the peer/gateway IPv4.
+
 Details: [../architecture.md](../architecture.md), [../platform/x11.md](../platform/x11.md).

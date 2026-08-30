@@ -8,6 +8,8 @@
 #include <QDBusReply>
 #include <QDBusVariant>
 #include <QDebug>
+#include <QSet>
+#include <QSysInfo>
 #include <QVariant>
 
 namespace {
@@ -83,6 +85,7 @@ void P2PDiscovery::startScan(int timeoutSeconds)
     }
 
     tryAdvertiseWfdIes();
+    tryAdvertiseSourceName();
 
     m_peers.clear();
     Q_EMIT peersChanged();
@@ -305,6 +308,73 @@ void P2PDiscovery::stopFindOnDevices()
                              QString::fromLatin1(kWifiP2PIface),
                              QDBusConnection::systemBus());
         iface.call(QStringLiteral("StopFind"));
+    }
+}
+
+void P2PDiscovery::tryAdvertiseSourceName()
+{
+    QString name = QSysInfo::machineHostName();
+    if (name.isEmpty() || name == QLatin1String("localhost"))
+        name = QStringLiteral("Cast");
+    if (name.size() > 32)
+        name = name.left(32);
+
+    const QVariant ifacesVar = readProperty(QString::fromLatin1(kWpaService),
+                                            QString::fromLatin1(kWpaPath),
+                                            QString::fromLatin1(kWpaIface),
+                                            QStringLiteral("Interfaces"));
+    QList<QDBusObjectPath> paths = qdbus_cast<QList<QDBusObjectPath>>(ifacesVar);
+
+    QDBusInterface wpa(QString::fromLatin1(kWpaService), QString::fromLatin1(kWpaPath),
+                       QString::fromLatin1(kWpaIface), QDBusConnection::systemBus());
+    for (const QString &ifname : {QStringLiteral("p2p-dev-wlp4s0"), QStringLiteral("wlp4s0")}) {
+        QDBusReply<QDBusObjectPath> reply = wpa.call(QStringLiteral("GetInterface"), ifname);
+        if (reply.isValid() && !reply.value().path().isEmpty())
+            paths.append(reply.value());
+    }
+
+    QSet<QString> seen;
+    auto bus = QDBusConnection::systemBus();
+    for (const QDBusObjectPath &obj : paths) {
+        const QString path = obj.path();
+        if (path.isEmpty() || seen.contains(path))
+            continue;
+        seen.insert(path);
+
+        for (const char *iface : {"fi.w1.wpa_supplicant1.Interface.WPS",
+                                  "fi.w1.wpa_supplicant1.Interface"}) {
+            QDBusMessage msg = QDBusMessage::createMethodCall(QString::fromLatin1(kWpaService),
+                                                              path,
+                                                              QString::fromLatin1(kPropsIface),
+                                                              QStringLiteral("Set"));
+            msg << QString::fromLatin1(iface) << QStringLiteral("DeviceName")
+                << QVariant::fromValue(QDBusVariant(name));
+            const QDBusMessage reply = bus.call(msg);
+            if (reply.type() == QDBusMessage::ErrorMessage)
+                qDebug() << "Could not set" << iface << "DeviceName on" << path
+                         << reply.errorMessage();
+            else
+                qInfo() << "Advertised P2P/WPS DeviceName" << name << "on" << path << iface;
+        }
+
+        const QVariant cfgVar = readProperty(QString::fromLatin1(kWpaService), path,
+                                             QStringLiteral("fi.w1.wpa_supplicant1.Interface.P2PDevice"),
+                                             QStringLiteral("P2PDeviceConfig"));
+        QVariantMap cfg = qdbus_cast<QVariantMap>(cfgVar);
+        cfg.insert(QStringLiteral("DeviceName"), name);
+        QDBusMessage cfgMsg = QDBusMessage::createMethodCall(QString::fromLatin1(kWpaService),
+                                                             path,
+                                                             QString::fromLatin1(kPropsIface),
+                                                             QStringLiteral("Set"));
+        cfgMsg << QStringLiteral("fi.w1.wpa_supplicant1.Interface.P2PDevice")
+               << QStringLiteral("P2PDeviceConfig")
+               << QVariant::fromValue(QDBusVariant(QVariant::fromValue(cfg)));
+        const QDBusMessage cfgReply = bus.call(cfgMsg);
+        if (cfgReply.type() == QDBusMessage::ErrorMessage)
+            qDebug() << "Could not set P2PDeviceConfig DeviceName on" << path
+                     << cfgReply.errorMessage();
+        else
+            qInfo() << "Advertised P2PDeviceConfig DeviceName" << name << "on" << path;
     }
 }
 

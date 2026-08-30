@@ -261,6 +261,8 @@ void WfdSession::parseSinkParams(const QByteArray &body)
 WfdServer::WfdServer(QObject *parent)
     : QObject(parent)
 {
+    m_dialTimer.setSingleShot(true);
+    connect(&m_dialTimer, &QTimer::timeout, this, &WfdServer::onDialTimeout);
 }
 
 WfdServer::~WfdServer()
@@ -276,6 +278,7 @@ bool WfdServer::listen(const QString &localIpv4, bool audioWanted, int sourceWid
     m_audioWanted = audioWanted;
     m_sourceWidth = sourceWidth;
     m_sourceHeight = sourceHeight;
+    m_dialTries = 0;
     if (!m_server.listen(QHostAddress::AnyIPv4, kWfdPort)) {
         Q_EMIT failed(tr("Cannot listen on RTSP port %1: %2")
                           .arg(kWfdPort)
@@ -288,8 +291,37 @@ bool WfdServer::listen(const QString &localIpv4, bool audioWanted, int sourceWid
     return true;
 }
 
+void WfdServer::dial(const QString &peerIpv4)
+{
+    if (peerIpv4.isEmpty() || m_session)
+        return;
+    stopDial();
+    m_peerIpv4 = peerIpv4;
+    ++m_dialTries;
+    m_dialSocket = new QTcpSocket(this);
+    connect(m_dialSocket, &QTcpSocket::connected, this, &WfdServer::onDialConnected);
+    connect(m_dialSocket, &QTcpSocket::errorOccurred, this, &WfdServer::onDialError);
+    Q_EMIT statusChanged(tr("Opening WFD on the display %1:%2…").arg(peerIpv4).arg(kWfdPort));
+    qInfo() << "WFD RTSP dial" << peerIpv4 << kWfdPort;
+    m_dialTimer.start(4000);
+    m_dialSocket->connectToHost(peerIpv4, kWfdPort);
+}
+
+void WfdServer::stopDial()
+{
+    m_dialTimer.stop();
+    if (!m_dialSocket)
+        return;
+    m_dialSocket->disconnect(this);
+    if (m_dialSocket->state() != QAbstractSocket::UnconnectedState)
+        m_dialSocket->abort();
+    m_dialSocket->deleteLater();
+    m_dialSocket = nullptr;
+}
+
 void WfdServer::stop()
 {
+    stopDial();
     if (m_session) {
         m_session->deleteLater();
         m_session = nullptr;
@@ -298,9 +330,8 @@ void WfdServer::stop()
     m_server.disconnect(this);
 }
 
-void WfdServer::onNewConnection()
+void WfdServer::attachSession(QTcpSocket *socket)
 {
-    QTcpSocket *socket = m_server.nextPendingConnection();
     if (!socket)
         return;
     if (m_session) {
@@ -319,4 +350,56 @@ void WfdServer::onNewConnection()
         }
     });
     Q_EMIT statusChanged(tr("Display connected, starting WFD handshake…"));
+}
+
+void WfdServer::onNewConnection()
+{
+    QTcpSocket *socket = m_server.nextPendingConnection();
+    if (!socket)
+        return;
+    stopDial();
+    attachSession(socket);
+}
+
+void WfdServer::onDialConnected()
+{
+    m_dialTimer.stop();
+    if (!m_dialSocket)
+        return;
+    QTcpSocket *socket = m_dialSocket;
+    m_dialSocket = nullptr;
+    socket->disconnect(this);
+    qInfo() << "WFD RTSP dial connected" << m_peerIpv4;
+    attachSession(socket);
+}
+
+void WfdServer::scheduleRedial()
+{
+    const QString peer = m_peerIpv4;
+    if (m_session || peer.isEmpty() || m_dialTries >= 4)
+        return;
+    QTimer::singleShot(1500, this, [this, peer]() {
+        if (!m_session)
+            dial(peer);
+    });
+}
+
+void WfdServer::onDialError(QAbstractSocket::SocketError error)
+{
+    if (!m_dialSocket)
+        return;
+    m_dialTimer.stop();
+    qInfo() << "WFD RTSP dial failed" << error << m_dialSocket->errorString()
+            << "; waiting for the display to connect";
+    stopDial();
+    scheduleRedial();
+}
+
+void WfdServer::onDialTimeout()
+{
+    if (!m_dialSocket)
+        return;
+    qInfo() << "WFD RTSP dial timed out" << m_peerIpv4 << "; waiting for the display to connect";
+    stopDial();
+    scheduleRedial();
 }

@@ -5,8 +5,10 @@
 
 #include <QByteArray>
 #include <QObject>
+#include <QAbstractSocket>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QTimer>
 
 class WfdSession : public QObject
 {
@@ -66,6 +68,9 @@ public:
 
     bool listen(const QString &localIpv4, bool audioWanted, int sourceWidth = 0,
                 int sourceHeight = 0);
+    // Some Android/MediaTek sinks become P2P GO and wait for the source to
+    // open RTSP :7236 instead of dialing the source (WFD spec).
+    void dial(const QString &peerIpv4);
     void stop();
 
 Q_SIGNALS:
@@ -76,11 +81,22 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void onNewConnection();
+    void onDialConnected();
+    void onDialError(QAbstractSocket::SocketError error);
+    void onDialTimeout();
 
 private:
+    void attachSession(QTcpSocket *socket);
+    void stopDial();
+    void scheduleRedial();
+
     QTcpServer m_server;
+    QTcpSocket *m_dialSocket = nullptr;
+    QTimer m_dialTimer;
     WfdSession *m_session = nullptr;
     QString m_localIpv4;
+    QString m_peerIpv4;
+    int m_dialTries = 0;
     bool m_audioWanted = false;
     int m_sourceWidth = 0;
     int m_sourceHeight = 0;

@@ -55,6 +55,11 @@ QString P2PSession::localIpv4() const
     return m_localIpv4;
 }
 
+QString P2PSession::peerIpv4() const
+{
+    return m_peerIpv4;
+}
+
 QString P2PSession::lastError() const
 {
     return m_lastError;
@@ -135,6 +140,7 @@ void P2PSession::deactivate()
     const bool wasActive = m_active;
     m_activePath.clear();
     m_localIpv4.clear();
+    m_peerIpv4.clear();
     m_active = false;
     if (wasActive)
         Q_EMIT deactivated();
@@ -282,6 +288,49 @@ QString P2PSession::queryLocalIpv4() const
     return {};
 }
 
+QString P2PSession::queryPeerIpv4() const
+{
+    if (m_activePath.isEmpty())
+        return {};
+    const QVariant ip4Var = readProperty(m_activePath,
+                                         QString::fromLatin1(kActiveIface),
+                                         QStringLiteral("Ip4Config"));
+    const auto ip4Path = qdbus_cast<QDBusObjectPath>(ip4Var);
+    if (ip4Path.path().isEmpty() || ip4Path.path() == QLatin1String("/"))
+        return {};
+
+    const QString gateway = readProperty(ip4Path.path(),
+                                         QString::fromLatin1(kIp4Iface),
+                                         QStringLiteral("Gateway")).toString();
+    if (!gateway.isEmpty() && gateway != m_localIpv4)
+        return gateway;
+
+    const QVariant dhcpVar = readProperty(m_activePath,
+                                          QString::fromLatin1(kActiveIface),
+                                          QStringLiteral("Dhcp4Config"));
+    const auto dhcpPath = qdbus_cast<QDBusObjectPath>(dhcpVar);
+    if (dhcpPath.path().isEmpty() || dhcpPath.path() == QLatin1String("/")) {
+        if (m_localIpv4.startsWith(QLatin1String("192.168.49.")))
+            return QStringLiteral("192.168.49.1");
+        return {};
+    }
+    const QVariant optionsVar = readProperty(dhcpPath.path(),
+                                             QStringLiteral("org.freedesktop.NetworkManager.DHCP4Config"),
+                                             QStringLiteral("Options"));
+    const QVariantMap options = qdbus_cast<QVariantMap>(optionsVar);
+    for (const QString &key : {QStringLiteral("dhcp_server_identifier"),
+                               QStringLiteral("routers"),
+                               QStringLiteral("server_name")}) {
+        const QString value = options.value(key).toString().split(QLatin1Char(' ')).value(0);
+        if (!value.isEmpty() && value != m_localIpv4)
+            return value;
+    }
+    // Android / MediaTek WFD GO default when DHCP metadata is empty.
+    if (m_localIpv4.startsWith(QLatin1String("192.168.49.")))
+        return QStringLiteral("192.168.49.1");
+    return {};
+}
+
 void P2PSession::finishActivated()
 {
     if (m_active)
@@ -289,8 +338,9 @@ void P2PSession::finishActivated()
     m_localIpv4 = queryLocalIpv4();
     if (m_localIpv4.isEmpty())
         return;
+    m_peerIpv4 = queryPeerIpv4();
     m_statePoll.stop();
     m_active = true;
-    qInfo() << "P2P group up, local IPv4" << m_localIpv4;
+    qInfo() << "P2P group up, local IPv4" << m_localIpv4 << "peer" << m_peerIpv4;
     Q_EMIT activated(m_localIpv4);
 }

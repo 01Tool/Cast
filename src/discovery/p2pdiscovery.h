@@ -5,6 +5,7 @@
 #include <QDBusObjectPath>
 #include <QHash>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -53,6 +54,7 @@ private:
     void disconnectDeviceSignals();
     void stopFindOnDevices();
     void tryAdvertiseWfdIes();
+    void tryAdvertiseSourceName();
     void loadExistingPeers(const QString &devicePath);
 
     QStringList m_devicePaths;
