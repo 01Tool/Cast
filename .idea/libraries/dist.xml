@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="dist">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/dist/ot-cast_0.2.0_amd64.zip!/" />
+      <root url="jar://$PROJECT_DIR$/dist/ot-cast_0.1.0_amd64.deb.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
