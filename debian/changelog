@@ -1,3 +1,15 @@
+ot-cast (0.3.0) unstable; urgency=medium
+
+  * Send a local video, photo, or audio file. DLNA serves the file over
+    HTTP with Range; Miracast transcodes it into WFD RTP.
+  * Mux WFD LPCM (48 kHz pcm_bluray) when the sink lists LPCM and not
+    AAC. Video-only remains valid if neither codec is available.
+  * Keep DLNA live MPEG-TS flowing across the sink's first probe GET:
+    start the encoder on Play, copy ffmpeg stdout with a member slot
+    so Qt UniqueConnection no longer drops the stream.
+
+ -- Playhi <000902play@gmail.com>  Sun, 06 Sep 2026 14:25:12 +0800
+
 ot-cast (0.2.0) unstable; urgency=medium
 
   * DDE quick panel (libot-cast-tray.so): scan and connect through the

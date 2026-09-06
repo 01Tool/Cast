@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     DApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("01tool"));
     app.setApplicationName(QStringLiteral("ot-cast"));
-    app.setApplicationVersion(QStringLiteral("0.2.0"));
+    app.setApplicationVersion(QStringLiteral("0.3.0"));
     app.setApplicationHomePage(QStringLiteral("https://01tool.com"));
     app.setProductIcon(DIconTheme::findQIcon(QStringLiteral("ot-cast"),
                                               DIconTheme::findQIcon(QStringLiteral("video-display"))));

@@ -269,3 +269,7 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-06 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.3 | Qt `qInfo` / `qWarning`, not dtklog `dDebug` | `src/session/dlnasession.cpp` `handleClient` HTTP GET log |
 | 2026-09-06 | [AVTransport:2 `GetTransportInfo`](https://www.upnp.org/specs/av/UPnP-av-AVTransport-v2-Service.pdf) | `CurrentTransportState` / `CurrentTransportStatus` | live retest: 我的天猫魔盒 `PLAYING` / `OK` |
 | 2026-09-06 | `docs/devices.md` How to test | Measured MagicBox live-ts after TS-pipe fix | [devices.md](devices.md) DLNA table 2026-09-06 |
+| 2026-09-06 | `debian/changelog` 0.2.0 | Version bump: CMake + `main.cpp` + README tag + GitHub body | `debian/changelog` 0.3.0; [README.md](../README.md) Release; `.github/workflows/release.yml` body |
+| 2026-09-06 | `CMakeLists.txt` `project(ot-cast VERSION …)` | Release workflow matches the tag to CMake and debian/changelog | `CMakeLists.txt`; `src/main.cpp` `setApplicationVersion` |
+| 2026-09-06 | `.github/workflows/release.yml` | Tag `v*` publishes a source tarball after protocol checks | this file; [README.md](../README.md) Release |
+| 2026-09-06 | `git log v0.2.0..HEAD` | 0.3.0 notes: file cast, WFD LPCM, live TS pipe | `debian/changelog`; [README.md](../README.md) Release |

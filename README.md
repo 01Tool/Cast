@@ -32,7 +32,7 @@ cmake --build build
 ./build/ot-cast
 ```
 
-Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), **MS-MICE** for Windows Connect (mDNS `_display._tcp`, TCP 7250 `SOURCE_READY`, then the same WFD RTSP), **and** SSDP MediaRenderer discovery with HTTP MPEG-TS + AVTransport Play (labeled **DLNA**). The window can send **this screen** or a local video / photo / audio file (DLNA serves the file; Miracast transcodes it into WFD RTP). X11 grab of the **selected monitor** in **physical pixels** (HiDPI `devicePixelRatio`) → H.264 (optional AAC-LC from the Pulse/PipeWire default-sink monitor). Miracast picks a WFD mode that matches the monitor’s aspect ratio and **letterboxes** instead of stretching. DLNA caps at 1920×1080@30. A DDE quick-panel plugin (`libot-cast-tray.so`) scans and connects through the app over D-Bus; it does not talk to NetworkManager or GStreamer itself.
+Current cut: DTK window (Simplified and Traditional Chinese translations), NetworkManager P2P scan **and connect** (WPS PIN or confirm-on-TV pairing), **MS-MICE** for Windows Connect (mDNS `_display._tcp`, TCP 7250 `SOURCE_READY`, then the same WFD RTSP), **and** SSDP MediaRenderer discovery with HTTP MPEG-TS + AVTransport Play (labeled **DLNA**). The window can send **this screen** or a local video / photo / audio file (DLNA serves the file; Miracast transcodes it into WFD RTP). X11 grab of the **selected monitor** in **physical pixels** (HiDPI `devicePixelRatio`) → H.264 (optional AAC-LC from the Pulse/PipeWire default-sink monitor, or WFD LPCM when the sink has no AAC). Miracast picks a WFD mode that matches the monitor’s aspect ratio and **letterboxes** instead of stretching. DLNA caps at 1920×1080@30. A DDE quick-panel plugin (`libot-cast-tray.so`) scans and connects through the app over D-Bus; it does not talk to NetworkManager or GStreamer itself.
 
 Runtime extras:
 
@@ -68,13 +68,13 @@ The AppImage bundles Qt 6 and DTK6. It still needs host NetworkManager, `ffmpeg`
 
 ## Release
 
-`0.2.0` adds a DDE quick-panel plugin for scan and connect. The X11 sender is Miracast (P2P and MS-MICE) plus labeled DLNA (live MPEG-TS up to 1080p30), optional AAC, zh_CN/zh_TW. Wayland capture is stubbed. Do not claim every TV or low latency.
+`0.3.0` sends this screen or a local video / photo / audio file. Miracast muxes LPCM when the sink has no AAC. DLNA live MPEG-TS stays up across the TV’s first probe GET. The X11 sender is Miracast (P2P and MS-MICE) plus labeled DLNA, zh_CN/zh_TW. Wayland capture is stubbed. Do not claim every TV or low latency.
 
 Push `main`, then a tag that matches `CMakeLists.txt` and `debian/changelog`:
 
 ```bash
-git tag -s v0.2.0 -m "Cast 0.2.0"
-git push origin main v0.2.0
+git tag -s v0.3.0 -m "Cast 0.3.0"
+git push origin main v0.3.0
 ```
 
 The GitHub **Release** workflow runs the protocol checks and publishes a source tarball on the tag. Build the `.deb` or AppImage on Deepin as above; Ubuntu runners do not ship DTK6.
