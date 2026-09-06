@@ -103,6 +103,27 @@ DisplaySource CastEngine::selectedDisplay() const
     return primaryDisplay();
 }
 
+MediaSource CastEngine::mediaSource() const
+{
+    return m_media;
+}
+
+void CastEngine::setMediaFile(const QString &path)
+{
+    if (m_state == SessionState::Connecting || m_state == SessionState::Streaming)
+        return;
+    const MediaSource next = path.isEmpty() ? MediaSource() : mediaSourceFromPath(path);
+    if (!path.isEmpty() && !next.isValidFile()) {
+        Q_EMIT errorOccurred(tr("Could not open that file."));
+        return;
+    }
+    if (m_media.path == next.path && m_media.kind == next.kind)
+        return;
+    m_media = next;
+    qInfo() << "media source" << mediaKindKey(m_media.kind) << m_media.path;
+    Q_EMIT mediaSourceChanged();
+}
+
 void CastEngine::submitPairingPin(const QString &pin)
 {
     if (m_secrets)
@@ -201,15 +222,26 @@ void CastEngine::connectToSink(const QString &id)
     if (m_miceDiscovery && m_miceDiscovery->scanning())
         m_miceDiscovery->stopScan();
 
-    if (!m_capture) {
-        failSession(tr("No capture backend for this session."));
-        return;
-    }
-
     m_sessionSource = selectedDisplay();
-    if (!m_capture->start(m_sessionSource)) {
-        failSession(m_capture->lastError());
-        return;
+    if (m_media.isFile()) {
+        if (!m_media.isValidFile()) {
+            failSession(tr("The selected file is missing or unreadable."));
+            return;
+        }
+        if (!m_sessionSource.isValid()) {
+            m_sessionSource.width = 1920;
+            m_sessionSource.height = 1080;
+            m_sessionSource.id = m_media.title;
+        }
+    } else {
+        if (!m_capture) {
+            failSession(tr("No capture backend for this session."));
+            return;
+        }
+        if (!m_capture->start(m_sessionSource)) {
+            failSession(m_capture->lastError());
+            return;
+        }
     }
 
     if (sink.protocol == CastProtocol::Dlna)
@@ -257,8 +289,8 @@ void CastEngine::fallbackToP2p(const QString &why)
 
 void CastEngine::connectDlna(const SinkDevice &sink)
 {
-    m_connectTimer.start(45000);
-    m_dlna->start(sink, m_sessionSource, m_audioEnabled, m_encoder.get());
+    m_connectTimer.start(m_media.isFile() ? 60000 : 45000);
+    m_dlna->start(sink, m_sessionSource, m_audioEnabled, m_encoder.get(), m_media);
 }
 
 void CastEngine::disconnectFromSink()
@@ -500,6 +532,14 @@ void CastEngine::bindSession()
 
     connect(m_dlna.get(), &DlnaSession::statusChanged, this, &CastEngine::setStatusMessage);
     connect(m_dlna.get(), &DlnaSession::failed, this, &CastEngine::failSession);
+    connect(m_dlna.get(), &DlnaSession::playIssued, this, [this]() {
+        if (m_state != SessionState::Connecting || !m_media.isFile())
+            return;
+        m_connectTimer.stop();
+        setState(SessionState::Streaming);
+        setStatusMessage(tr("Playing on %1.").arg(sinkById(m_selectedSinkId).name));
+        logDeviceMatrix(sinkById(m_selectedSinkId), QStringLiteral("file-play"));
+    });
 
     connect(m_wfd.get(), &WfdServer::statusChanged, this, &CastEngine::setStatusMessage);
     connect(m_wfd.get(), &WfdServer::failed, this, &CastEngine::failSession);
@@ -509,7 +549,8 @@ void CastEngine::bindSession()
         m_connectTimer.stop();
         m_tryingMice = false;
         setState(SessionState::Streaming);
-        setStatusMessage(tr("Mirroring %1.").arg(m_encoder->streamDescription()));
+        setStatusMessage((m_media.isFile() ? tr("Playing %1.") : tr("Mirroring %1."))
+                             .arg(m_encoder->streamDescription()));
         const SinkDevice sink = sinkById(m_selectedSinkId);
         logDeviceMatrix(sink, sink.protocol == CastProtocol::Dlna
                                   ? QStringLiteral("live-ts")
@@ -544,10 +585,10 @@ void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const W
 {
     if (m_state != SessionState::Connecting && m_state != SessionState::Streaming)
         return;
+    const QString sourceName = m_media.isFile() ? m_media.title : m_sessionSource.shortName();
     setStatusMessage(tr("Starting encoder (%1, %2, %3)…")
-                         .arg(video.description(), audio.description(),
-                              m_sessionSource.shortName()));
-    m_encoder->start(sinkIp, rtpPort, video, audio, m_sessionSource);
+                         .arg(video.description(), audio.description(), sourceName));
+    m_encoder->start(sinkIp, rtpPort, video, audio, m_sessionSource, m_media);
 }
 
 void CastEngine::failSession(const QString &message)
@@ -595,6 +636,7 @@ void CastEngine::logDeviceMatrix(const SinkDevice &sink, const QString &result) 
             << "transport=" + transport
             << "hint=" + dlnaMediaKindKey(sink.dlnaMedia)
             << "summary=" + sink.dlnaMediaSummary
+            << "media=" + mediaKindKey(m_media.kind)
             << "result=" + result;
 }
 

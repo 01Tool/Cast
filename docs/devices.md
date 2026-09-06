@@ -15,7 +15,7 @@ This sender’s current payloads:
 
 1. X11 session. Note adapter (`iw phy`), `wpa_supplicant` WFD (`gdbus … WFDIEs`), and whether STA Wi-Fi stays up.
 2. Scan. Confirm the row is labeled **Miracast** or **DLNA**. Do not merge them. A Windows Connect PC may show **Miracast · LAN** (MS-MICE) as well as a P2P MAC.
-3. Connect the selected monitor. Try video-only first, then audio.
+3. Connect the selected monitor. Try video-only first, then audio. Optionally send a local file (DLNA HTTP, or Miracast transcode) instead of the screen.
 4. Record the verdict and a short note (pairing, RTSP reject, no HTTP GET, black screen, …).
 5. Paste the `device-matrix` line from the log (`~/.cache/ot-cast/` or the console). The engine prints one on scan classify, stream start, and failure.
 
@@ -59,7 +59,7 @@ HLS (`application/vnd.apple.mpegurl`) is noted in the summary. This cut does not
 
 | Date | Brand | Model | Firmware | Hint | Verdict | Audio | Notes / `device-matrix` line |
 |------|-------|-------|----------|------|---------|-------|------------------------------|
-| 2026-08-18 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` (`video/mpeg` plus mp4/avi) | `live-ts` | not tried | `192.168.31.8:7300`. 720p looked soft from Mi27 4K. 1920×1080@30 H.264 main 8 Mbit also PLAYING/OK. First GET is a short probe, then reconnect. Need `yuv420p`. |
+| 2026-09-06 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` (`video/mpeg` plus mp4/avi) | `live-ts` | AAC muxed, not ear-checked | `192.168.31.8:7300`. GET `http://192.168.31.46:44757/cast.ts`. `GetTransportInfo` = `PLAYING` / `OK`. One ffmpeg for >90 s (no probe restart). ~64 MiB TS acked at ~8 Mbit. 1920×1080@30 H.264 main + AAC 48 kHz. Need `yuv420p`. |
 
 ## Adding a row
 

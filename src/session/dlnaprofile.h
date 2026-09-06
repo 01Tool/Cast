@@ -19,10 +19,12 @@ struct DlnaProfile {
 QString xmlEscape(const QString &text);
 QString parseConnectionManagerSink(const QByteArray &soapXml);
 DlnaProfile pickDlnaProfile(const QString &sinkProtocolInfo);
+DlnaProfile pickDlnaFileProfile(const QString &sinkProtocolInfo, const QString &fileMime);
 void applyDlnaOutputMode(DlnaProfile *profile, const WfdVideoMode &video);
 DlnaMediaKind classifyDlnaSink(const QString &sinkProtocolInfo, QString *summary = nullptr);
 void applyDlnaProtocolInfo(SinkDevice *sink, const QString &sinkProtocolInfo);
-QString buildDidlLite(const QUrl &uri, const DlnaProfile &profile, const QString &title);
+QString buildDidlLite(const QUrl &uri, const DlnaProfile &profile, const QString &title,
+                      const QString &upnpClass = QString());
 QByteArray buildSoapEnvelope(const QString &serviceType, const QString &action,
                              const QString &innerXml);
 QHostAddress pickLocalIpv4(const QHostAddress &peer);

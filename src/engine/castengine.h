@@ -2,6 +2,7 @@
 
 #include "capture/displaysource.h"
 #include "engine/sinkdevice.h"
+#include "session/mediasource.h"
 #include "session/wfdaudiomode.h"
 #include "session/wfdvideomode.h"
 
@@ -62,6 +63,7 @@ public:
     QVector<DisplaySource> displays() const;
     QString selectedDisplayId() const;
     DisplaySource selectedDisplay() const;
+    MediaSource mediaSource() const;
 
 public Q_SLOTS:
     void startScan();
@@ -70,6 +72,7 @@ public Q_SLOTS:
     void disconnectFromSink();
     void setAudioEnabled(bool enabled);
     void setSelectedDisplayId(const QString &id);
+    void setMediaFile(const QString &path);
     void submitPairingPin(const QString &pin);
     void cancelPairing();
 
@@ -81,6 +84,7 @@ Q_SIGNALS:
     void audioEnabledChanged(bool enabled);
     void displaysChanged();
     void selectedDisplayChanged(const QString &id);
+    void mediaSourceChanged();
     void pairingRequested(CastEngine::PairingKind kind, const QString &sinkName);
     void pairingFinished();
 
@@ -137,6 +141,7 @@ private:
     QVector<DisplaySource> m_displays;
     QString m_selectedDisplayId;
     DisplaySource m_sessionSource;
+    MediaSource m_media;
     bool m_tearingDown = false;
     bool m_audioEnabled = true;
 };

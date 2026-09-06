@@ -29,7 +29,9 @@ private:
     void bindEngine();
     void refreshSinkList();
     void refreshDisplayList();
+    void refreshMediaSource();
     void updateActions();
+    void onChooseFile();
     void onScanClicked();
     void onConnectClicked();
     void onDisconnectClicked();
@@ -46,6 +48,9 @@ private:
     DTK_WIDGET_NAMESPACE::DSuggestButton *m_connectButton = nullptr;
     QPushButton *m_disconnectButton = nullptr;
     DTK_WIDGET_NAMESPACE::DSwitchButton *m_audioSwitch = nullptr;
+    DTK_WIDGET_NAMESPACE::DComboBox *m_sourceCombo = nullptr;
     DTK_WIDGET_NAMESPACE::DComboBox *m_displayCombo = nullptr;
+    QPushButton *m_fileButton = nullptr;
+    DTK_WIDGET_NAMESPACE::DLabel *m_fileLabel = nullptr;
     DTK_WIDGET_NAMESPACE::DDialog *m_pairingDialog = nullptr;
 };

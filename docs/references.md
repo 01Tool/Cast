@@ -32,6 +32,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | GStreamer + `gst-rtsp-server` | Capture, H.264, RTSP/RTP |
 | PipeWire + WirePlumber | Wayland (and modern X11) audio/video capture |
 | PulseAudio / `pipewire-pulse` | Default-sink `.monitor` for system audio |
+| Qt 6.5+ `QObject::connect` | `Qt::UniqueConnection` with a lambda does not connect ([QTBUG-115125](https://bugreports.qt.io/browse/QTBUG-115125)) |
 | `xdg-desktop-portal` | ScreenCast session on Wayland |
 | SSDP / UPnP AV / DLNA DMR | Same-LAN discovery (`MediaRenderer:1`) and `AVTransport` Play |
 | MS-MICE TCP 7250 | Windows Connect / Android same-LAN Miracast; then WFD RTSP :7236 |
@@ -253,3 +254,18 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-06 | ffmpeg `pcm_bluray` / `pcm_s16be` | 48 kHz WFD LPCM as HDMV PCM in MPEG-TS; 44.1 kHz cannot use `pcm_bluray` | `src/session/gstencoder.cpp` `GstEncoder::startFfmpeg` |
 | 2026-09-06 | [GNOME Network Displays README](https://github.com/GNOME/gnome-network-displays) | EZCast LPCM-only still unsupported there; Cast muxes LPCM as fallback | [constraints.md](constraints.md) §5; [protocols/miracast.md](protocols/miracast.md) |
 | 2026-09-06 | `docs/devices.md` How to test | Xiaomi Pad `LPCM 00000002 00`; live `ffmpeg -c:a pcm_bluray` streaming | [devices.md](devices.md) Miracast table |
+| 2026-09-06 | [UPnP AVTransport:2](https://www.upnp.org/specs/av/UPnP-av-AVTransport-v2-Service.pdf) | File URI + DIDL class for video/image/audio items | `src/session/dlnasession.cpp` `setUriAndPlay`; `src/session/dlnaprofile.cpp` `buildDidlLite` |
+| 2026-09-06 | DTK `DFileDialog` (`dtk-development` `references/widgets/dialog.md`) | Native file picker; widgets stay off HTTP/UPnP | `src/ui/mainwindow.cpp` `onChooseFile` |
+| 2026-09-06 | HTTP `Range` (RFC 7233) | DLNA file GET uses `Content-Length` and byte ranges | `src/session/mediasource.cpp` `parseHttpByteRange`; `src/session/dlnasession.cpp` `serveFile` |
+| 2026-09-06 | `docs/architecture.md` UI | Monitor or local file as the media source | `src/engine/castengine.cpp` `setMediaFile`; `src/ui/mainwindow.cpp` `onChooseFile` |
+| 2026-09-06 | `docs/protocols/dlna.md` Required path | File HTTP + DIDL Play vs live MPEG-TS | `src/session/dlnasession.cpp` `start` / `serveFile` |
+| 2026-09-06 | [QTBUG-115125](https://bugreports.qt.io/browse/QTBUG-115125) / Qt 6.8 `qobject.h` | `Qt::UniqueConnection` + lambda returns an empty connection | `src/session/dlnasession.cpp` `bindTsPipe` / `onClientBytesWritten` |
+| 2026-09-06 | [Qt `QObject::connect`](https://doc.qt.io/qt-6/qobject.html#connect) | UniqueConnection only for member functions, not functors | `src/session/dlnasession.cpp` `pumpTs` |
+| 2026-09-06 | `~/.cache/01tool/ot-cast/ot-cast.log` 2026-09-06 | MagicBox GET every ~6 s; `unique connections require a pointer to member function`; Cast Streaming while box stays connecting | `src/session/dlnasession.cpp` `startLiveEncoder` / `attachEncoder`; `src/session/gstencoder.cpp` `startMpegTsPipe` |
+| 2026-09-06 | `docs/devices.md` DLNA MagicBox | First GET is a short probe, then reconnect; need `yuv420p` | `src/session/dlnasession.cpp` `handleClient`; [devices.md](devices.md) DLNA table |
+| 2026-09-06 | `docs/protocols/dlna.md` Required path | Start live encoder on Play; keep it across probe GET | `src/session/dlnasession.cpp` `setUriAndPlay` / `startLiveEncoder` |
+| 2026-09-06 | `docs/architecture.md` Session (DLNA) | HTTP + AVTransport; live encoder starts on Play | `src/engine/castengine.cpp` encoder `started()`; `src/session/dlnasession.cpp` |
+| 2026-09-06 | `~/.agents/skills/deepin/dtk-development/SKILL.md` | DTK6 UI only; protocol work stays in the engine | this change stays in `src/session` / docs |
+| 2026-09-06 | `~/.agents/skills/deepin/dtk-development/references/app-dev-with-dtk.md` §2.3 | Qt `qInfo` / `qWarning`, not dtklog `dDebug` | `src/session/dlnasession.cpp` `handleClient` HTTP GET log |
+| 2026-09-06 | [AVTransport:2 `GetTransportInfo`](https://www.upnp.org/specs/av/UPnP-av-AVTransport-v2-Service.pdf) | `CurrentTransportState` / `CurrentTransportStatus` | live retest: 我的天猫魔盒 `PLAYING` / `OK` |
+| 2026-09-06 | `docs/devices.md` How to test | Measured MagicBox live-ts after TS-pipe fix | [devices.md](devices.md) DLNA table 2026-09-06 |

@@ -128,6 +128,14 @@
         <translation>正在镜像 %1。</translation>
     </message>
     <message>
+        <source>Playing %1.</source>
+        <translation>正在播放 %1。</translation>
+    </message>
+    <message>
+        <source>Playing on %1.</source>
+        <translation>正在 %1 上播放。</translation>
+    </message>
+    <message>
         <location line="+24"/>
         <source>Could not send SOURCE_READY on TCP 7250.</source>
         <translation>无法通过 TCP 7250 发送 SOURCE_READY。</translation>
@@ -261,6 +269,10 @@
         <translation>正在通过 %1 提供流</translation>
     </message>
     <message>
+        <source>%1 is fetching the file.</source>
+        <translation>%1 正在拉取文件。</translation>
+    </message>
+    <message>
         <location line="+38"/>
         <source>Asking %1 which video types it accepts…</source>
         <translation>正在询问 %1 支持的视频类型…</translation>
@@ -358,9 +370,33 @@
         <translation>显示器</translation>
     </message>
     <message>
+        <source>What to send</source>
+        <translation>发送内容</translation>
+    </message>
+    <message>
+        <source>This screen</source>
+        <translation>当前屏幕</translation>
+    </message>
+    <message>
+        <source>A file</source>
+        <translation>文件</translation>
+    </message>
+    <message>
+        <source>Choose file…</source>
+        <translation>选择文件…</translation>
+    </message>
+    <message>
+        <source>Choose a video, photo, or audio file</source>
+        <translation>选择视频、照片或音频文件</translation>
+    </message>
+    <message>
+        <source>Media files (*.mp4 *.mkv *.webm *.mov *.avi *.ts *.mp3 *.m4a *.aac *.wav *.flac *.ogg *.jpg *.jpeg *.png *.gif *.webp *.bmp);;All files (*)</source>
+        <translation>媒体文件 (*.mp4 *.mkv *.webm *.mov *.avi *.ts *.mp3 *.m4a *.aac *.wav *.flac *.ogg *.jpg *.jpeg *.png *.gif *.webp *.bmp);;所有文件 (*)</translation>
+    </message>
+    <message>
         <location line="+12"/>
-        <source>Include system audio</source>
-        <translation>包含系统音频</translation>
+        <source>Include audio</source>
+        <translation>包含音频</translation>
     </message>
     <message>
         <location line="+14"/>

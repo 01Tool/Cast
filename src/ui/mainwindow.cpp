@@ -1,7 +1,10 @@
 #include "ui/mainwindow.h"
 
+#include "session/mediasource.h"
+
 #include <DComboBox>
 #include <DDialog>
+#include <DFileDialog>
 #include <DFontSizeManager>
 #include <DIconTheme>
 #include <DLabel>
@@ -66,6 +69,7 @@ void MainWindow::setupUi()
     m_statusLabel = new DLabel(central);
     m_statusLabel->setForegroundRole(DPalette::TextTitle);
     m_statusLabel->setWordWrap(true);
+    m_statusLabel->setElideMode(Qt::ElideNone);
     DFontSizeManager::instance()->bind(m_statusLabel, DFontSizeManager::T6);
 
     m_sinkView = new DListView(central);
@@ -78,6 +82,35 @@ void MainWindow::setupUi()
 
     m_sinkModel = new QStandardItemModel(m_sinkView);
     m_sinkView->setModel(m_sinkModel);
+
+    auto *sourceRow = new QWidget(central);
+    auto *sourceLayout = new QHBoxLayout(sourceRow);
+    sourceLayout->setContentsMargins(0, 0, 0, 0);
+    sourceLayout->setSpacing(8);
+    auto *sourceLabel = new DLabel(tr("What to send"), sourceRow);
+    sourceLabel->setForegroundRole(DPalette::TextTitle);
+    DFontSizeManager::instance()->bind(sourceLabel, DFontSizeManager::T6);
+    m_sourceCombo = new DComboBox(sourceRow);
+    m_sourceCombo->addItem(tr("This screen"), QStringLiteral("screen"));
+    m_sourceCombo->addItem(tr("A file"), QStringLiteral("file"));
+    m_sourceCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    m_sourceCombo->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    int sourceComboWidth = 0;
+    for (int i = 0; i < m_sourceCombo->count(); ++i) {
+        sourceComboWidth = qMax(sourceComboWidth,
+                                m_sourceCombo->fontMetrics().horizontalAdvance(
+                                    m_sourceCombo->itemText(i)));
+    }
+    m_sourceCombo->setMinimumWidth(sourceComboWidth + 48);
+    m_fileButton = new QPushButton(tr("Choose file…"), sourceRow);
+    m_fileLabel = new DLabel(sourceRow);
+    m_fileLabel->setForegroundRole(DPalette::TextTips);
+    DFontSizeManager::instance()->bind(m_fileLabel, DFontSizeManager::T8);
+    m_fileLabel->setWordWrap(true);
+    sourceLayout->addWidget(sourceLabel);
+    sourceLayout->addWidget(m_sourceCombo);
+    sourceLayout->addWidget(m_fileButton);
+    sourceLayout->addWidget(m_fileLabel, 1);
 
     auto *monitorRow = new QWidget(central);
     auto *monitorLayout = new QHBoxLayout(monitorRow);
@@ -95,7 +128,7 @@ void MainWindow::setupUi()
     auto *audioLayout = new QHBoxLayout(audioRow);
     audioLayout->setContentsMargins(0, 0, 0, 0);
     audioLayout->setSpacing(8);
-    auto *audioLabel = new DLabel(tr("Include system audio"), audioRow);
+    auto *audioLabel = new DLabel(tr("Include audio"), audioRow);
     audioLabel->setForegroundRole(DPalette::TextTitle);
     DFontSizeManager::instance()->bind(audioLabel, DFontSizeManager::T6);
     m_audioSwitch = new DSwitchButton(audioRow);
@@ -121,6 +154,7 @@ void MainWindow::setupUi()
     layout->addWidget(m_sessionLabel);
     layout->addWidget(m_statusLabel);
     layout->addWidget(m_sinkView, 1);
+    layout->addWidget(sourceRow);
     layout->addWidget(monitorRow);
     layout->addWidget(audioRow);
     layout->addWidget(buttons);
@@ -166,7 +200,22 @@ void MainWindow::bindEngine()
             });
     connect(m_engine, &CastEngine::displaysChanged, this, &MainWindow::refreshDisplayList);
     connect(m_engine, &CastEngine::selectedDisplayChanged, this, &MainWindow::refreshDisplayList);
+    connect(m_engine, &CastEngine::mediaSourceChanged, this, &MainWindow::refreshMediaSource);
+    connect(m_sourceCombo, QOverload<int>::of(&DComboBox::currentIndexChanged), this,
+            [this](int index) {
+                if (index < 0)
+                    return;
+                if (m_sourceCombo->itemData(index).toString() == QLatin1String("file")) {
+                    if (!m_engine->mediaSource().isFile())
+                        onChooseFile();
+                } else {
+                    m_engine->setMediaFile(QString());
+                }
+                updateActions();
+            });
+    connect(m_fileButton, &QPushButton::clicked, this, &MainWindow::onChooseFile);
     refreshDisplayList();
+    refreshMediaSource();
     connect(m_sinkView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
             [this](const QItemSelection &, const QItemSelection &) {
                 updateActions();
@@ -271,7 +320,40 @@ void MainWindow::updateActions()
     m_connectButton->setEnabled(!connecting && !streaming && hasSelection);
     m_disconnectButton->setEnabled(streaming || connecting);
     m_audioSwitch->setEnabled(!connecting && !streaming);
-    m_displayCombo->setEnabled(!connecting && !streaming && m_displayCombo->count() > 0);
+    const bool fileMode = m_engine->mediaSource().isFile();
+    m_sourceCombo->setEnabled(!connecting && !streaming);
+    m_fileButton->setEnabled(!connecting && !streaming);
+    m_displayCombo->setEnabled(!connecting && !streaming && !fileMode
+                               && m_displayCombo->count() > 0);
+}
+
+void MainWindow::refreshMediaSource()
+{
+    const MediaSource media = m_engine->mediaSource();
+    const bool file = media.isFile();
+    m_sourceCombo->blockSignals(true);
+    m_sourceCombo->setCurrentIndex(file ? 1 : 0);
+    m_sourceCombo->blockSignals(false);
+    m_fileLabel->setText(file ? media.title : QString());
+    m_fileButton->setVisible(true);
+    updateActions();
+}
+
+void MainWindow::onChooseFile()
+{
+    const QString path = DFileDialog::getOpenFileName(
+        this, tr("Choose a video, photo, or audio file"), QString(),
+        tr("Media files (*.mp4 *.mkv *.webm *.mov *.avi *.ts *.mp3 *.m4a *.aac *.wav "
+           "*.flac *.ogg *.jpg *.jpeg *.png *.gif *.webp *.bmp);;All files (*)"));
+    if (path.isEmpty()) {
+        if (!m_engine->mediaSource().isFile()) {
+            m_sourceCombo->blockSignals(true);
+            m_sourceCombo->setCurrentIndex(0);
+            m_sourceCombo->blockSignals(false);
+        }
+        return;
+    }
+    m_engine->setMediaFile(path);
 }
 
 void MainWindow::onScanClicked()

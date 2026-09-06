@@ -39,7 +39,9 @@ QString GstEncoder::lastError() const
 QString GstEncoder::streamDescription() const
 {
     QString text = m_video.description();
-    if (m_source.isValid())
+    if (m_media.isFile())
+        text += tr(" from %1").arg(m_media.title);
+    else if (m_source.isValid())
         text += tr(" from %1").arg(m_source.shortName());
     if (m_audioActive)
         text += QStringLiteral(" + ") + m_audio.description();
@@ -49,16 +51,19 @@ QString GstEncoder::streamDescription() const
 }
 
 bool GstEncoder::prepare(const WfdVideoMode &video, const WfdAudioMode &audio,
-                         const DisplaySource &source)
+                         const DisplaySource &source, const MediaSource &media)
 {
     stop();
     m_video = video.isValid() ? video : defaultWfdVideoMode();
     m_audio = audio;
     m_source = source;
+    m_media = media;
     m_audioActive = false;
     m_audioNote.clear();
     m_lastError.clear();
 
+    if (m_media.isFile())
+        return true;
     const bool wantAudio = m_audio.enabled();
     const QString monitor = wantAudio ? desktopPulseMonitor() : QString();
     if (wantAudio && monitor.isEmpty()) {
@@ -70,6 +75,16 @@ bool GstEncoder::prepare(const WfdVideoMode &video, const WfdAudioMode &audio,
 
 bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpPort)
 {
+    if (m_media.isFile()) {
+        const bool fileAudio = m_media.kind != MediaKind::Image
+            && (m_media.kind == MediaKind::Audio || m_audio.enabled());
+        if (startFfmpeg(sink, sinkIp, rtpPort, fileAudio))
+            return true;
+        if (m_lastError.isEmpty())
+            m_lastError = tr("Could not encode the selected file.");
+        return false;
+    }
+
     const bool wantAudio = m_audio.enabled();
     const QString monitor = wantAudio ? desktopPulseMonitor() : QString();
     const bool gstVideo = gstHasElement(QStringLiteral("mpegtsmux"))
@@ -102,9 +117,10 @@ bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpP
 }
 
 void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
-                       const WfdAudioMode &audio, const DisplaySource &source)
+                       const WfdAudioMode &audio, const DisplaySource &source,
+                       const MediaSource &media)
 {
-    prepare(video, audio, source);
+    prepare(video, audio, source, media);
     if (sinkIp.isEmpty() || rtpPort == 0) {
         m_lastError = tr("Missing sink IP or RTP port.");
         Q_EMIT failed(m_lastError);
@@ -116,9 +132,11 @@ void GstEncoder::start(const QString &sinkIp, quint16 rtpPort, const WfdVideoMod
 }
 
 void GstEncoder::startMpegTsPipe(const WfdVideoMode &video, const WfdAudioMode &audio,
-                                const DisplaySource &source)
+                                const DisplaySource &source, const MediaSource &media)
 {
-    prepare(video, audio, source);
+    if (m_running)
+        return;
+    prepare(video, audio, source, media);
     if (startPreferred(TsSink::Stdout, {}, 0))
         return;
     Q_EMIT failed(m_lastError);
@@ -263,27 +281,52 @@ bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort
         return false;
     }
 
-    const QString display = qEnvironmentVariable("DISPLAY", QStringLiteral(":0"));
-    const QString monitor = withAudio ? desktopPulseMonitor() : QString();
     QStringList args{
         QStringLiteral("-hide_banner"),
         QStringLiteral("-loglevel"),
         QStringLiteral("error"),
         QStringLiteral("-nostdin"),
-        QStringLiteral("-f"),
-        QStringLiteral("x11grab"),
-        QStringLiteral("-framerate"),
-        QString::number(m_video.fps),
     };
-    const QString grabSize = x11grabSize(m_source);
-    if (!grabSize.isEmpty())
-        args << QStringLiteral("-video_size") << grabSize;
-    args << QStringLiteral("-i") << x11grabInputSpecifier(display, m_source);
-    if (withAudio && !monitor.isEmpty()) {
-        args << QStringLiteral("-f") << QStringLiteral("pulse") << QStringLiteral("-i") << monitor;
-        m_audioActive = true;
-    } else if (withAudio) {
-        m_audioNote = tr("no Pulse monitor, video only");
+
+    if (m_media.isFile()) {
+        if (m_media.kind == MediaKind::Image) {
+            args << QStringLiteral("-loop") << QStringLiteral("1")
+                 << QStringLiteral("-framerate") << QString::number(m_video.fps)
+                 << QStringLiteral("-i") << m_media.path;
+            m_audioActive = false;
+        } else if (m_media.kind == MediaKind::Audio) {
+            args << QStringLiteral("-re") << QStringLiteral("-i") << m_media.path
+                 << QStringLiteral("-f") << QStringLiteral("lavfi") << QStringLiteral("-i")
+                 << QStringLiteral("color=c=black:s=%1x%2:r=%3")
+                        .arg(m_video.width)
+                        .arg(m_video.height)
+                        .arg(m_video.fps)
+                 << QStringLiteral("-map") << QStringLiteral("1:v:0")
+                 << QStringLiteral("-map") << QStringLiteral("0:a:0");
+            m_audioActive = true;
+        } else {
+            args << QStringLiteral("-re") << QStringLiteral("-i") << m_media.path
+                 << QStringLiteral("-map") << QStringLiteral("0:v:0");
+            if (withAudio)
+                args << QStringLiteral("-map") << QStringLiteral("0:a:0?");
+            m_audioActive = withAudio;
+        }
+    } else {
+        const QString display = qEnvironmentVariable("DISPLAY", QStringLiteral(":0"));
+        const QString monitor = withAudio ? desktopPulseMonitor() : QString();
+        args << QStringLiteral("-f") << QStringLiteral("x11grab")
+             << QStringLiteral("-framerate") << QString::number(m_video.fps);
+        const QString grabSize = x11grabSize(m_source);
+        if (!grabSize.isEmpty())
+            args << QStringLiteral("-video_size") << grabSize;
+        args << QStringLiteral("-i") << x11grabInputSpecifier(display, m_source);
+        if (withAudio && !monitor.isEmpty()) {
+            args << QStringLiteral("-f") << QStringLiteral("pulse") << QStringLiteral("-i")
+                 << monitor;
+            m_audioActive = true;
+        } else if (withAudio) {
+            m_audioNote = tr("no Pulse monitor, video only");
+        }
     }
 
     args << QStringLiteral("-vf")
@@ -299,23 +342,10 @@ bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort
          << QStringLiteral("-g") << QString::number(m_video.fps)
          << QStringLiteral("-b:v") << QStringLiteral("%1k").arg(videoBitrateKbps());
 
-    if (m_audioActive) {
-        args << QStringLiteral("-ar") << QString::number(m_audio.rate)
-             << QStringLiteral("-ac") << QStringLiteral("2")
-             << QStringLiteral("-af") << QStringLiteral("aresample=async=1:first_pts=0");
-        if (m_audio.codec == WfdAudioMode::Codec::Lpcm) {
-            // 48 kHz WFD LPCM is HDMV/Blu-ray PCM in MPEG-TS. pcm_bluray does not
-            // accept 44.1 kHz, so that rate uses raw big-endian PCM.
-            args << QStringLiteral("-c:a")
-                 << (m_audio.rate == 44100 ? QStringLiteral("pcm_s16be")
-                                           : QStringLiteral("pcm_bluray"));
-        } else {
-            args << QStringLiteral("-c:a") << QStringLiteral("aac")
-                 << QStringLiteral("-b:a") << QStringLiteral("128k");
-        }
-    } else {
+    if (m_audioActive)
+        appendAudioEncodeArgs(&args);
+    else
         args << QStringLiteral("-an");
-    }
 
     if (sink == TsSink::Stdout) {
         args << QStringLiteral("-flush_packets") << QStringLiteral("1")
@@ -374,6 +404,25 @@ void GstEncoder::onFinished(int exitCode, QProcess::ExitStatus status)
         return;
     }
     Q_EMIT stopped();
+}
+
+void GstEncoder::appendAudioEncodeArgs(QStringList *args) const
+{
+    if (!args)
+        return;
+    *args << QStringLiteral("-ar") << QString::number(m_audio.rate)
+          << QStringLiteral("-ac") << QStringLiteral("2")
+          << QStringLiteral("-af") << QStringLiteral("aresample=async=1:first_pts=0");
+    if (m_audio.codec == WfdAudioMode::Codec::Lpcm) {
+        // 48 kHz WFD LPCM is HDMV/Blu-ray PCM in MPEG-TS. pcm_bluray does not
+        // accept 44.1 kHz, so that rate uses raw big-endian PCM.
+        *args << QStringLiteral("-c:a")
+              << (m_audio.rate == 44100 ? QStringLiteral("pcm_s16be")
+                                        : QStringLiteral("pcm_bluray"));
+    } else {
+        *args << QStringLiteral("-c:a") << QStringLiteral("aac")
+              << QStringLiteral("-b:a") << QStringLiteral("128k");
+    }
 }
 
 int GstEncoder::videoBitrateKbps() const

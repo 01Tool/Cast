@@ -1,6 +1,7 @@
 #include "discovery/dlnadescription.h"
 #include "discovery/dlnassdp.h"
 #include "session/dlnaprofile.h"
+#include "session/mediasource.h"
 
 #include <QByteArray>
 #include <cstdio>
@@ -166,6 +167,30 @@ int main()
     expectTrue("audio off", !silent.enabled());
     const WfdAudioMode aac = dlnaAudioMode(true);
     expectTrue("audio on", aac.enabled());
+
+    const DlnaProfile fileMp4 = pickDlnaFileProfile(
+        QStringLiteral("http-get:*:video/mp4:DLNA.ORG_PN=AVC_MP4_MP_SD_AAC_MULT5;DLNA.ORG_OP=01"),
+        QStringLiteral("video/mp4"));
+    expectEq("file mime", fileMp4.mime, QStringLiteral("video/mp4"));
+    expectTrue("file seek op", fileMp4.contentFeatures.contains(QLatin1String("DLNA.ORG_OP=01")));
+    expectTrue("file not live op", !fileMp4.contentFeatures.contains(QLatin1String("DLNA.ORG_OP=00")));
+
+    const QString photoDidl =
+        buildDidlLite(QUrl(QStringLiteral("http://10.0.0.1/cast.jpg")), fileMp4,
+                      QStringLiteral("shot.jpg"), upnpClassForMedia(MediaKind::Image));
+    expectTrue("photo class", photoDidl.contains(QLatin1String("imageItem.photo")));
+
+    const HttpByteRange all = parseHttpByteRange(QByteArray(), 1000);
+    expectTrue("no range", !all.specified && all.end == 999);
+    const HttpByteRange suffix = parseHttpByteRange("bytes=-100", 1000);
+    expectTrue("suffix start", suffix.valid && suffix.start == 900 && suffix.end == 999);
+    const HttpByteRange mid = parseHttpByteRange("bytes=10-19", 1000);
+    expectTrue("mid range", mid.valid && mid.start == 10 && mid.end == 19);
+    const HttpByteRange oob = parseHttpByteRange("bytes=5000-6000", 1000);
+    expectTrue("oob range", !oob.valid);
+
+    expectEq("kind image", mediaKindKey(MediaKind::Image), QStringLiteral("image"));
+    expectTrue("missing file empty", !mediaSourceFromPath(QStringLiteral("/no/such/file.mp4")).isFile());
 
     const QByteArray envelope = buildSoapEnvelope(
         QStringLiteral("urn:schemas-upnp-org:service:AVTransport:1"),

@@ -12,9 +12,9 @@ UPnP AV splits three jobs. Cast takes two of them for a **single live URL**; the
 |------|-----|----------------|
 | Digital Media Renderer (DMR) | The TV / box | Plays the URL we give it |
 | Control Point (DMC) | Cast | SSDP search, `SetAVTransportURI`, `Play`, `Stop` |
-| Media source | Cast (ephemeral HTTP) | Serves the encoded desktop. **Not** a ContentDirectory library |
+| Media source | Cast (ephemeral HTTP) | Live desktop MPEG-TS, **or** a selected local video / photo / audio file |
 
-Do not browse the TV’s media. Do not ask the user to export a file and “open it on the TV.”
+Do not browse the TV’s media library. The user may pick a local file in Cast; the engine still serves it over HTTP and calls `SetAVTransportURI`.
 
 ## Required path
 
@@ -30,11 +30,14 @@ Discovery is SSDP (`239.255.255.250:1900`) for `urn:schemas-upnp-org:device:Medi
 
 Live desktop is not a file. The sender must:
 
-1. Encode the selected monitor (and optional AAC) with the same capture/encode path as WFD.
+1. Encode the selected monitor (and optional AAC) with the same capture/encode path as WFD, **or** serve a user-chosen local file with `Content-Length` and HTTP `Range`.
 2. Bind HTTP on the laptop’s **STA IPv4** (the address the TV can route to). Advertise that host in the URI.
-3. Answer `GET`/`HEAD` with `transferMode.dlna.org: Streaming` and `contentFeatures.dlna.org` (and honor `getcontentFeatures.dlna.org` on the request).
+3. Answer `GET`/`HEAD` with `transferMode.dlna.org: Streaming` (Interactive for photos) and `contentFeatures.dlna.org`. Files use `DLNA.ORG_OP=01`.
 4. Call `SetAVTransportURI` (`InstanceID` 0, `CurrentURI`, DIDL-Lite `CurrentURIMetaData`) then `Play` (`Speed` 1).
-5. `Stop` and close HTTP on disconnect.
+5. Start the **live** encoder when `Play` succeeds, not on the first GET. Keep that process across short probe reconnects (MagicBox does a GET, reads a little, then GET again). Copy ffmpeg stdout with a QObject member slot — `Qt::UniqueConnection` does not connect lambdas on Qt 6.5+.
+6. `Stop` and close HTTP on disconnect.
+
+A DMR that only plays finite MP4s should get the **file** source, not live TS.
 
 ## Why this is the fallback
 

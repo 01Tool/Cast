@@ -35,6 +35,7 @@ add_executable(ot-cast
     src/session/micesession.cpp
     src/session/dlnaprofile.cpp
     src/session/dlnasession.cpp
+    src/session/mediasource.cpp
     src/session/nmsecretagent.cpp
     src/session/wfdserver.cpp
     src/session/wfdvideomode.cpp
@@ -110,6 +111,7 @@ add_executable(dlna-check
     src/discovery/dlnassdp.cpp
     src/discovery/dlnadescription.cpp
     src/session/dlnaprofile.cpp
+    src/session/mediasource.cpp
     src/session/wfdvideomode.cpp
     src/session/wfdaudiomode.cpp
     tests/dlna-check.cpp

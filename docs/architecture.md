@@ -37,8 +37,8 @@ Responsibilities:
 - Connect / disconnect, pairing prompts (WPS PIN or confirm-on-TV for P2P only), error dialogs
 - Session status (searching, connecting, mirroring, failed)
 - Optional: remember last sink (DConfig)
-- Choose which monitor to mirror
-- Toggle system audio (AAC or LPCM when the sink lists them)
+- Choose which monitor to mirror, or a local video / photo / audio file
+- Toggle audio (system audio for the screen; the file’s soundtrack for a video)
 
 The window talks only to `CastEngine` signals and slots. The DDE quick-panel plugin talks only to the session D-Bus API that `ot-cast` exports (`com.ot01tool.Cast`). Neither UI opens NetworkManager, GStreamer, portal, or UPnP connections.
 
@@ -66,7 +66,7 @@ Subsystems:
 | Pairing | WPS PIN / PBC | NM SecretAgent; P2P only. MS-MICE with PIN off needs no prompt. |
 | Session (WFD) | WFD RTSP handshake | GStreamer WFD bits from GNOME / deepin-network-displays |
 | Session (MICE) | TCP 7250 then WFD | `SOURCE_READY` / `STOP_PROJECTION`; reuse `WfdServer` |
-| Session (DLNA) | HTTP + `SetAVTransportURI` | `DlnaSession` |
+| Session (DLNA) | HTTP + `SetAVTransportURI` | `DlnaSession` (live encoder starts on Play; survives probe GET) |
 | Sink identity | Protocol on every row | `SinkDevice::protocol` is `Miracast` or `Dlna` |
 | Capture | Frames + optional system audio | Backend interface + Pulse/PipeWire monitor |
 | Encode | H.264 + AAC-LC | GStreamer (`x264enc` / `avenc_aac`) or ffmpeg |
@@ -104,7 +104,7 @@ If Wayland is active and `PortalCapture` cannot create a session, the engine mus
 8. DDE quick panel: D-Bus scan/connect, no protocol code in the plugin.
 9. MS-MICE for Windows Connect / Android-on-the-same-LAN: try TCP 7250 before P2P.
 
-Items 1–6 and 8–9 are in the tree. Item 7 is filled from measured sessions, not from logos (Windows Connect over MS-MICE and Tmall MagicBox over DLNA). Wayland still waits on ScreenCast. X11 grab uses physical pixels (`QScreen::geometry() × devicePixelRatio()`). WFD mode selection prefers the captured monitor’s aspect ratio and letterboxes.
+Items 1–6 and 8–9 are in the tree. Item 7 is filled from measured sessions, not from logos (Windows Connect over MS-MICE and Tmall MagicBox over DLNA). A local file can be sent instead of the monitor: DLNA serves the file over HTTP; Miracast transcodes it into the same WFD RTP path. Wayland still waits on ScreenCast. X11 grab uses physical pixels (`QScreen::geometry() × devicePixelRatio()`). WFD mode selection prefers the captured monitor’s aspect ratio and letterboxes.
 
 ## What not to put in widgets
 

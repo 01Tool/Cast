@@ -165,6 +165,56 @@ DlnaProfile pickDlnaProfile(const QString &sinkProtocolInfo)
     return profile;
 }
 
+bool mimeCompatible(const QString &fileMime, const QString &entryMime)
+{
+    const QString a = fileMime.toLower();
+    const QString b = entryMime.toLower();
+    if (a.isEmpty() || b.isEmpty() || b == QLatin1String("*"))
+        return false;
+    if (a == b)
+        return true;
+    if (a.startsWith(QLatin1String("image/")) && b.startsWith(QLatin1String("image/")))
+        return (a.contains(QLatin1String("jpeg")) && (b.contains(QLatin1String("jpeg"))
+                                                      || b.contains(QLatin1String("jpg"))))
+            || a == b;
+    if ((a.contains(QLatin1String("mp4")) || a.contains(QLatin1String("m4v")))
+        && b.contains(QLatin1String("mp4")))
+        return true;
+    if ((a == QLatin1String("audio/mpeg") || a == QLatin1String("audio/mp3"))
+        && (b.contains(QLatin1String("mpeg")) || b.contains(QLatin1String("mp3"))))
+        return true;
+    return false;
+}
+
+DlnaProfile pickDlnaFileProfile(const QString &sinkProtocolInfo, const QString &fileMime)
+{
+    constexpr auto kFileFeatures =
+        "DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000";
+    DlnaProfile profile;
+    profile.mime = fileMime.isEmpty() ? QStringLiteral("application/octet-stream") : fileMime;
+    profile.contentFeatures = QString::fromLatin1(kFileFeatures);
+    profile.protocolInfo = QStringLiteral("http-get:*:%1:%2").arg(profile.mime, profile.contentFeatures);
+
+    const QStringList entries = sinkProtocolInfo.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    for (QString entry : entries) {
+        entry = entry.trimmed();
+        if (!entry.startsWith(QLatin1String("http-get:"), Qt::CaseInsensitive))
+            continue;
+        const QString mime = fieldAfterColons(entry, 2);
+        if (!mimeCompatible(profile.mime, mime))
+            continue;
+        profile.mime = mime;
+        QString extra = fieldAfterColons(entry, 3);
+        if (extra.isEmpty() || extra == QLatin1String("*"))
+            extra = QString::fromLatin1(kFileFeatures);
+        extra.replace(QLatin1String("DLNA.ORG_OP=00"), QLatin1String("DLNA.ORG_OP=01"));
+        profile.contentFeatures = extra;
+        profile.protocolInfo = QStringLiteral("http-get:*:%1:%2").arg(profile.mime, extra);
+        return profile;
+    }
+    return profile;
+}
+
 void applyDlnaOutputMode(DlnaProfile *profile, const WfdVideoMode &video)
 {
     if (!profile)
@@ -252,19 +302,22 @@ void applyDlnaProtocolInfo(SinkDevice *sink, const QString &sinkProtocolInfo)
     sink->dlnaMediaSummary = summary;
 }
 
-QString buildDidlLite(const QUrl &uri, const DlnaProfile &profile, const QString &title)
+QString buildDidlLite(const QUrl &uri, const DlnaProfile &profile, const QString &title,
+                      const QString &upnpClass)
 {
     const QString name = title.isEmpty() ? QStringLiteral("Cast") : title;
+    const QString cls = upnpClass.isEmpty() ? QStringLiteral("object.item.videoItem") : upnpClass;
     return QStringLiteral(
                "<DIDL-Lite xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\" "
                "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" "
                "xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\">"
                "<item id=\"0\" parentID=\"-1\" restricted=\"1\">"
                "<dc:title>%1</dc:title>"
-               "<upnp:class>object.item.videoItem</upnp:class>"
-               "<res protocolInfo=\"%2\">%3</res>"
+               "<upnp:class>%2</upnp:class>"
+               "<res protocolInfo=\"%3\">%4</res>"
                "</item></DIDL-Lite>")
-        .arg(xmlEscape(name), xmlEscape(profile.protocolInfo), xmlEscape(uri.toString()));
+        .arg(xmlEscape(name), xmlEscape(cls), xmlEscape(profile.protocolInfo),
+             xmlEscape(uri.toString()));
 }
 
 QByteArray buildSoapEnvelope(const QString &serviceType, const QString &action,

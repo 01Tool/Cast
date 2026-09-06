@@ -3,7 +3,9 @@
 #include "session/gstencoder.h"
 
 #include <QDebug>
+#include <QFileInfo>
 #include <QHostAddress>
+#include <QIODevice>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QTcpSocket>
@@ -13,29 +15,10 @@ namespace {
 constexpr auto kAvTransport = "urn:schemas-upnp-org:service:AVTransport:1";
 constexpr auto kConnectionManager = "urn:schemas-upnp-org:service:ConnectionManager:1";
 
-QByteArray httpHeaders(const DlnaProfile &profile)
-{
-    QByteArray out;
-    out += "HTTP/1.1 200 OK\r\n";
-    out += "Content-Type: ";
-    out += profile.mime.toUtf8();
-    out += "\r\n";
-    out += "Server: ot-cast/0.1\r\n";
-    out += "transferMode.dlna.org: Streaming\r\n";
-    out += "contentFeatures.dlna.org: ";
-    out += profile.contentFeatures.toUtf8();
-    out += "\r\n";
-    out += "EXT:\r\n";
-    out += "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n";
-    out += "Cache-Control: no-cache\r\n";
-    out += "Connection: close\r\n";
-    out += "\r\n";
-    return out;
-}
-
 bool pathIsStream(const QByteArray &target)
 {
-    return target == "/" || target == "/cast.ts" || target == "/stream.ts";
+    return target == "/" || target == "/cast.ts" || target == "/stream.ts"
+        || target.startsWith("/cast.") || target == "/media" || target.startsWith("/media.");
 }
 
 } // namespace
@@ -62,23 +45,32 @@ QUrl DlnaSession::streamUrl() const
 }
 
 void DlnaSession::start(const SinkDevice &sink, const DisplaySource &source, bool audioEnabled,
-                        GstEncoder *encoder)
+                        GstEncoder *encoder, const MediaSource &media)
 {
     stop();
     m_sink = sink;
     m_source = source;
+    m_media = media;
     m_encoder = encoder;
     m_audioEnabled = audioEnabled;
     m_stopping = false;
-    m_profile = pickDlnaProfile(sink.protocolInfo);
-    applyDlnaOutputMode(&m_profile, dlnaVideoMode(source));
+    if (m_media.isFile())
+        m_profile = pickDlnaFileProfile(sink.protocolInfo, m_media.mime);
+    else {
+        m_profile = pickDlnaProfile(sink.protocolInfo);
+        applyDlnaOutputMode(&m_profile, dlnaVideoMode(source));
+    }
 
     if (sink.protocol != CastProtocol::Dlna || !sink.avTransportUrl.isValid()) {
         fail(tr("This display is not a DLNA renderer."));
         return;
     }
-    if (!encoder) {
+    if (!m_media.isFile() && !encoder) {
         fail(tr("Encoder is missing."));
+        return;
+    }
+    if (m_media.isFile() && !m_media.isValidFile()) {
+        fail(tr("The selected file is missing or unreadable."));
         return;
     }
 
@@ -94,11 +86,17 @@ void DlnaSession::start(const SinkDevice &sink, const DisplaySource &source, boo
         return;
     }
 
-    m_streamUrl = QUrl(QStringLiteral("http://%1:%2/cast.ts")
+    QString leaf = QStringLiteral("cast.ts");
+    if (m_media.isFile()) {
+        const QString suffix = QFileInfo(m_media.path).suffix().toLower();
+        leaf = suffix.isEmpty() ? QStringLiteral("media") : QStringLiteral("cast.%1").arg(suffix);
+    }
+    m_streamUrl = QUrl(QStringLiteral("http://%1:%2/%3")
                            .arg(local.toString())
-                           .arg(m_server.serverPort()));
+                           .arg(m_server.serverPort())
+                           .arg(leaf));
     m_running = true;
-    qInfo() << "DLNA HTTP listening" << m_streamUrl;
+    qInfo() << "DLNA HTTP listening" << m_streamUrl << (m_media.isFile() ? m_media.mime : "live-ts");
     Q_EMIT statusChanged(tr("Offering stream at %1").arg(m_streamUrl.toString()));
     beginControl();
 }
@@ -110,8 +108,11 @@ void DlnaSession::stop()
     m_stopping = true;
     soapStop();
     detachClient();
-    if (m_encoder)
+    if (m_encoder) {
+        if (QIODevice *pipe = m_encoder->tsPipe())
+            disconnect(pipe, &QIODevice::readyRead, this, &DlnaSession::pumpTs);
         m_encoder->stop();
+    }
     m_server.close();
     m_streamUrl.clear();
     m_running = false;
@@ -147,14 +148,18 @@ void DlnaSession::queryProtocolInfo()
                    const QString sinkInfo = parseConnectionManagerSink(body);
                    if (!sinkInfo.isEmpty()) {
                        applyDlnaProtocolInfo(&m_sink, sinkInfo);
-                       m_profile = pickDlnaProfile(sinkInfo);
-                       applyDlnaOutputMode(&m_profile, dlnaVideoMode(m_source));
+                       if (m_media.isFile())
+                           m_profile = pickDlnaFileProfile(sinkInfo, m_media.mime);
+                       else {
+                           m_profile = pickDlnaProfile(sinkInfo);
+                           applyDlnaOutputMode(&m_profile, dlnaVideoMode(m_source));
+                       }
                        qInfo() << "DLNA ProtocolInfo" << m_profile.protocolInfo
                                << dlnaMediaKindKey(m_sink.dlnaMedia)
                                << m_sink.dlnaMediaSummary;
                    }
                } else {
-                   qWarning() << "GetProtocolInfo failed, using default MPEG-TS profile";
+                   qWarning() << "GetProtocolInfo failed, using default profile";
                }
                setUriAndPlay();
            });
@@ -162,12 +167,16 @@ void DlnaSession::queryProtocolInfo()
 
 void DlnaSession::setUriAndPlay()
 {
-    applyDlnaOutputMode(&m_profile, dlnaVideoMode(m_source));
-    if (m_sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely) {
+    if (!m_media.isFile())
+        applyDlnaOutputMode(&m_profile, dlnaVideoMode(m_source));
+    if (!m_media.isFile() && m_sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely) {
         Q_EMIT statusChanged(tr("%1 looks file-only (%2). Live MPEG-TS may fail.")
                                  .arg(m_sink.name, m_sink.dlnaMediaSummary));
     }
-    const QString didl = buildDidlLite(m_streamUrl, m_profile, QStringLiteral("Cast"));
+    const QString title = m_media.isFile() ? m_media.title : QStringLiteral("Cast");
+    const QString didl = buildDidlLite(m_streamUrl, m_profile, title,
+                                       m_media.isFile() ? upnpClassForMedia(m_media.kind)
+                                                        : QString());
     const QString setUri = QStringLiteral(
                                "<InstanceID>0</InstanceID>"
                                "<CurrentURI>%1</CurrentURI>"
@@ -180,7 +189,10 @@ void DlnaSession::setUriAndPlay()
                if (!m_running)
                    return;
                if (!ok) {
-                   if (m_sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely) {
+                   if (m_media.isFile()) {
+                       fail(tr("The TV rejected SetAVTransportURI for this file (%1).")
+                                .arg(m_profile.mime));
+                   } else if (m_sink.dlnaMedia == DlnaMediaKind::FileOnlyLikely) {
                        fail(tr("The TV rejected SetAVTransportURI. It looks file-only (%1), "
                                "not a live MPEG-TS renderer.")
                                 .arg(m_sink.dlnaMediaSummary));
@@ -204,6 +216,8 @@ void DlnaSession::setUriAndPlay()
                           Q_EMIT statusChanged(
                               tr("Waiting for %1 to pull the HTTP stream…").arg(m_sink.name));
                           Q_EMIT playIssued();
+                          if (!m_media.isFile())
+                              startLiveEncoder();
                       });
            });
 }
@@ -282,8 +296,21 @@ void DlnaSession::handleClient(QTcpSocket *socket)
         return;
     }
 
+    const QByteArray headerBlock = peek.left(headerEnd);
+    const HttpByteRange range = m_media.isFile()
+        ? parseHttpByteRange(requestHeaderValue(headerBlock, "Range"), m_media.size)
+        : HttpByteRange{};
+    if (m_media.isFile() && range.specified && !range.valid) {
+        socket->write("HTTP/1.1 416 Range Not Satisfiable\r\nConnection: close\r\n\r\n");
+        socket->disconnectFromHost();
+        return;
+    }
+
+    qInfo() << "DLNA HTTP" << method << target << "from" << socket->peerAddress().toString()
+            << (m_media.isFile() ? "file" : "live-ts");
+
     if (method == "HEAD") {
-        writeHeaders(socket, false);
+        writeHeaders(socket, false, m_media.isFile() ? m_media.size : -1, range);
         socket->disconnectFromHost();
         return;
     }
@@ -298,49 +325,180 @@ void DlnaSession::handleClient(QTcpSocket *socket)
         detachClient();
     }
     m_client = socket;
-    writeHeaders(socket, true);
-    attachEncoder(socket);
+    if (m_media.isFile())
+        serveFile(socket, range);
+    else {
+        writeHeaders(socket, true);
+        attachEncoder(socket);
+    }
 }
 
-void DlnaSession::writeHeaders(QTcpSocket *socket, bool withBodyHint)
+void DlnaSession::writeHeaders(QTcpSocket *socket, bool withBodyHint, qint64 contentLength,
+                               const HttpByteRange &range)
 {
     Q_UNUSED(withBodyHint);
-    socket->write(httpHeaders(m_profile));
+    const bool partial = m_media.isFile() && range.specified && range.valid;
+    QByteArray out;
+    out += partial ? "HTTP/1.1 206 Partial Content\r\n" : "HTTP/1.1 200 OK\r\n";
+    out += "Content-Type: ";
+    out += m_profile.mime.toUtf8();
+    out += "\r\n";
+    out += "Server: ot-cast/0.2\r\n";
+    out += m_media.kind == MediaKind::Image ? "transferMode.dlna.org: Interactive\r\n"
+                                            : "transferMode.dlna.org: Streaming\r\n";
+    out += "contentFeatures.dlna.org: ";
+    out += m_profile.contentFeatures.toUtf8();
+    out += "\r\n";
+    out += "EXT:\r\n";
+    if (!m_media.isFile())
+        out += "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n";
+    if (m_media.isFile()) {
+        out += "Accept-Ranges: bytes\r\n";
+        qint64 length = contentLength;
+        if (partial)
+            length = range.end - range.start + 1;
+        if (length >= 0)
+            out += "Content-Length: " + QByteArray::number(length) + "\r\n";
+        if (partial && m_media.size >= 0) {
+            out += "Content-Range: bytes " + QByteArray::number(range.start) + "-"
+                + QByteArray::number(range.end) + "/" + QByteArray::number(m_media.size)
+                + "\r\n";
+        }
+    }
+    out += "Cache-Control: no-cache\r\n";
+    out += "Connection: close\r\n";
+    out += "\r\n";
+    socket->write(out);
     socket->flush();
+}
+
+QByteArray DlnaSession::requestHeaderValue(const QByteArray &headerBlock, const QByteArray &name) const
+{
+    const QByteArray prefix = name + ":";
+    for (QByteArray line : headerBlock.split('\n')) {
+        line = line.trimmed();
+        if (line.toLower().startsWith(prefix.toLower()))
+            return line.mid(prefix.size()).trimmed();
+    }
+    return {};
+}
+
+void DlnaSession::serveFile(QTcpSocket *socket, const HttpByteRange &range)
+{
+    m_file = std::make_unique<QFile>(m_media.path);
+    if (!m_file->open(QIODevice::ReadOnly)) {
+        socket->write("HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
+        socket->disconnectFromHost();
+        m_file.reset();
+        return;
+    }
+    HttpByteRange used = range;
+    if (!used.specified) {
+        used.start = 0;
+        used.end = m_media.size > 0 ? m_media.size - 1 : -1;
+        used.valid = true;
+    }
+    if (used.start > 0 && !m_file->seek(used.start)) {
+        socket->write("HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
+        socket->disconnectFromHost();
+        m_file.reset();
+        return;
+    }
+    m_fileEnd = used.end;
+    writeHeaders(socket, true, m_media.size, used);
+    Q_EMIT statusChanged(tr("%1 is fetching the file.").arg(m_sink.name));
+    connect(socket, &QTcpSocket::bytesWritten, this, &DlnaSession::onClientBytesWritten,
+            Qt::UniqueConnection);
+    writeFileChunk(socket);
+}
+
+void DlnaSession::writeFileChunk(QTcpSocket *socket)
+{
+    if (!m_file || m_client != socket || socket->state() != QAbstractSocket::ConnectedState)
+        return;
+    if (socket->bytesToWrite() > 256 * 1024)
+        return;
+    if (m_fileEnd >= 0 && m_file->pos() > m_fileEnd) {
+        socket->disconnectFromHost();
+        return;
+    }
+    qint64 chunk = 64 * 1024;
+    if (m_fileEnd >= 0)
+        chunk = qMin(chunk, m_fileEnd - m_file->pos() + 1);
+    if (chunk <= 0) {
+        socket->disconnectFromHost();
+        return;
+    }
+    const QByteArray data = m_file->read(chunk);
+    if (data.isEmpty()) {
+        socket->disconnectFromHost();
+        return;
+    }
+    socket->write(data);
+}
+
+void DlnaSession::startLiveEncoder()
+{
+    if (!m_encoder)
+        return;
+    if (!m_encoder->running()) {
+        Q_EMIT statusChanged(tr("Starting encoder for %1…").arg(m_sink.name));
+        m_encoder->startMpegTsPipe(dlnaVideoMode(m_source), dlnaAudioMode(m_audioEnabled),
+                                   m_source, m_media);
+    }
+    bindTsPipe();
+}
+
+void DlnaSession::bindTsPipe()
+{
+    QIODevice *pipe = m_encoder ? m_encoder->tsPipe() : nullptr;
+    if (!pipe)
+        return;
+    // Qt::UniqueConnection is a no-op for lambdas (Qt 6.5+). Use a member slot.
+    connect(pipe, &QIODevice::readyRead, this, &DlnaSession::pumpTs, Qt::UniqueConnection);
 }
 
 void DlnaSession::attachEncoder(QTcpSocket *socket)
 {
-    if (!m_encoder)
+    startLiveEncoder();
+    connect(socket, &QTcpSocket::bytesWritten, this, &DlnaSession::onClientBytesWritten,
+            Qt::UniqueConnection);
+    pumpTs();
+}
+
+void DlnaSession::pumpTs()
+{
+    if (!m_encoder || !m_client)
         return;
-    Q_EMIT statusChanged(tr("Starting encoder for %1…").arg(m_sink.name));
-    const WfdVideoMode video = dlnaVideoMode(m_source);
-    const WfdAudioMode audio = dlnaAudioMode(m_audioEnabled);
-    m_encoder->startMpegTsPipe(video, audio, m_source);
     QIODevice *pipe = m_encoder->tsPipe();
     if (!pipe)
         return;
-    connect(pipe, &QIODevice::readyRead, socket, [this, socket, pipe]() {
-        if (!m_client || m_client != socket)
-            return;
-        const QByteArray chunk = pipe->readAll();
-        if (chunk.isEmpty())
-            return;
-        if (socket->state() != QAbstractSocket::ConnectedState)
-            return;
-        socket->write(chunk);
-    }, Qt::UniqueConnection);
+    if (m_client->state() != QAbstractSocket::ConnectedState)
+        return;
+    if (m_client->bytesToWrite() > 256 * 1024)
+        return;
+    const QByteArray chunk = pipe->readAll();
+    if (chunk.isEmpty())
+        return;
+    m_client->write(chunk);
+}
+
+void DlnaSession::onClientBytesWritten()
+{
+    if (!m_client)
+        return;
+    if (m_media.isFile())
+        writeFileChunk(m_client);
+    else
+        pumpTs();
 }
 
 void DlnaSession::detachClient()
 {
-    if (m_encoder) {
-        QIODevice *pipe = m_encoder->tsPipe();
-        if (pipe)
-            pipe->disconnect(this);
-        if (m_client)
-            pipe->disconnect(m_client);
-    }
+    if (m_client)
+        disconnect(m_client, &QTcpSocket::bytesWritten, this, &DlnaSession::onClientBytesWritten);
+    m_file.reset();
+    m_fileEnd = -1;
     m_client = nullptr;
 }
 

@@ -24,4 +24,6 @@ WFD says the **sink** opens TCP 7236 to the source. Many Android / MediaTek sink
 
 Audio prefers AAC-LC. If the sink lists only LPCM, Cast sends 16-bit stereo LPCM in the same MPEG-TS (48 kHz `pcm_bluray` when the sink sets LPCM bit 1; 44.1 kHz `pcm_s16be` when it only sets bit 0). Xiaomi Pad 7S Pro 12.5 advertised `LPCM 00000002 00` (48 kHz stereo, no AAC).
 
+A local video, photo, or audio file can replace the monitor: ffmpeg reads the file (`-re`, or `-loop 1` for stills; audio-only gets a black H.264 canvas) and muxes into the same RTP session. There is no DLNA-style file URI on WFD.
+
 Details: [../architecture.md](../architecture.md), [../platform/x11.md](../platform/x11.md).
