@@ -52,11 +52,11 @@ Typical open-source **WFD** senders land around **~200 ms–1 s**. DLNA live pul
 
 Audio is extra work: AAC (or the sink’s codec), clock sync, and a capture source (PulseAudio / PipeWire). Video-only is still valid.
 
-On **Miracast**, the app sends AAC-LC only when the user enables system audio **and** the sink lists AAC in `wfd_audio_codecs`. Otherwise the WFD session stays video-only.
+On **Miracast**, the app sends audio when the user enables system audio **and** the sink lists a codec we mux: **AAC-LC** if present, otherwise **LPCM** (44.1 or 48 kHz stereo). Otherwise the WFD session stays video-only.
 
 On **DLNA**, there is no WFD codec bitmap. Audio is whatever the HTTP container and the renderer’s `ProtocolInfo` allow (AAC in MPEG-TS is the first try). Sync is the TV’s clock.
 
-GNOME Network Displays is one of the few Linux senders that attempts synchronized audio. This app follows that path (Pulse monitor + AAC in the same MPEG-TS). MiracleCast-style tools often skip audio or route it separately.
+GNOME Network Displays is one of the few Linux senders that attempts synchronized audio, but it still muxes AAC only. This app follows that Pulse monitor + MPEG-TS path and adds LPCM when the sink has no AAC (Xiaomi Pad 7S Pro 12.5, EZCast-style dongles).
 
 ## 6. Wrong base: MiracleCast
 

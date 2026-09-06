@@ -76,20 +76,20 @@ bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpP
         && gstHasElement(QStringLiteral("h264parse"))
         && gstHasElement(QStringLiteral("ximagesrc"))
         && gstHasElement(QStringLiteral("x264enc"));
-    const bool gstAudio = wantAudio && !monitor.isEmpty()
+    const bool gstAac = wantAudio && m_audio.codec == WfdAudioMode::Codec::Aac && !monitor.isEmpty()
         && gstHasElement(QStringLiteral("pulsesrc"))
         && gstHasElement(QStringLiteral("audioconvert"))
         && gstHasElement(QStringLiteral("audioresample"))
         && gstHasElement(QStringLiteral("aacparse"))
         && !gstAacEncoder().isEmpty();
 
-    if (gstVideo && (!wantAudio || gstAudio || monitor.isEmpty())) {
-        if (startGst(sink, sinkIp, rtpPort, gstAudio))
+    if (gstVideo && (!wantAudio || gstAac || monitor.isEmpty())) {
+        if (startGst(sink, sinkIp, rtpPort, gstAac))
             return true;
     } else if (!gstVideo) {
         qWarning() << "GStreamer mpegtsmux/h264parse unavailable, using ffmpeg";
     } else {
-        qWarning() << "GStreamer AAC path unavailable, using ffmpeg for A/V";
+        qWarning() << "GStreamer audio path unavailable, using ffmpeg for A/V";
     }
 
     if (startFfmpeg(sink, sinkIp, rtpPort, wantAudio && !monitor.isEmpty()))
@@ -300,11 +300,19 @@ bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort
          << QStringLiteral("-b:v") << QStringLiteral("%1k").arg(videoBitrateKbps());
 
     if (m_audioActive) {
-        args << QStringLiteral("-c:a") << QStringLiteral("aac")
-             << QStringLiteral("-ar") << QString::number(m_audio.rate)
+        args << QStringLiteral("-ar") << QString::number(m_audio.rate)
              << QStringLiteral("-ac") << QStringLiteral("2")
-             << QStringLiteral("-b:a") << QStringLiteral("128k")
              << QStringLiteral("-af") << QStringLiteral("aresample=async=1:first_pts=0");
+        if (m_audio.codec == WfdAudioMode::Codec::Lpcm) {
+            // 48 kHz WFD LPCM is HDMV/Blu-ray PCM in MPEG-TS. pcm_bluray does not
+            // accept 44.1 kHz, so that rate uses raw big-endian PCM.
+            args << QStringLiteral("-c:a")
+                 << (m_audio.rate == 44100 ? QStringLiteral("pcm_s16be")
+                                           : QStringLiteral("pcm_bluray"));
+        } else {
+            args << QStringLiteral("-c:a") << QStringLiteral("aac")
+                 << QStringLiteral("-b:a") << QStringLiteral("128k");
+        }
     } else {
         args << QStringLiteral("-an");
     }

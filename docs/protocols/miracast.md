@@ -22,4 +22,6 @@ X11 grab uses **physical** pixels (`QScreen::geometry() × devicePixelRatio()`).
 
 WFD says the **sink** opens TCP 7236 to the source. Many Android / MediaTek sinks become P2P GO and instead wait for the source to dial **GO:7236**. After the group is up Cast still listens, and also tries the peer/gateway IPv4.
 
+Audio prefers AAC-LC. If the sink lists only LPCM, Cast sends 16-bit stereo LPCM in the same MPEG-TS (48 kHz `pcm_bluray` when the sink sets LPCM bit 1; 44.1 kHz `pcm_s16be` when it only sets bit 0). Xiaomi Pad 7S Pro 12.5 advertised `LPCM 00000002 00` (48 kHz stereo, no AAC).
+
 Details: [../architecture.md](../architecture.md), [../platform/x11.md](../platform/x11.md).

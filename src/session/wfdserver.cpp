@@ -256,6 +256,13 @@ void WfdSession::parseSinkParams(const QByteArray &body)
     m_audio = selectWfdAudioMode(body, m_audioWanted);
     qInfo() << "WFD sink RTP port" << m_rtpPort << "video" << m_video.description()
             << "audio" << m_audio.description();
+    if (m_audioWanted && !m_audio.enabled()) {
+        for (QByteArray line : body.split('\n')) {
+            line = line.trimmed();
+            if (line.contains("wfd_audio"))
+                qWarning() << "WFD sink has no AAC or LPCM, video only:" << line;
+        }
+    }
 }
 
 WfdServer::WfdServer(QObject *parent)

@@ -31,7 +31,7 @@ DTK conventions: `~/.agents/skills/deepin-skills/dtk-development/SKILL.md` and i
 - Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, UPnP/SSDP, mDNS, TCP 7250, or GStreamer APIs directly. The DDE tray plugin is UI only: it calls the `ot-cast` D-Bus API, never CastEngine internals.
 - True Miracast is **WFD** (RTSP :7236 + RTP): Wi-Fi Direct **or** MS-MICE on the LAN. That is not “same LAN then HTTP.” DLNA is allowed as an **explicit** backend. Do not label a DMR as Miracast. Do not add Chromecast under either name.
 - Do not claim universal sink support or “low latency” without a measured row in [docs/devices.md](docs/devices.md).
-- Video-only is still valid. AAC-LC is sent when the user enables system audio **and** the path allows it (WFD: sink lists AAC; DLNA: AAC in MPEG-TS).
+- Video-only is still valid. System audio is sent when the user enables it **and** the path allows it (WFD: AAC-LC if the sink lists AAC, else LPCM; DLNA: AAC in MPEG-TS).
 
 ## DTK / engineering
 

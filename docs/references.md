@@ -21,6 +21,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Closest production open-source sender. Miracast + Chromecast (not DLNA). PipeWire portal, X11 fallback, NetworkManager P2P, MS-MICE since 0.91. Still described as experimental. |
 | [MiracleCast](https://github.com/albfan/miraclecast) | Low-level WFD toolkit. Poor desktop fit (often needs NM/wpa stopped). Do not use as the app base. |
 | [FluxCast](https://github.com/IlyaP358/fluxcast) | Newer Python WFD client; native wlroots path, ~1 s latency reported. Useful as a protocol reference, not as the DTK UI. |
+| [Intel wds](https://github.com/intel/wds) | Archived WFD RTSP library. LPCM bit 0 = 44.1 kHz, bit 1 = 48 kHz (AAC bits are reversed). |
 
 ## System pieces
 
@@ -65,7 +66,7 @@ Live desktop over DMR is HTTP pull, not WFD RTP. See [protocols/dlna.md](protoco
 - GNOME Network Displays README: stream the selected monitor if the mutter screencast portal is available; otherwise fall back to X11 frame grabbing.
 - Arch Wiki XDG Desktop Portal table (verify when targeting a DDE release): `xdg-desktop-portal-dde` Screenshot yes, ScreenCast historically no.
 - X11 `ximagesrc` lives in `gstreamer1.0-plugins-good`. Missing that plugin is a common “fallback to X11 failed” cause.
-- WFD `wfd_audio_codecs` AAC bit 0 is 48 kHz stereo; bit 1 is 44.1 kHz. This sender muxes AAC-LC into MPEG-TS and skips audio when the sink lists only LPCM.
+- WFD `wfd_audio_codecs` AAC bit 0 is 48 kHz stereo; bit 1 is 44.1 kHz. LPCM is the other way around (bit 0 = 44.1 kHz, bit 1 = 48 kHz). This sender muxes AAC-LC when the sink lists AAC, otherwise LPCM (`pcm_bluray` at 48 kHz, `pcm_s16be` at 44.1 kHz).
 - Multi-monitor: crop the selected `QScreen` after converting DIP `geometry()` to X11 physical pixels (`devicePixelRatio()`); do not grab the virtual union of all outputs.
 
 ## Related local docs
@@ -247,3 +248,8 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-08-30 | Wi-Fi Display RTSP role | Sink should connect to source:7236; MediaTek GO often waits instead | `src/session/wfdserver.cpp` `WfdServer::dial`; `src/engine/castengine.cpp` `onP2PActivated` |
 | 2026-08-30 | `docs/devices.md` How to test | Measured Xiaomi Pad 7S Pro 12.5 P2P-client, no RTSP | [devices.md](devices.md) Miracast table |
 | 2026-08-30 | [wpa_supplicant D-Bus WPS `DeviceName`](https://w1.fi/wpa_supplicant/devel/dbus.html) | Empty WPS name → Xiaomi prompt `Sender: `; set to hostname | `src/discovery/p2pdiscovery.cpp` `tryAdvertiseSourceName` |
+| 2026-09-06 | `docs/constraints.md` §5 Audio | WFD: AAC-LC if listed, else LPCM; video-only if neither | `src/session/wfdaudiomode.cpp` `selectWfdAudioMode`; `src/session/gstencoder.cpp` `startFfmpeg` |
+| 2026-09-06 | [Intel wds `audio_codec.h`](https://github.com/intel/wds/blob/master/libwds/public/audio_codec.h) / Android `WifiDisplaySource` | LPCM bit 0 = 44.1 kHz, bit 1 = 48 kHz (`00000002`); AAC bits are the other way | `src/session/wfdaudiomode.cpp` `kLpcm441k` / `kLpcm48k` |
+| 2026-09-06 | ffmpeg `pcm_bluray` / `pcm_s16be` | 48 kHz WFD LPCM as HDMV PCM in MPEG-TS; 44.1 kHz cannot use `pcm_bluray` | `src/session/gstencoder.cpp` `GstEncoder::startFfmpeg` |
+| 2026-09-06 | [GNOME Network Displays README](https://github.com/GNOME/gnome-network-displays) | EZCast LPCM-only still unsupported there; Cast muxes LPCM as fallback | [constraints.md](constraints.md) §5; [protocols/miracast.md](protocols/miracast.md) |
+| 2026-09-06 | `docs/devices.md` How to test | Xiaomi Pad `LPCM 00000002 00`; live `ffmpeg -c:a pcm_bluray` streaming | [devices.md](devices.md) Miracast table |

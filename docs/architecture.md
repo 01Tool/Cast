@@ -38,7 +38,7 @@ Responsibilities:
 - Session status (searching, connecting, mirroring, failed)
 - Optional: remember last sink (DConfig)
 - Choose which monitor to mirror
-- Toggle system audio (AAC when the sink supports it)
+- Toggle system audio (AAC or LPCM when the sink lists them)
 
 The window talks only to `CastEngine` signals and slots. The DDE quick-panel plugin talks only to the session D-Bus API that `ot-cast` exports (`com.ot01tool.Cast`). Neither UI opens NetworkManager, GStreamer, portal, or UPnP connections.
 

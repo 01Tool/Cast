@@ -17,8 +17,17 @@ static void expectAac(const char *name, const WfdAudioMode &mode, int rate)
 {
     if (mode.enabled() && mode.codec == WfdAudioMode::Codec::Aac && mode.rate == rate)
         return;
-    std::fprintf(stderr, "FAIL %s: got enabled=%d rate=%d want AAC %d\n", name,
-                 int(mode.enabled()), mode.rate, rate);
+    std::fprintf(stderr, "FAIL %s: got enabled=%d codec=%d rate=%d want AAC %d\n", name,
+                 int(mode.enabled()), int(mode.codec), mode.rate, rate);
+    ++g_failed;
+}
+
+static void expectLpcm(const char *name, const WfdAudioMode &mode, int rate)
+{
+    if (mode.enabled() && mode.codec == WfdAudioMode::Codec::Lpcm && mode.rate == rate)
+        return;
+    std::fprintf(stderr, "FAIL %s: got enabled=%d codec=%d rate=%d want LPCM %d\n", name,
+                 int(mode.enabled()), int(mode.codec), mode.rate, rate);
     ++g_failed;
 }
 
@@ -34,8 +43,8 @@ int main()
 {
     expectNone("disabled", selectWfdAudioMode("wfd_audio_codecs: AAC 00000001 00", false));
     expectNone("none", selectWfdAudioMode("wfd_audio_codecs: none", true));
-    expectNone("lpcm only",
-               selectWfdAudioMode("wfd_audio_codecs: LPCM 00000003 00", true));
+    expectNone("ac3 only",
+               selectWfdAudioMode("wfd_audio_codecs: AC3 00000007 00", true));
     expectAac("aac 48k",
               selectWfdAudioMode("wfd_audio_codecs: AAC 00000001 00", true), 48000);
     expectAac("aac after lpcm",
@@ -45,10 +54,22 @@ int main()
               selectWfdAudioMode("wfd_audio_codecs: AAC 00000002 00", true), 44100);
     expectAac("prefer 48k when both",
               selectWfdAudioMode("wfd_audio_codecs: AAC 00000003 00", true), 48000);
+    expectLpcm("lpcm 44.1 only",
+               selectWfdAudioMode("wfd_audio_codecs: LPCM 00000001 00", true), 44100);
+    expectLpcm("lpcm 48k only",
+               selectWfdAudioMode("wfd_audio_codecs: LPCM 00000002 00", true), 48000);
+    expectLpcm("lpcm prefer 48k",
+               selectWfdAudioMode("wfd_audio_codecs: LPCM 00000003 00", true), 48000);
+    expectLpcm("xiaomi pad",
+               selectWfdAudioMode("wfd_audio_codecs: LPCM 00000002 00", true), 48000);
 
     const WfdAudioMode aac48 = selectWfdAudioMode("AAC 00000001 00", true);
     expectContains("set-parameter 48k", aac48.codecsParameter(), "00000001");
-    expectContains("source caps", wfdSourceAudioParameter(), "AAC 00000001 00");
+    const WfdAudioMode lpcm48 = selectWfdAudioMode("LPCM 00000002 00", true);
+    expectContains("set-parameter lpcm 48k", lpcm48.codecsParameter(), "LPCM");
+    expectContains("set-parameter lpcm 48k bit", lpcm48.codecsParameter(), "00000002");
+    expectContains("source caps aac", wfdSourceAudioParameter(), "AAC 00000001 00");
+    expectContains("source caps lpcm", wfdSourceAudioParameter(), "LPCM 00000003 00");
 
     if (g_failed) {
         std::fprintf(stderr, "%d check(s) failed\n", g_failed);
