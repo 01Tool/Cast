@@ -140,6 +140,14 @@ target_include_directories(dbus-check PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(dbus-check PRIVATE Qt6::Core)
+
+add_executable(portal-check
+    tests/portal-check.cpp
+)
+target_include_directories(portal-check PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(portal-check PRIVATE Qt6::Core)
 endif()
 
 if(BUILD_APP)

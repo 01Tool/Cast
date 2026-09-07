@@ -238,9 +238,16 @@ void CastEngine::connectToSink(const QString &id)
             failSession(tr("No capture backend for this session."));
             return;
         }
+        setStatusMessage(tr("Select a screen to share…"));
         if (!m_capture->start(m_sessionSource)) {
             failSession(m_capture->lastError());
             return;
+        }
+        m_sessionSource.pipewireFd = m_capture->pipewireFd();
+        m_sessionSource.pipewireNode = m_capture->pipewireNode();
+        if (m_capture->streamWidth() > 0 && m_capture->streamHeight() > 0) {
+            m_sessionSource.width = m_capture->streamWidth();
+            m_sessionSource.height = m_capture->streamHeight();
         }
     }
 

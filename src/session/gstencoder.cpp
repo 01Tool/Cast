@@ -1,7 +1,12 @@
 #include "session/gstencoder.h"
 
+#include "capture/screencastportal.h"
+
 #include <QDebug>
 #include <QStandardPaths>
+
+#include <fcntl.h>
+#include <unistd.h>
 
 GstEncoder::GstEncoder(QObject *parent)
     : QObject(parent)
@@ -83,6 +88,32 @@ bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpP
         if (m_lastError.isEmpty())
             m_lastError = tr("Could not encode the selected file.");
         return false;
+    }
+
+    const bool pipewire = m_source.pipewireFd >= 0;
+    if (pipewire) {
+        const bool gstPw = gstHasElement(QStringLiteral("mpegtsmux"))
+            && gstHasElement(QStringLiteral("h264parse"))
+            && gstHasElement(QStringLiteral("pipewiresrc"))
+            && gstHasElement(QStringLiteral("x264enc"));
+        if (!gstPw) {
+            m_lastError = tr("Wayland capture needs GStreamer pipewiresrc "
+                             "(package gstreamer1.0-pipewire) and mpegtsmux.");
+            return false;
+        }
+        const bool wantAudio = m_audio.enabled();
+        const QString monitor = wantAudio ? desktopPulseMonitor() : QString();
+        bool gstAac = wantAudio && m_audio.codec == WfdAudioMode::Codec::Aac && !monitor.isEmpty()
+            && gstHasElement(QStringLiteral("pulsesrc"))
+            && gstHasElement(QStringLiteral("audioconvert"))
+            && gstHasElement(QStringLiteral("audioresample"))
+            && gstHasElement(QStringLiteral("aacparse"))
+            && !gstAacEncoder().isEmpty();
+        if (wantAudio && !gstAac) {
+            m_audioNote = tr("no AAC on this path, video only");
+            qWarning() << m_audioNote;
+        }
+        return startGst(sink, sinkIp, rtpPort, gstAac);
     }
 
     const bool wantAudio = m_audio.enabled();
@@ -201,6 +232,32 @@ QString GstEncoder::ximagesrcElement() const
     return element;
 }
 
+QString GstEncoder::videoSourceElement() const
+{
+    if (m_source.pipewireFd >= 0) {
+        return QStringLiteral("pipewiresrc fd=%1 path=%2 do-timestamp=true keepalive-time=1000")
+            .arg(ScreenCastPortal::gstPipeWireFd)
+            .arg(m_source.pipewireNode);
+    }
+    return ximagesrcElement();
+}
+
+void GstEncoder::attachPipeWireFd()
+{
+    m_process.setChildProcessModifier({});
+    const int srcFd = m_source.pipewireFd;
+    if (srcFd < 0)
+        return;
+    ::fcntl(srcFd, F_SETFD, 0);
+    m_process.setChildProcessModifier([srcFd]() {
+        if (srcFd != ScreenCastPortal::gstPipeWireFd) {
+            if (::dup2(srcFd, ScreenCastPortal::gstPipeWireFd) == -1)
+                ::_exit(127);
+        }
+        ::fcntl(ScreenCastPortal::gstPipeWireFd, F_SETFD, 0);
+    });
+}
+
 bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio)
 {
     const QString launch = QStandardPaths::findExecutable(QStringLiteral("gst-launch-1.0"));
@@ -208,7 +265,7 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
         return false;
 
     const QString monitor = withAudio ? desktopPulseMonitor() : QString();
-    const QString grab = ximagesrcElement();
+    const QString grab = videoSourceElement();
     const QString tsOut = (sink == TsSink::Stdout)
         ? QStringLiteral("fdsink fd=1 sync=false")
         : QStringLiteral("rtpmp2tpay pt=33 ! udpsink host=%1 port=%2 sync=false")
@@ -262,6 +319,7 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
     }
 
     qInfo() << "gst-launch" << pipeline;
+    attachPipeWireFd();
     m_process.start(launch, QStringList{QStringLiteral("-e"), QStringLiteral("-q"), pipeline});
     if (!m_process.waitForStarted(3000)) {
         m_lastError = tr("gst-launch-1.0 failed to start.");
@@ -311,6 +369,9 @@ bool GstEncoder::startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort
                 args << QStringLiteral("-map") << QStringLiteral("0:a:0?");
             m_audioActive = withAudio;
         }
+    } else if (m_source.pipewireFd >= 0) {
+        m_lastError = tr("ffmpeg cannot consume a PipeWire ScreenCast fd. Need gst-launch pipewiresrc.");
+        return false;
     } else {
         const QString display = qEnvironmentVariable("DISPLAY", QStringLiteral(":0"));
         const QString monitor = withAudio ? desktopPulseMonitor() : QString();
@@ -372,6 +433,7 @@ void GstEncoder::stop()
 {
     m_running = false;
     m_audioActive = false;
+    m_process.setChildProcessModifier({});
     if (m_process.state() == QProcess::NotRunning)
         return;
     m_process.terminate();

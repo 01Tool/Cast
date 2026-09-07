@@ -47,6 +47,8 @@ private:
     QString gstAacEncoder() const;
     QString desktopPulseMonitor() const;
     QString ximagesrcElement() const;
+    QString videoSourceElement() const;
+    void attachPipeWireFd();
     enum class TsSink { Rtp, Stdout };
 
     bool prepare(const WfdVideoMode &video, const WfdAudioMode &audio, const DisplaySource &source,

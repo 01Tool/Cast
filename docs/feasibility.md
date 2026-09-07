@@ -56,7 +56,7 @@ Those pieces do **not** cover DLNA. GNOME Network Displays (and the Deepin fork)
 ## X11 vs Wayland in one sentence
 
 - **X11:** the feature can work today with known Linux sender techniques.
-- **Wayland / Treeland:** only if the compositor (via `xdg-desktop-portal` ScreenCast → PipeWire, or an equivalent capture protocol) can share the screen. Falling back to X11 grab inside a Wayland session is not Wayland support.
+- **Wayland / Treeland:** `org.freedesktop.portal.ScreenCast` → PipeWire. Falling back to X11 grab inside a Wayland session is not Wayland support.
 
 Details: [platform/x11.md](platform/x11.md), [platform/wayland.md](platform/wayland.md).
 
@@ -67,7 +67,7 @@ Details: [platform/x11.md](platform/x11.md), [platform/wayland.md](platform/wayl
 | DTK app that looks native on DDE | Yes |
 | Mirror to many Miracast TVs/dongles on **X11** | Yes, with hardware caveats |
 | Reach TVs that only do **DLNA DMR** well | Yes, as a labeled same-LAN backend |
-| Same capture on **Wayland / Treeland** | Only after ScreenCast (or equivalent) exists |
+| Same capture on **Wayland / Treeland** | Via `org.freedesktop.portal.ScreenCast` (Treeland through xdg-desktop-portal-dde) |
 | One binary, both sessions, degrade gracefully | Yes — that should be the design |
 | Windows-quality “it just works” on every sink | No, not with current Linux WFD; DLNA is the fallback, not a guarantee |
 

@@ -33,7 +33,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | PipeWire + WirePlumber | Wayland (and modern X11) audio/video capture |
 | PulseAudio / `pipewire-pulse` | Default-sink `.monitor` for system audio |
 | Qt 6.5+ `QObject::connect` | `Qt::UniqueConnection` with a lambda does not connect ([QTBUG-115125](https://bugreports.qt.io/browse/QTBUG-115125)) |
-| `xdg-desktop-portal` | ScreenCast session on Wayland |
+| `xdg-desktop-portal` | ScreenCast session on Wayland (`CreateSession` / `SelectSources` / `Start` / `OpenPipeWireRemote`) |
 | SSDP / UPnP AV / DLNA DMR | Same-LAN discovery (`MediaRenderer:1`) and `AVTransport` Play |
 | MS-MICE TCP 7250 | Windows Connect / Android same-LAN Miracast; then WFD RTSP :7236 |
 | mDNS `_display._tcp` | MS-MICE sink advertisement (TXT `p2pMAC`) |
@@ -79,7 +79,7 @@ Live desktop over DMR is HTTP pull, not WFD RTP. See [protocols/dlna.md](protoco
 ## Capture notes
 
 - GNOME Network Displays README: stream the selected monitor if the mutter screencast portal is available; otherwise fall back to X11 frame grabbing.
-- Arch Wiki XDG Desktop Portal table (verify when targeting a DDE release): `xdg-desktop-portal-dde` Screenshot yes, ScreenCast historically no.
+- Arch Wiki XDG Desktop Portal table: `xdg-desktop-portal-dde` Screenshot yes; **ScreenCast is listed on deepin V25** (`dde.portal` and `libxdg-desktop-portal-dde-wayland.so`). Confirm frames on Treeland.
 - X11 `ximagesrc` lives in `gstreamer1.0-plugins-good`. Missing that plugin is a common “fallback to X11 failed” cause.
 - WFD `wfd_audio_codecs` AAC bit 0 is 48 kHz stereo; bit 1 is 44.1 kHz. LPCM is the other way around (bit 0 = 44.1 kHz, bit 1 = 48 kHz). This sender muxes AAC-LC when the sink lists AAC, otherwise LPCM (`pcm_bluray` at 48 kHz, `pcm_s16be` at 44.1 kHz).
 - Multi-monitor: crop the selected `QScreen` after converting DIP `geometry()` to X11 physical pixels (`devicePixelRatio()`); do not grab the virtual union of all outputs.
@@ -314,5 +314,15 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-07 | [GNOME Network Displays `nd-wfd-p2p-sink.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/nd-wfd-p2p-sink.c) | Firewall zone for inbound 7236 on P2P | [constraints.md](constraints.md) §7 P2P row |
 | 2026-09-07 | `docs/constraints.md` §7 | Port table + D-Bus allowlist + residual risk | [README.md](../README.md) runtime extras; [architecture.md](architecture.md) UI |
 | 2026-09-07 | GNU coreutils `sha256sum(1)` | `sha256sum FILE > SHA256SUMS`; `sha256sum -c SHA256SUMS` | `.github/workflows/release.yml` archive step / `files` |
+| 2026-09-07 | [xdg-desktop-portal ScreenCast](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html) | `CreateSession` / `SelectSources` / `Start` / `OpenPipeWireRemote`; request path SENDER/TOKEN | `src/capture/portalcapture.cpp`; `src/capture/screencastportal.h` |
+| 2026-09-07 | `/usr/share/xdg-desktop-portal/portals/dde.portal` | V25 lists `org.freedesktop.impl.portal.ScreenCast` | [platform/wayland.md](platform/wayland.md) DDE status |
+| 2026-09-07 | `libxdg-desktop-portal-dde-wayland.so` | `ScreencastPortalWayland`, `TreeLandCaptureManager`, PipeWire | [platform/wayland.md](platform/wayland.md); do not bind Treeland from Cast |
+| 2026-09-07 | [GNOME Network Displays](https://gitlab.gnome.org/GNOME/gnome-network-displays) | Portal + PipeWire, not X11 grab on Wayland | `src/capture/portalcapture.cpp`; `src/session/gstencoder.cpp` `pipewiresrc` |
+| 2026-09-07 | GStreamer `pipewiresrc` | `fd` + `path` (node id) from the portal remote | `src/session/gstencoder.cpp` `videoSourceElement` / `attachPipeWireFd` |
+| 2026-09-07 | [Qt `QProcess::setChildProcessModifier`](https://doc.qt.io/qt-6/qprocess.html#setChildProcessModifier) | Inherit PipeWire fd as 3 for gst-launch | `src/session/gstencoder.cpp` `attachPipeWireFd` |
+| 2026-09-07 | [Qt `QDBusUnixFileDescriptor`](https://doc.qt.io/qt-6/qdbusunixfiledescriptor.html) | Dup the portal fd; do not steal the QDBus wrapper | `src/capture/portalcapture.cpp` `openPipeWireRemote` |
+| 2026-09-07 | `docs/platform/wayland.md` | No X11 grab on Wayland; portal then pipewiresrc | `src/capture/portalcapture.cpp` `start`; `src/engine/castengine.cpp` `connectToSink` |
+| 2026-09-07 | `AGENTS.md` Product facts | Never X11-grab on Wayland; widgets off portal D-Bus | `src/capture/portalcapture.cpp`; [architecture.md](architecture.md) Capture |
+| 2026-09-07 | `gstreamer1.0-pipewire` | Runtime for `pipewiresrc` | `debian/control` Recommends |
 | 2026-09-07 | [softprops/action-gh-release](https://github.com/softprops/action-gh-release) | `files` newline list; `fail_on_unmatched_files` | `.github/workflows/release.yml` Publish GitHub Release |
 | 2026-09-07 | [README.md](../README.md) Release | Source tarball only until Deepin builders exist | `.github/workflows/release.yml` body; this file |

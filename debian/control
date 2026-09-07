@@ -33,6 +33,8 @@ Recommends:
  gstreamer1.0-plugins-good,
  gstreamer1.0-plugins-bad,
  gstreamer1.0-libav,
+ gstreamer1.0-pipewire,
+ xdg-desktop-portal,
  pipewire-pulse | pulseaudio,
 Description: Cast a desktop to Miracast and other wireless displays
  A DTK6 app from 01tool that discovers Wi-Fi Display sinks over
@@ -44,8 +46,8 @@ Description: Cast a desktop to Miracast and other wireless displays
  DDE quick-panel plugin can scan and connect through the running
  app over D-Bus.
  .
- Screen mirroring in this cut is X11. Wayland / Treeland capture
- is stubbed. Native builds follow Architecture: any (amd64, arm64,
- or loong64 on that host).
+ Screen mirroring is X11 grab, or the ScreenCast portal on
+ Wayland / Treeland. Native builds follow Architecture: any
+ (amd64, arm64, or loong64 on that host).
  .
  This is not an official Deepin / DDE component.

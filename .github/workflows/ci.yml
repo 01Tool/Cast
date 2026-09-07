@@ -34,6 +34,7 @@ jobs:
           ./build/displaysource-check
           ./build/dlna-check
           ./build/dbus-check
+          ./build/portal-check
 
   debian-source:
     name: Debian source sanity

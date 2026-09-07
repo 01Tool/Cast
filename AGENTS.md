@@ -26,7 +26,7 @@ DTK conventions: `~/.agents/skills/deepin-skills/dtk-development/SKILL.md` and i
 - **DTK is the UI only.** Discovery, P2P, MS-MICE, WFD/RTSP, UPnP, capture, encode, and send live in `CastEngine` and backends — not in widgets.
 - **Reuse**, do not rewrite WFD. Start from `linuxdeepin/deepin-network-displays` / GNOME Network Displays. Do **not** base the desktop app on MiracleCast.
 - **One binary, two capture backends.** Detect the session with `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform`.
-- **X11 first.** Implement `X11Capture`. Stub `PortalCapture` until DDE ScreenCast (or equivalent) exists.
+- **X11 first.** Implement `X11Capture`. `PortalCapture` uses `org.freedesktop.portal.ScreenCast` (Treeland via `xdg-desktop-portal-dde`), not Treeland protocols from the app.
 - **Never X11-grab on Wayland.** That only sees XWayland windows. Fail with a clear error if ScreenCast is missing.
 - Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, UPnP/SSDP, mDNS, TCP 7250, or GStreamer APIs directly. The DDE tray plugin is UI only: it calls the `ot-cast` D-Bus API, never CastEngine internals.
 - True Miracast is **WFD** (RTSP :7236 + RTP): Wi-Fi Direct **or** MS-MICE on the LAN. That is not “same LAN then HTTP.” DLNA is allowed as an **explicit** backend. Do not label a DMR as Miracast. Do not add Chromecast under either name.
