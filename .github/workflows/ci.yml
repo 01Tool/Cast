@@ -45,6 +45,17 @@ jobs:
           test -x debian/rules
           grep -q 'debhelper-compat (= 13)' debian/control
           grep -q 'libdtk6widget-dev' debian/control
+          grep -q 'Architecture: any' debian/control
           grep -q 'com.01tool.cast.desktop' CMakeLists.txt
           test -f data/com.01tool.cast.desktop
           desktop-file-validate data/com.01tool.cast.desktop || true
+          test -f LICENSE
+          grep -q 'GNU GENERAL PUBLIC LICENSE' LICENSE
+          grep -q 'Source: https://github.com/01Tool/Cast' debian/copyright
+          grep -q 'GPL-3.0-or-later' debian/copyright
+          CMAKE_VERSION="$(sed -n 's/^project(ot-cast VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+          CHANGELOG_VERSION="$(sed -n 's/^ot-cast (\([^)]*\)).*/\1/p' debian/changelog | head -1)"
+          APP_VERSION="$(sed -n 's/.*setApplicationVersion(QStringLiteral("\([0-9.]*\)").*/\1/p' src/main.cpp)"
+          test -n "${CMAKE_VERSION}"
+          test "${CMAKE_VERSION}" = "${CHANGELOG_VERSION}"
+          test "${CMAKE_VERSION}" = "${APP_VERSION}"

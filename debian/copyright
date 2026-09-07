@@ -1,11 +1,18 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: ot-cast
 Upstream-Contact: Playhi <000902play@gmail.com>
-Source: https://github.com/01Tool/Miracast
+Source: https://github.com/01Tool/Cast
 
 Files: *
 Copyright: 2026 The ot-cast contributors
 License: GPL-3+
+Comment: SPDX-License-Identifier: GPL-3.0-or-later
+
+Files: LICENSE
+Copyright: 2007 Free Software Foundation, Inc. <https://fsf.org/>
+License: GPL-3+
+Comment: Verbatim GNU GPL version 3 text. The program (Files: *) is
+ copyright the ot-cast contributors under the same license.
 
 License: GPL-3+
  This program is free software: you can redistribute it and/or modify
@@ -18,5 +25,9 @@ License: GPL-3+
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
  .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ .
  On Debian systems, the complete text of the GNU General Public
  License version 3 can be found in "/usr/share/common-licenses/GPL-3".
+ The same text is in LICENSE at the source root.

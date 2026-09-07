@@ -39,6 +39,16 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | mDNS `_display._tcp` | MS-MICE sink advertisement (TXT `p2pMAC`) |
 | GUPnP / GSSDP / gupnp-av | Optional C stack; first cut uses Qt Network instead |
 
+## Packaging / license
+
+| Document | Role |
+|----------|------|
+| [GNU GPL version 3](https://www.gnu.org/licenses/gpl-3.0.txt) | Verbatim license text. This project uses **GPL-3.0-or-later**. |
+| [Debian copyright-format 1.0](https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/) | `debian/copyright` machine-readable fields (`Source`, `License: GPL-3+`). |
+| [01Tool/Cast](https://github.com/01Tool/Cast) | Canonical git remote and Debian `Source` / `Vcs-*` URL. Not `01Tool/Miracast`. |
+| [Debian Policy: Vcs-Git / Vcs-Browser](https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-vcs-fields) | Point the source package at the public VCS. |
+| [SPDX GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html) | Identifier that matches `License: GPL-3+` (“or any later version”). |
+
 ## Microsoft
 
 | Document | Role |
@@ -273,3 +283,13 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-06 | `CMakeLists.txt` `project(ot-cast VERSION …)` | Release workflow matches the tag to CMake and debian/changelog | `CMakeLists.txt`; `src/main.cpp` `setApplicationVersion` |
 | 2026-09-06 | `.github/workflows/release.yml` | Tag `v*` publishes a source tarball after protocol checks | this file; [README.md](../README.md) Release |
 | 2026-09-06 | `git log v0.2.0..HEAD` | 0.3.0 notes: file cast, WFD LPCM, live TS pipe | `debian/changelog`; [README.md](../README.md) Release |
+| 2026-09-07 | [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt) | Verbatim license text; “or any later version” in How to Apply | `LICENSE`; `debian/copyright` `License: GPL-3+` |
+| 2026-09-07 | [SPDX GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html) | Identifier for GPL-3+ | `debian/copyright` Comment; [README.md](../README.md) License |
+| 2026-09-07 | [copyright-format 1.0](https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/) | `Source`, `Files`, `License`, `Comment` | `debian/copyright` |
+| 2026-09-07 | [01Tool/Cast](https://github.com/01Tool/Cast) | Canonical source URL (replaces `01Tool/Miracast`) | `debian/copyright` `Source:`; `debian/control` `Vcs-*`; [README.md](../README.md) |
+| 2026-09-07 | [Debian Policy Vcs fields](https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-vcs-fields) | `Vcs-Git` / `Vcs-Browser` | `debian/control` |
+| 2026-09-07 | `~/.agents/skills/deepin-skills/dtk-development/references/app-dev-with-dtk.md` §4.3 | `Architecture: any`; DTK6 `-dev` in Build-Depends | `debian/control`; `.github/workflows/ci.yml` debian-source |
+| 2026-09-07 | `AGENTS.md` Product facts | X11 first; Wayland capture stubbed; no universal-sink claim | [README.md](../README.md) Release; `debian/control` Description; `.github/workflows/release.yml` body |
+| 2026-09-07 | `CMakeLists.txt` / `src/main.cpp` / `debian/changelog` | Version lockstep 0.3.0 | [README.md](../README.md) Release; `.github/workflows/ci.yml` version check |
+| 2026-09-07 | `docs/architecture.md` first cut | X11 sender in tree; PortalCapture still a stub | [README.md](../README.md); `debian/control` Description |
+| 2026-09-07 | `debian/docs` | Ship license + README in the binary package | `debian/docs` `LICENSE` |

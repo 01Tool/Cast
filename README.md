@@ -1,6 +1,6 @@
 # Cast (`ot-cast`)
 
-A 01tool DTK app that casts the local screen to a wireless display. **Miracast** (Wi-Fi Display) runs on X11: Wi-Fi Direct, or **MS-MICE** on the same LAN for Windows Connect / Android. Wayland capture is stubbed. **DLNA** Digital Media Renderer on the same LAN is the fallback for TVs that do not implement WFD well. The UI names the protocol; DLNA is not Miracast. See [docs/protocols/README.md](docs/protocols/README.md).
+A 01tool DTK app ([github.com/01Tool/Cast](https://github.com/01Tool/Cast)) that casts the local screen to a wireless display. Current tree: **0.3.0**. **Miracast** (Wi-Fi Display) runs on **X11**: Wi-Fi Direct, or **MS-MICE** on the same LAN for Windows Connect / Android. Wayland / Treeland capture is stubbed in this cut. **DLNA** Digital Media Renderer on the same LAN is the fallback for TVs that do not implement WFD well. The UI names the protocol; DLNA is not Miracast. See [docs/protocols/README.md](docs/protocols/README.md). Licensed [GPL-3.0-or-later](LICENSE).
 
 ## Verdict
 
@@ -17,7 +17,7 @@ A DTK app can provide this feature. DTK only covers the UI. Miracast (Wi-Fi Dire
 
 **Bottom line:** the DTK app is the easy part. X11 Miracast works when WFD is reused and chipset limits are accepted. Same-LAN Windows Connect uses MS-MICE, not WPS. DLNA is the fallback when P2P/WFD is immature. Wayland capture is a desktop-environment dependency.
 
-The X11 first cut is in the tree (DTK shell, P2P + MS-MICE + DLNA, WFD send, live HTTP TS). Wayland capture stays stubbed until a ScreenCast portal exists.
+The X11 first cut is in the tree (DTK shell, P2P + MS-MICE + DLNA, WFD send, live HTTP TS). Wayland / Treeland capture stays stubbed in this cut.
 
 ## Build
 
@@ -68,16 +68,28 @@ The AppImage bundles Qt 6 and DTK6. It still needs host NetworkManager, `ffmpeg`
 
 ## Release
 
-`0.3.0` sends this screen or a local video / photo / audio file. Miracast muxes LPCM when the sink has no AAC. DLNA live MPEG-TS stays up across the TV’s first probe GET. The X11 sender is Miracast (P2P and MS-MICE) plus labeled DLNA, zh_CN/zh_TW. Wayland capture is stubbed. Do not claim every TV or low latency.
+Keep these three equal to each other and to the git tag (`v0.3.0` for this cut):
 
-Push `main`, then a tag that matches `CMakeLists.txt` and `debian/changelog`:
+- `CMakeLists.txt` `project(ot-cast VERSION …)`
+- `src/main.cpp` `setApplicationVersion`
+- `debian/changelog` top stanza
+
+`0.3.0` sends this screen or a local video / photo / audio file. Miracast muxes LPCM when the sink has no AAC. DLNA live MPEG-TS stays up across the TV’s first probe GET. The sender is **X11** Miracast (P2P and MS-MICE) plus labeled DLNA, zh_CN/zh_TW. Wayland / Treeland capture is stubbed. Do not claim every TV or low latency.
+
+Push `main`, then a tag that matches those three:
 
 ```bash
 git tag -s v0.3.0 -m "Cast 0.3.0"
 git push origin main v0.3.0
 ```
 
-The GitHub **Release** workflow runs the protocol checks and publishes a source tarball on the tag. Build the `.deb` or AppImage on Deepin as above; Ubuntu runners do not ship DTK6.
+The GitHub **Release** workflow runs the protocol checks and publishes a **source tarball** (`ot-cast-0.3.0.tar.gz`) on the tag. Ubuntu runners have no DTK6, so that workflow does **not** attach `.deb` or AppImage files and does **not** claim amd64, arm64, or loong64 binaries.
+
+`debian/control` is `Architecture: any`. A `.deb` built on Deepin matches **that host** (`amd64`, `arm64`, or `loong64`). Do not list those architectures on the Release page until the matching packages are actually attached.
+
+## License
+
+[GPL-3.0-or-later](LICENSE). Same terms in `debian/copyright`. Source: [github.com/01Tool/Cast](https://github.com/01Tool/Cast).
 
 ## Documents
 

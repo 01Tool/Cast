@@ -15,6 +15,8 @@ Build-Depends:
  dde-tray-loader-dev,
 Standards-Version: 4.7.0
 Homepage: https://01tool.com
+Vcs-Browser: https://github.com/01Tool/Cast
+Vcs-Git: https://github.com/01Tool/Cast.git
 Rules-Requires-Root: no
 
 Package: ot-cast
@@ -42,6 +44,8 @@ Description: Cast a desktop to Miracast and other wireless displays
  DDE quick-panel plugin can scan and connect through the running
  app over D-Bus.
  .
- Wayland capture is stubbed until a ScreenCast portal exists.
+ Screen mirroring in this cut is X11. Wayland / Treeland capture
+ is stubbed. Native builds follow Architecture: any (amd64, arm64,
+ or loong64 on that host).
  .
  This is not an official Deepin / DDE component.
