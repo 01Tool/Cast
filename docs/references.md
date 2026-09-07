@@ -51,6 +51,7 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | [01Tool/Cast](https://github.com/01Tool/Cast) | Canonical git remote and Debian `Source` / `Vcs-*` URL. Not `01Tool/Miracast`. |
 | [Debian Policy: Vcs-Git / Vcs-Browser](https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-vcs-fields) | Point the source package at the public VCS. |
 | [SPDX GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html) | Identifier that matches `License: GPL-3+` (“or any later version”). |
+| GNU `sha256sum` | SHA-256 of each GitHub Release asset (`SHA256SUMS`) |
 
 ## Microsoft
 
@@ -312,3 +313,6 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-07 | `src/discovery/micediscovery.cpp` | mDNS `224.0.0.251:5353` | [constraints.md](constraints.md) §7 |
 | 2026-09-07 | [GNOME Network Displays `nd-wfd-p2p-sink.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/nd-wfd-p2p-sink.c) | Firewall zone for inbound 7236 on P2P | [constraints.md](constraints.md) §7 P2P row |
 | 2026-09-07 | `docs/constraints.md` §7 | Port table + D-Bus allowlist + residual risk | [README.md](../README.md) runtime extras; [architecture.md](architecture.md) UI |
+| 2026-09-07 | GNU coreutils `sha256sum(1)` | `sha256sum FILE > SHA256SUMS`; `sha256sum -c SHA256SUMS` | `.github/workflows/release.yml` archive step / `files` |
+| 2026-09-07 | [softprops/action-gh-release](https://github.com/softprops/action-gh-release) | `files` newline list; `fail_on_unmatched_files` | `.github/workflows/release.yml` Publish GitHub Release |
+| 2026-09-07 | [README.md](../README.md) Release | Source tarball only until Deepin builders exist | `.github/workflows/release.yml` body; this file |

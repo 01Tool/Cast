@@ -85,9 +85,13 @@ git tag -s v0.3.0 -m "Cast 0.3.0"
 git push origin main v0.3.0
 ```
 
-The GitHub **Release** workflow runs the protocol checks and publishes a **source tarball** (`ot-cast-0.3.0.tar.gz`) on the tag. Ubuntu runners have no DTK6, so that workflow does **not** attach `.deb` or AppImage files and does **not** claim amd64, arm64, or loong64 binaries.
+The GitHub **Release** workflow runs the protocol checks and publishes a **source tarball** (`ot-cast-0.3.0.tar.gz`) plus **SHA256SUMS** on the tag. Ubuntu runners have no DTK6, so that workflow does **not** attach `.deb` or AppImage files and does **not** claim amd64, arm64, or loong64 binaries.
 
-`debian/control` is `Architecture: any`. A `.deb` built on Deepin matches **that host** (`amd64`, `arm64`, or `loong64`). Do not list those architectures on the Release page until the matching packages are actually attached.
+```bash
+sha256sum -c SHA256SUMS
+```
+
+`debian/control` is `Architecture: any`. A `.deb` built on Deepin matches **that host** (`amd64`, `arm64`, or `loong64`). Do not list those architectures on the Release page until the matching packages are actually attached (and listed in `SHA256SUMS`).
 
 ## License
 

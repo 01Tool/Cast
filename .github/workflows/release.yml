@@ -53,21 +53,33 @@ jobs:
             exit 1
           fi
           PREFIX="ot-cast-${VERSION}"
-          git archive --format=tar.gz --prefix="${PREFIX}/" -o "${PREFIX}.tar.gz" HEAD
+          TARBALL="${PREFIX}.tar.gz"
+          git archive --format=tar.gz --prefix="${PREFIX}/" -o "${TARBALL}" HEAD
+          sha256sum -- "${TARBALL}" > SHA256SUMS
+          test -s SHA256SUMS
+          grep -F "${TARBALL}" SHA256SUMS
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
-          echo "tarball=${PREFIX}.tar.gz" >> "${GITHUB_OUTPUT}"
+          echo "tarball=${TARBALL}" >> "${GITHUB_OUTPUT}"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: Cast ${{ steps.archive.outputs.version }}
           generate_release_notes: true
-          files: ${{ steps.archive.outputs.tarball }}
+          files: |
+            ${{ steps.archive.outputs.tarball }}
+            SHA256SUMS
           fail_on_unmatched_files: true
           body: |
             Source release of Cast (ot-cast) ${{ steps.archive.outputs.version }} from https://github.com/01Tool/Cast.
 
-            This GitHub Release attaches the **source tarball** only (`ot-cast-${{ steps.archive.outputs.version }}.tar.gz`). Ubuntu Actions cannot build DTK6, so there is **no** `.deb` or AppImage here and **no** amd64 / arm64 / loong64 binary in this upload.
+            This GitHub Release attaches the **source tarball** (`ot-cast-${{ steps.archive.outputs.version }}.tar.gz`) and **SHA256SUMS**. Ubuntu Actions cannot build DTK6, so there is **no** `.deb` or AppImage here and **no** amd64 / arm64 / loong64 binary in this upload.
+
+            Verify:
+
+            ```
+            sha256sum -c SHA256SUMS
+            ```
 
             License: GPL-3.0-or-later (`LICENSE`).
 
