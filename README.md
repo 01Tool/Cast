@@ -42,7 +42,9 @@ sudo apt install gstreamer1.0-tools pulseaudio-utils
 
 `pulseaudio-utils` provides `pactl` so the encoder can find the default-sink monitor. PipeWire users need `pipewire-pulse`.
 
-On this deepin image, `gstreamer1.0-plugins-bad` 1.24.6 ships `mpegtsmux`/`h264parse` built as 1.26, so GStreamer 1.24 will not load them. The encoder then uses `ffmpeg -f x11grab … -f rtp_mpegts`. A firewall must allow **inbound TCP 7236** (the sink dials RTSP) and UDP RTP toward the sink. MS-MICE also needs **outbound TCP 7250** to the display.
+On this deepin image, `gstreamer1.0-plugins-bad` 1.24.6 ships `mpegtsmux`/`h264parse` built as 1.26, so GStreamer 1.24 will not load them. The encoder then uses `ffmpeg -f x11grab … -f rtp_mpegts`.
+
+Firewall and local D-Bus risks are listed in [docs/constraints.md](docs/constraints.md) §7. Short version: allow **inbound TCP 7236** (WFD RTSP), **outbound TCP 7250** (MS-MICE), UDP RTP to the sink’s `client_port`, SSDP 1900, mDNS 5353, and inbound TCP to the ephemeral DLNA HTTP port. `com.ot01tool.Cast` methods are not callable from arbitrary same-user processes.
 
 ## Package
 

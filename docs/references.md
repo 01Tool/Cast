@@ -38,6 +38,9 @@ deepin 23 release notes introduced wireless screen casting in the quick panel an
 | MS-MICE TCP 7250 | Windows Connect / Android same-LAN Miracast; then WFD RTSP :7236 |
 | mDNS `_display._tcp` | MS-MICE sink advertisement (TXT `p2pMAC`) |
 | GUPnP / GSSDP / gupnp-av | Optional C stack; first cut uses Qt Network instead |
+| [Qt `QDBusContext`](https://doc.qt.io/qt-6/qdbuscontext.html) | Session-bus method auth: `calledFromDBus`, `message`, `sendErrorReply` |
+| [dbus-daemon busconfig](https://dbus.freedesktop.org/doc/dbus-daemon.1.html) | `session.d` can own a name; it cannot match a caller executable |
+| Linux `/proc/<pid>/exe` | Resolve the D-Bus peer after `GetConnectionUnixProcessID` |
 
 ## Packaging / license
 
@@ -293,3 +296,19 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-07 | `CMakeLists.txt` / `src/main.cpp` / `debian/changelog` | Version lockstep 0.3.0 | [README.md](../README.md) Release; `.github/workflows/ci.yml` version check |
 | 2026-09-07 | `docs/architecture.md` first cut | X11 sender in tree; PortalCapture still a stub | [README.md](../README.md); `debian/control` Description |
 | 2026-09-07 | `debian/docs` | Ship license + README in the binary package | `debian/docs` `LICENSE` |
+| 2026-09-07 | [Qt `QDBusContext`](https://doc.qt.io/qt-6/qdbuscontext.html) | `calledFromDBus` / `sendErrorReply` / `message().service()` | `src/dbus/castdbusservice.cpp` `authorize` |
+| 2026-09-07 | [Qt `QDBusConnectionInterface::servicePid`](https://doc.qt.io/qt-6/qdbusconnectioninterface.html#servicePid) | Peer PID then `/proc/<pid>/exe` | `src/dbus/castdbusservice.cpp` `authorize`; `src/dbus/castdbus.cpp` `peerExecutable` |
+| 2026-09-07 | [Qt `QDBusConnectionInterface::serviceUid`](https://doc.qt.io/qt-6/qdbusconnectioninterface.html#serviceUid) | Reject a caller that is not the session uid | `src/dbus/castdbusservice.cpp` `authorize` |
+| 2026-09-07 | Linux `proc(5)` `/proc/<pid>/exe` | Symlink to the peer binary; ` (deleted)` suffix | `src/dbus/castdbus.cpp` `peerExecutable` / `controlCallerAllowed` |
+| 2026-09-07 | [dbus-daemon.1 busconfig](https://dbus.freedesktop.org/doc/dbus-daemon.1.html) | `allow own` / `send_destination`; session bus is per-user | `data/com.ot01tool.Cast.conf` |
+| 2026-09-07 | `docs/architecture.md` D-Bus tray | Plugin is UI only; methods live in `ot-cast` | `src/dbus/castdbusservice.cpp`; `src/tray/castclient.cpp` |
+| 2026-09-07 | `AGENTS.md` Product facts | Tray calls the D-Bus API, never CastEngine | `src/dbus/castdbusservice.cpp` `authorize`; [architecture.md](architecture.md) UI |
+| 2026-09-07 | `~/.agents/skills/deepin-skills/dtk-development/references/utilities/dbus.md` | Session vs system bus; DTK helpers are for **calling**, not serving | `src/dbus/castdbusservice.cpp` uses Qt `QDBusContext`, not `DDBusSender` |
+| 2026-09-07 | local `ps` `dde-shell` on V25 | Quick-panel host is `/usr/bin/dde-shell`, plugin in `dde-dock/plugins` | `src/dbus/castdbus.cpp` `isSystemTrayHost` |
+| 2026-09-07 | `docs/protocols/miracast.md` | RTSP :7236; MS-MICE TCP 7250; sink `client_port` RTP | [constraints.md](constraints.md) §7 port table |
+| 2026-09-07 | `src/session/wfdserver.cpp` `kWfdPort` | Listen `AnyIPv4` 7236 | [constraints.md](constraints.md) §7 |
+| 2026-09-07 | `src/session/dlnasession.cpp` `listen(..., 0)` | Ephemeral HTTP for the TV GET | [constraints.md](constraints.md) §7 |
+| 2026-09-07 | `docs/protocols/dlna.md` | SSDP `239.255.255.250:1900` | [constraints.md](constraints.md) §7 |
+| 2026-09-07 | `src/discovery/micediscovery.cpp` | mDNS `224.0.0.251:5353` | [constraints.md](constraints.md) §7 |
+| 2026-09-07 | [GNOME Network Displays `nd-wfd-p2p-sink.c`](https://gitlab.gnome.org/GNOME/gnome-network-displays/-/blob/master/src/nd-wfd-p2p-sink.c) | Firewall zone for inbound 7236 on P2P | [constraints.md](constraints.md) §7 P2P row |
+| 2026-09-07 | `docs/constraints.md` §7 | Port table + D-Bus allowlist + residual risk | [README.md](../README.md) runtime extras; [architecture.md](architecture.md) UI |

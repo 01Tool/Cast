@@ -72,6 +72,38 @@ Prefer:
 - X11 grab can capture the whole desktop without a user picker.
 - Wayland capture should go through the portal so the user consents and can choose a monitor.
 - P2P groups are a new L2 network; firewall rules that assume “only the AP” will break the RTP/RTSP path (a common GNOME Network Displays support issue).
-- MS-MICE: the laptop connects **out** to TCP 7250 on the display; the display then connects **in** to TCP 7236 on the laptop, then UDP RTP. Block inbound 7236 and Windows never starts RTSP.
-- DLNA needs the opposite of outbound-only: the TV must open HTTP back to the laptop on the STA LAN. Outbound-only firewalls will fail `Play`.
 - Many P2P sinks use WPS push-button; others show an 8-digit PIN on the TV. The app registers an in-process NetworkManager SecretAgent so those prompts stay in the DTK window instead of depending on nm-applet. MS-MICE with PIN off (typical Windows “Projecting to this PC” on a secure LAN) does not prompt.
+
+### Local D-Bus (`com.ot01tool.Cast`)
+
+The session bus is already per-user. A `.conf` in `share/dbus-1/session.d/` names the well-known name; **dbus-daemon cannot match a caller executable**. `CastDBusService` therefore resolves `GetConnectionUnixProcessID` → `/proc/<pid>/exe` and allows:
+
+- this `ot-cast` binary (exact path)
+- the DDE tray host: `/usr/bin` or `/usr/libexec` `dde-shell`, `dde-dock`, or `dde-tray-loader`
+
+`StartScan`, `StopScan`, `Connect`, `Disconnect`, `RaiseWindow`, and `SinksJson` all go through that check. `gdbus` / `dbus-send` / a random same-user binary get `AccessDenied`. Properties (`State`, `StatusMessage`, `SelectedSinkId`) stay readable; anyone on the session bus can also subscribe to signals.
+
+There is **no** D-Bus activation `.service` file: an untrusted caller must not be able to start `ot-cast` just by sending a method call. The tray still runs `ot-cast --background` itself.
+
+This is not a sandbox. A process that is the tray host, that can ptrace it, or that can replace `/proc/<pid>/exe` wins. PID reuse is a TOCTOU on every Unix credential check.
+
+### Firewall ports
+
+Cast binds **IPv4**. A default-deny outbound-only firewall will look “fine” on the laptop and still fail on the TV.
+
+| Path | Direction | Port / group | If blocked |
+|------|-----------|--------------|------------|
+| WFD RTSP | **Inbound TCP** (also outbound when the sink is P2P GO) | **7236** | Sink never starts RTSP. Windows Connect hangs after `SOURCE_READY`. |
+| WFD RTP | Outbound UDP | Sink-chosen `SETUP` `client_port` (often 15550 or 1028+) | PLAY succeeds; the picture stays black. |
+| MS-MICE | Outbound TCP | **7250** on the display | Same-LAN Windows Connect / Android never starts. |
+| SSDP | UDP | **1900** ↔ `239.255.255.250` | No DLNA rows. |
+| mDNS | UDP | **5353** ↔ `224.0.0.251` | No MS-MICE rows. |
+| DLNA HTTP | **Inbound TCP** | **Ephemeral** (`QTcpServer` port 0; URI is logged) | TV `Play` fails. |
+| P2P | New L2 interface | Not a TCP/UDP port | A zone that only trusts the AP drops RTSP/RTP on the group. |
+
+### Residual risk
+
+- `Connect` from an allowed caller **is** “share this desktop (or the chosen file) now.” MS-MICE with PIN off and DLNA do not prompt.
+- RTSP :7236 and the DLNA HTTP server listen on `AnyIPv4` for the session. They can serve the live screen or a local file to whoever can reach that address on the STA LAN or the P2P group.
+- No HDCP.
+- Opening inbound 7236 and an ephemeral HTTP port on a hostile LAN is a trade-off for Miracast/DLNA, not a hardened service.

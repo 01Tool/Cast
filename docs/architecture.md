@@ -40,7 +40,7 @@ Responsibilities:
 - Choose which monitor to mirror, or a local video / photo / audio file
 - Toggle audio (system audio for the screen; the file’s soundtrack for a video)
 
-The window talks only to `CastEngine` signals and slots. The DDE quick-panel plugin talks only to the session D-Bus API that `ot-cast` exports (`com.ot01tool.Cast`). Neither UI opens NetworkManager, GStreamer, portal, or UPnP connections.
+The window talks only to `CastEngine` signals and slots. The DDE quick-panel plugin talks only to the session D-Bus API that `ot-cast` exports (`com.ot01tool.Cast`). Neither UI opens NetworkManager, GStreamer, portal, or UPnP connections. Mutating Cast1 methods (and `SinksJson`) check `/proc/<pid>/exe` and allow only this `ot-cast` binary and the DDE tray host; session-bus XML cannot do that. See [constraints.md](constraints.md) §7.
 
 Clicking the Cast tile starts `ot-cast --background` if needed, scans, and opens a sink list. Pairing PIN/PBC raises the main window. MS-MICE with PIN off does not prompt.
 

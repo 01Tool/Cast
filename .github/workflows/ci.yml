@@ -33,6 +33,7 @@ jobs:
           ./build/wfdaudiomode-check
           ./build/displaysource-check
           ./build/dlna-check
+          ./build/dbus-check
 
   debian-source:
     name: Debian source sanity
@@ -48,6 +49,8 @@ jobs:
           grep -q 'Architecture: any' debian/control
           grep -q 'com.01tool.cast.desktop' CMakeLists.txt
           test -f data/com.01tool.cast.desktop
+          test -f data/com.ot01tool.Cast.conf
+          grep -q 'own="com.ot01tool.Cast"' data/com.ot01tool.Cast.conf
           desktop-file-validate data/com.01tool.cast.desktop || true
           test -f LICENSE
           grep -q 'GNU GENERAL PUBLIC LICENSE' LICENSE

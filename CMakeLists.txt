@@ -43,6 +43,7 @@ add_executable(ot-cast
     src/session/gstencoder.cpp
     src/capture/x11capture.cpp
     src/capture/portalcapture.cpp
+    src/dbus/castdbus.cpp
     src/dbus/castdbusservice.cpp
 )
 
@@ -78,6 +79,7 @@ install(FILES ${QM_FILES} DESTINATION share/ot-cast/translations)
 install(FILES data/com.01tool.cast.desktop DESTINATION share/applications)
 install(FILES data/icons/hicolor/scalable/apps/ot-cast.svg
         DESTINATION share/icons/hicolor/scalable/apps)
+install(FILES data/com.ot01tool.Cast.conf DESTINATION share/dbus-1/session.d)
 endif()
 
 if(BUILD_CHECKS)
@@ -129,6 +131,15 @@ target_include_directories(mice-check PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(mice-check PRIVATE Qt6::Core)
+
+add_executable(dbus-check
+    src/dbus/castdbus.cpp
+    tests/dbus-check.cpp
+)
+target_include_directories(dbus-check PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(dbus-check PRIVATE Qt6::Core)
 endif()
 
 if(BUILD_APP)

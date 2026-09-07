@@ -3,9 +3,16 @@
 #include "dbus/castdbus.h"
 
 #include <QDBusConnection>
+#include <QDBusConnectionInterface>
+#include <QDBusError>
+#include <QDBusReply>
+#include <QCoreApplication>
+#include <QDebug>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+
+#include <unistd.h>
 
 CastDBusService::CastDBusService(CastEngine *engine, QObject *parent)
     : QObject(parent)
@@ -51,33 +58,80 @@ bool CastDBusService::registerService()
                                   | QDBusConnection::ExportAllProperties);
 }
 
+bool CastDBusService::authorize() const
+{
+    if (!calledFromDBus())
+        return true;
+
+    auto *iface = connection().interface();
+    if (!iface) {
+        sendErrorReply(QDBusError::AccessDenied,
+                       QStringLiteral("No bus interface to identify the caller"));
+        return false;
+    }
+
+    const QString peer = message().service();
+    const QDBusReply<uint> uidReply = iface->serviceUid(peer);
+    if (uidReply.isValid() && uidReply.value() != static_cast<uint>(::getuid())) {
+        qWarning() << "denied D-Bus" << message().member() << "from uid" << uidReply.value();
+        sendErrorReply(QDBusError::AccessDenied,
+                       QStringLiteral("Caller is not the session user"));
+        return false;
+    }
+
+    const QDBusReply<uint> pidReply = iface->servicePid(peer);
+    const QString exe = pidReply.isValid() ? CastDBus::peerExecutable(pidReply.value()) : QString();
+    const QString self = QCoreApplication::applicationFilePath();
+    if (CastDBus::controlCallerAllowed(exe, self))
+        return true;
+
+    qWarning() << "denied D-Bus" << message().member() << "from" << peer << "pid"
+               << (pidReply.isValid() ? pidReply.value() : 0) << exe;
+    sendErrorReply(QDBusError::AccessDenied,
+                   QStringLiteral("Only ot-cast and the DDE tray host may call %1")
+                       .arg(message().member()));
+    return false;
+}
+
 void CastDBusService::StartScan()
 {
+    if (!authorize())
+        return;
     m_engine->startScan();
 }
 
 void CastDBusService::StopScan()
 {
+    if (!authorize())
+        return;
     m_engine->stopScan();
 }
 
 void CastDBusService::Connect(const QString &sinkId)
 {
+    if (!authorize())
+        return;
     m_engine->connectToSink(sinkId);
 }
 
 void CastDBusService::Disconnect()
 {
+    if (!authorize())
+        return;
     m_engine->disconnectFromSink();
 }
 
 void CastDBusService::RaiseWindow()
 {
+    if (!authorize())
+        return;
     Q_EMIT raiseRequested();
 }
 
 QString CastDBusService::SinksJson() const
 {
+    if (!authorize())
+        return {};
     QJsonArray rows;
     for (const SinkDevice &sink : m_engine->sinks()) {
         QJsonObject row;

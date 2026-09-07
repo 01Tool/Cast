@@ -27,6 +27,7 @@ jobs:
           ./build/wfdaudiomode-check
           ./build/displaysource-check
           ./build/dlna-check
+          ./build/dbus-check
 
   source-release:
     name: GitHub source release
