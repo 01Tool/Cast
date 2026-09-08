@@ -8,6 +8,7 @@
 #include <QDBusReply>
 #include <QDBusVariant>
 #include <QDebug>
+#include <QMetaType>
 #include <QSet>
 #include <QSysInfo>
 #include <QVariant>
@@ -30,6 +31,39 @@ constexpr quint32 kDeviceTypeWifiP2P = 30;
 
 // Same WFD Device Information IE GNOME Network Displays advertises as a source.
 const char kWfdIesHex[] = "00000600901c4400c8";
+
+QByteArray dbusByteArray(const QVariant &value)
+{
+    if (value.metaType().id() == QMetaType::QByteArray)
+        return value.toByteArray();
+    if (value.canConvert<QDBusArgument>()) {
+        const QDBusArgument arg = value.value<QDBusArgument>();
+        if (arg.currentType() == QDBusArgument::ArrayType) {
+            QByteArray out;
+            arg.beginArray();
+            while (!arg.atEnd()) {
+                uchar byte = 0;
+                arg >> byte;
+                out.append(char(byte));
+            }
+            arg.endArray();
+            return out;
+        }
+    }
+    return value.toByteArray();
+}
+
+template<typename T>
+T dbusCastOr(const QVariant &value)
+{
+    if (!value.isValid())
+        return T{};
+    if (value.template canConvert<T>())
+        return qvariant_cast<T>(value);
+    if (value.canConvert<QDBusArgument>())
+        return qdbus_cast<T>(value);
+    return T{};
+}
 
 } // namespace
 
@@ -228,7 +262,7 @@ QString P2PDiscovery::devicePathForPeer(const QString &peerPath) const
                                                devicePath,
                                                QString::fromLatin1(kWifiP2PIface),
                                                QStringLiteral("Peers"));
-        const auto paths = qdbus_cast<QList<QDBusObjectPath>>(peersVar);
+        const auto paths = dbusCastOr<QList<QDBusObjectPath>>(peersVar);
         for (const QDBusObjectPath &item : paths) {
             if (item.path() == peerPath)
                 return devicePath;
@@ -250,9 +284,9 @@ SinkDevice P2PDiscovery::readPeer(const QString &path, const QString &devicePath
                                 QString::fromLatin1(kPeerIface),
                                 QStringLiteral("HwAddress")).toString();
     sink.p2pMac = sink.address;
-    const QByteArray ies = readProperty(QString::fromLatin1(kNmService), path,
-                                        QString::fromLatin1(kPeerIface),
-                                        QStringLiteral("WfdIEs")).toByteArray();
+    const QByteArray ies = dbusByteArray(readProperty(QString::fromLatin1(kNmService), path,
+                                                      QString::fromLatin1(kPeerIface),
+                                                      QStringLiteral("WfdIEs")));
     sink.wfdCapable = !ies.isEmpty();
     if (sink.name.isEmpty())
         sink.name = sink.address.isEmpty() ? path : sink.address;
@@ -323,7 +357,7 @@ void P2PDiscovery::tryAdvertiseSourceName()
                                             QString::fromLatin1(kWpaPath),
                                             QString::fromLatin1(kWpaIface),
                                             QStringLiteral("Interfaces"));
-    QList<QDBusObjectPath> paths = qdbus_cast<QList<QDBusObjectPath>>(ifacesVar);
+    QList<QDBusObjectPath> paths = dbusCastOr<QList<QDBusObjectPath>>(ifacesVar);
 
     QDBusInterface wpa(QString::fromLatin1(kWpaService), QString::fromLatin1(kWpaPath),
                        QString::fromLatin1(kWpaIface), QDBusConnection::systemBus());
@@ -357,10 +391,7 @@ void P2PDiscovery::tryAdvertiseSourceName()
                 qInfo() << "Advertised P2P/WPS DeviceName" << name << "on" << path << iface;
         }
 
-        const QVariant cfgVar = readProperty(QString::fromLatin1(kWpaService), path,
-                                             QStringLiteral("fi.w1.wpa_supplicant1.Interface.P2PDevice"),
-                                             QStringLiteral("P2PDeviceConfig"));
-        QVariantMap cfg = qdbus_cast<QVariantMap>(cfgVar);
+        QVariantMap cfg;
         cfg.insert(QStringLiteral("DeviceName"), name);
         QDBusMessage cfgMsg = QDBusMessage::createMethodCall(QString::fromLatin1(kWpaService),
                                                              path,
@@ -401,7 +432,7 @@ void P2PDiscovery::loadExistingPeers(const QString &devicePath)
                                            devicePath,
                                            QString::fromLatin1(kWifiP2PIface),
                                            QStringLiteral("Peers"));
-    const auto paths = qdbus_cast<QList<QDBusObjectPath>>(peersVar);
+    const auto paths = dbusCastOr<QList<QDBusObjectPath>>(peersVar);
     for (const QDBusObjectPath &path : paths)
         upsertPeer(path.path(), devicePath);
 }

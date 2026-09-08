@@ -243,18 +243,56 @@ void CastEngine::connectToSink(const QString &id)
             failSession(m_capture->lastError());
             return;
         }
-        m_sessionSource.pipewireFd = m_capture->pipewireFd();
-        m_sessionSource.pipewireNode = m_capture->pipewireNode();
-        if (m_capture->streamWidth() > 0 && m_capture->streamHeight() > 0) {
-            m_sessionSource.width = m_capture->streamWidth();
-            m_sessionSource.height = m_capture->streamHeight();
+        if (m_displayServer == DisplayServer::Wayland && m_capture->pipewireFd() < 0) {
+            m_waitingForPortal = true;
+            return;
         }
+        applyCaptureToSessionSource();
     }
 
+    finishConnectToSink();
+}
+
+void CastEngine::applyCaptureToSessionSource()
+{
+    if (!m_capture)
+        return;
+    m_sessionSource.pipewireFd = m_capture->pipewireFd();
+    m_sessionSource.pipewireNode = m_capture->pipewireNode();
+    if (m_capture->streamWidth() > 0 && m_capture->streamHeight() > 0) {
+        m_sessionSource.width = m_capture->streamWidth();
+        m_sessionSource.height = m_capture->streamHeight();
+    }
+}
+
+void CastEngine::finishConnectToSink()
+{
+    const SinkDevice sink = sinkById(m_selectedSinkId);
+    if (sink.id.isEmpty()) {
+        failSession(tr("Unknown display."));
+        return;
+    }
     if (sink.protocol == CastProtocol::Dlna)
         connectDlna(sink);
     else
         connectMiracast(sink);
+}
+
+void CastEngine::onPortalReady()
+{
+    if (!m_waitingForPortal)
+        return;
+    m_waitingForPortal = false;
+    applyCaptureToSessionSource();
+    finishConnectToSink();
+}
+
+void CastEngine::onPortalFailed(const QString &message)
+{
+    if (!m_waitingForPortal)
+        return;
+    m_waitingForPortal = false;
+    failSession(message);
 }
 
 void CastEngine::connectMiracast(const SinkDevice &sink)
@@ -332,7 +370,10 @@ void CastEngine::selectCaptureBackend()
 
     if (helper->testAttribute(DGuiApplicationHelper::IsWaylandPlatform)) {
         m_displayServer = DisplayServer::Wayland;
-        m_capture = std::make_unique<PortalCapture>();
+        auto portal = std::make_unique<PortalCapture>();
+        connect(portal.get(), &PortalCapture::ready, this, &CastEngine::onPortalReady);
+        connect(portal.get(), &PortalCapture::failed, this, &CastEngine::onPortalFailed);
+        m_capture = std::move(portal);
         qInfo() << "display server Wayland, capture" << m_capture->name();
         return;
     }
@@ -652,6 +693,7 @@ void CastEngine::teardownSession()
     if (m_tearingDown)
         return;
     m_tearingDown = true;
+    m_waitingForPortal = false;
     cancelPairing();
     m_connectTimer.stop();
     m_tryingMice = false;

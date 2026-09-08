@@ -26,6 +26,9 @@ int main()
              ScreenCastPortal::objectPath(QStringLiteral("request"), QStringLiteral("1.2.3"),
                                           QStringLiteral("t")),
              QStringLiteral("/org/freedesktop/portal/desktop/request/1_2_3/t"));
+    expectEq("cursor_mode option",
+             QString::fromLatin1(ScreenCastPortal::cursorModeOption),
+             QStringLiteral("cursor_mode"));
 
     if (g_failed) {
         std::fprintf(stderr, "%d portal-check test(s) failed\n", g_failed);

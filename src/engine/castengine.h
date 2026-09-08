@@ -111,6 +111,10 @@ private:
                          const WfdAudioMode &audio);
     void failSession(const QString &message);
     void teardownSession();
+    void applyCaptureToSessionSource();
+    void finishConnectToSink();
+    void onPortalReady();
+    void onPortalFailed(const QString &message);
     void logDeviceMatrix(const SinkDevice &sink, const QString &result) const;
     void watchScreens();
     void refreshDisplays();
@@ -144,4 +148,5 @@ private:
     MediaSource m_media;
     bool m_tearingDown = false;
     bool m_audioEnabled = true;
+    bool m_waitingForPortal = false;
 };
