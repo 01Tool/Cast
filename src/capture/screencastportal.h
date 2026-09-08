@@ -16,8 +16,11 @@ constexpr auto propertiesInterface = "org.freedesktop.DBus.Properties";
 
 // MONITOR in org.freedesktop.portal.ScreenCast AvailableSourceTypes / SelectSources types.
 constexpr uint monitorSource = 1;
-// Embedded cursor (drawn in the stream).
+// Hidden / Embedded in AvailableCursorModes (property added in ScreenCast v2).
+constexpr uint cursorHidden = 1;
 constexpr uint cursorEmbedded = 2;
+// SelectSources option. Not "cursor": a mode that is not advertised closes the session.
+constexpr auto cursorModeOption = "cursor_mode";
 // gst-launch child inherits the PipeWire remote as this fd.
 constexpr int gstPipeWireFd = 3;
 
