@@ -16,6 +16,8 @@ if(BUILD_APP)
     find_package(Dtk6Core REQUIRED)
     find_package(Dtk6Gui REQUIRED)
     find_package(Dtk6Widget REQUIRED)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(DBus1 REQUIRED IMPORTED_TARGET dbus-1)
 elseif(BUILD_CHECKS)
     find_package(Qt6 REQUIRED COMPONENTS Core Network)
 endif()
@@ -43,6 +45,7 @@ add_executable(ot-cast
     src/session/gstencoder.cpp
     src/capture/x11capture.cpp
     src/capture/portalcapture.cpp
+    src/capture/treelandcapture.cpp
     src/dbus/castdbus.cpp
     src/dbus/castdbusservice.cpp
 )
@@ -59,6 +62,7 @@ target_link_libraries(ot-cast PRIVATE
     Dtk6::Core
     Dtk6::Gui
     Dtk6::Widget
+    PkgConfig::DBus1
 )
 
 set(TS_FILES

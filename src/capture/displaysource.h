@@ -15,7 +15,8 @@ struct DisplaySource {
     int width = 0;
     int height = 0;
     bool primary = false;
-    // Set after PortalCapture::start. GstEncoder uses pipewiresrc when fd >= 0.
+    // Set after PortalCapture / TreelandCapture start. GstEncoder uses
+    // pipewiresrc when fd >= 0.
     int pipewireFd = -1;
     uint pipewireNode = 0;
 
