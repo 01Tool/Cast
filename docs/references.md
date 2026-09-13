@@ -361,4 +361,6 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-13 | GStreamer `mpegtsmux` `alignment` | `7` is UDP/RTP; `0` flushes all packets for HTTP | `src/session/gstencoder.cpp` `startGst` |
 | 2026-09-13 | `docs/protocols/dlna.md` Required path §5 | Keep live encoder across MagicBox probe GET; drain stdout | `src/session/dlnasession.cpp` `pumpTs` / `startLiveEncoder` |
 | 2026-09-13 | this Treeland session user-confirmed picture | MagicBox shows desktop; `pipewiresrc` RGBx 3840×2160; `gst-launch` ~63 MiB TS | [devices.md](devices.md) DLNA 2026-09-13; [platform/treeland.md](platform/treeland.md) §2026-09-13 |
+| 2026-09-13 | this Treeland session user-confirmed AAC | MagicBox plays system audio; Pulse `.monitor` `voaacenc`; `gst-launch` ~260% CPU | [devices.md](devices.md) DLNA 2026-09-13; `src/session/gstencoder.cpp` `startGst` |
+| 2026-09-13 | GStreamer `pulsesrc` `provide-clock` | Second live clock stalled `mpegtsmux`; audio slave-clocks the pipeline | `src/session/gstencoder.cpp` `startGst` PipeWire AAC branch |
 | 2026-09-13 | `docs/devices.md` How to test | Measured Treeland live-ts is not the X11 ffmpeg row | [devices.md](devices.md) DLNA table |

@@ -106,7 +106,7 @@ If Treeland or Wayland is active and the portal backend cannot create a session,
 8. DDE quick panel: D-Bus scan/connect, no protocol code in the plugin.
 9. MS-MICE for Windows Connect / Android-on-the-same-LAN: try TCP 7250 before P2P.
 
-Items 1–6 and 8–9 are in the tree. Item 7 is filled from measured sessions, not from logos (Windows Connect over MS-MICE, Tmall MagicBox over DLNA on X11, and Tmall MagicBox over DLNA on Treeland video-only). A local file can be sent instead of the monitor: DLNA serves the file over HTTP; Miracast transcodes it into the same WFD RTP path. Treeland capture is a separate backend from generic Wayland. X11 grab uses physical pixels (`QScreen::geometry() × devicePixelRatio()`). WFD mode selection prefers the captured monitor’s aspect ratio and letterboxes.
+Items 1–6 and 8–9 are in the tree. Item 7 is filled from measured sessions, not from logos (Windows Connect over MS-MICE, Tmall MagicBox over DLNA on X11, and Tmall MagicBox over DLNA on Treeland with AAC). A local file can be sent instead of the monitor: DLNA serves the file over HTTP; Miracast transcodes it into the same WFD RTP path. Treeland capture is a separate backend from generic Wayland. X11 grab uses physical pixels (`QScreen::geometry() × devicePixelRatio()`). WFD mode selection prefers the captured monitor’s aspect ratio and letterboxes.
 
 ## What not to put in widgets
 
