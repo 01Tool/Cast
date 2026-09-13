@@ -391,4 +391,7 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-13 | this Treeland Xiaomi P2P AAC SET | Sink `LPCM 00000002 00`; we SET AAC; user: boom loudspeaker | `src/session/wfdserver.cpp` `parseSinkParams` must keep LPCM |
 | 2026-09-13 | [docs/devices.md](devices.md) How to test | Treeland Xiaomi WFD picture is `streaming`; audio is further investigation | [devices.md](devices.md) Miracast 2026-09-13; [platform/treeland.md](platform/treeland.md) §WFD audio |
 | 2026-09-13 | this Treeland session user | Screen cast OK; boom was AAC vs LPCM, not two mixers | [devices.md](devices.md); [protocols/miracast.md](protocols/miracast.md) Audio |
+| 2026-09-13 | [01Tool/Cast tags](https://github.com/01Tool/Cast/tags) | `v0.1.0` / `v0.2.0` / `v0.3.0`; next minor is 0.4.0 | `CMakeLists.txt`; `src/main.cpp`; `debian/changelog`; [README.md](../README.md) Release |
+| 2026-09-13 | [Cast 0.3.0 release](https://github.com/01Tool/Cast/releases/tag/v0.3.0) | Source tarball + SHA256SUMS from Actions; `.deb` uploaded by hand; body was X11 | `.github/workflows/release.yml` body; `debian/changelog` 0.4.0 |
+| 2026-09-13 | `CMakeLists.txt` / `src/main.cpp` / `debian/changelog` | Version lockstep 0.4.0 | [README.md](../README.md) Release; `.github/workflows/ci.yml` version check |
 | 2026-09-13 | `gstreamer1.0-libav` 1.24.6-1deepin2 | Plugin 1.26 vs gst 1.24, `avenc_pcm_bluray` does not load | `src/session/gstencoder.cpp` `startPipewireLpcm` uses ffmpeg |

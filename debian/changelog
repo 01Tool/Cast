@@ -1,3 +1,15 @@
+ot-cast (0.4.0) unstable; urgency=medium
+
+  * Treeland ScreenCast (TreelandCapture via xdg-desktop-portal). Tmall
+    MagicBox DLNA picture + AAC measured. Xiaomi Pad WFD picture
+    measured. Treeland WFD audio is further investigation.
+  * Do not SET AAC when the sink lists only LPCM (that Pad decoded AAC
+    as PCM). Keep LPCM in SET_PARAMETER. X11 LPCM is unchanged.
+  * Park generic Wayland PortalCapture. DDE sessions are Treeland or
+    X11. File cast still skips capture.
+
+ -- Playhi <000902play@gmail.com>  Sun, 13 Sep 2026 21:56:26 +0800
+
 ot-cast (0.3.0) unstable; urgency=medium
 
   * Send a local video, photo, or audio file. DLNA serves the file over
