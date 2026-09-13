@@ -30,7 +30,7 @@ TreelandCapture → xdg-desktop-portal ScreenCast → PipeWire → encoder → W
 3. **Do not** `QDBusConnection::connect` `Request.Response` for Start. Qt 6 `QDBusMessagePrivate::fromDBusMessage` demarshals every argument (`u` + `a{sv}`) into `QVariant` before any slot runs. `streams` `a(ua{sv})` with `size (ii)` then floods `QDBusArgument: write from a read-only object` and the GUI dies after Allow. That signal is unicast to Qt’s unique name, so a second bus connection will not see it unless it is a monitor. `TreelandCapture` opens a private libdbus connection, `BecomeMonitor`s `Request.Response`, parses `streams` with `DBusMessageIter`, then `OpenPipeWireRemote` (`asyncCall`).
 4. Emit `ready` with the PipeWire fd (and node if the watcher got one). `pipewiresrc` may omit `path` when the node is unknown: the portal remote only exposes the ScreenCast node. `CastEngine` waits for `ready` before DLNA HTTP or WFD.
 
-`GstEncoder` then uses `pipewiresrc` (`gstreamer1.0-pipewire`) with `autoconnect=false` and `always-copy=true` so Treeland DMA-BUF can feed software `x264enc`. File cast still skips capture. WFD LPCM on this GStreamer/PipeWire path is video-only until the encode path muxes it.
+`GstEncoder` then uses `pipewiresrc` (`gstreamer1.0-pipewire`) with `always-copy=true` and no `path=` so Treeland DMA-BUF can feed software `x264enc`. File cast still skips capture. DLNA AAC uses the Pulse default-sink monitor with `provide-clock=false`.
 
 ## Why not the Wayland method
 
@@ -58,10 +58,10 @@ What blocked the GUI (now in `TreelandCapture`, not `PortalCapture`):
 4. A slot typed `QDBusArgument` does not match `a{sv}` (`bus.connect` returns false → **Could not listen for the ScreenCast portal reply.**). A `QDBusMessage`-only slot does not match `Response(u, a{sv})` either. Connecting with signature `ua{sv}` forces the same QVariantMap demarshal.
 5. Round-tripping `wpa_supplicant` `P2PDeviceConfig` (nested DeviceType struct) aborted with libdbus `type struct 114 not a basic type`.
 
-## Treeland smoke (2026-09-13) — DLNA pass, video-only
+## Treeland smoke (2026-09-13) — DLNA pass, video + AAC
 
-Same session type. Tmall MagicBox_M18 (`192.168.31.8`) labeled **DLNA**. Connect → picker → Allow DP-1 → `pipewiresrc` negotiates `RGBx` 3840×2160 `max-framerate=60/1`. Encoder scales to 1920×1080 H.264 main Annex-B, `mpegtsmux alignment=0`, **video-only**. User saw the desktop on the box. `gst-launch` ~195% CPU, ~63 MiB TS in four minutes.
+Same session type. Tmall MagicBox_M18 (`192.168.31.8`) labeled **DLNA**. Connect → picker → Allow DP-1 → `pipewiresrc` negotiates `RGBx` 3840×2160 `max-framerate=60/1`. Encoder scales to 1920×1080 H.264 main Annex-B, `mpegtsmux alignment=0`. First picture was **video-only**; AAC followed with Pulse default-sink `.monitor` and `pulsesrc provide-clock=false` (a second live clock had stalled the mux). User: desktop **and** system audio on the box. With AAC, `gst-launch` ~260% CPU, tens of MiB of TS.
 
-Do **not** set `pipewiresrc path=<node>` on this portal remote: a stale id waits forever (0% CPU, ~65 B out, MagicBox GET `/cast.ts` every ~6 s with no picture). Do not `QDBusConnection::connect` Start `Response`. Do not fold this into `PortalCapture`. Live AAC on this GStreamer path is not in this pass.
+Do **not** set `pipewiresrc path=<node>` on this portal remote: a stale id waits forever (0% CPU, ~65 B out, MagicBox GET `/cast.ts` every ~6 s with no picture). Do not `QDBusConnection::connect` Start `Response`. Do not fold this into `PortalCapture`.
 
 Xiaomi P2P on Treeland is still unmeasured. WFD LPCM on this path stays video-only until the encode path muxes it.

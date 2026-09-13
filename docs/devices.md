@@ -61,7 +61,7 @@ HLS (`application/vnd.apple.mpegurl`) is noted in the summary. This cut does not
 | Date | Brand | Model | Firmware | Hint | Verdict | Audio | Notes / `device-matrix` line |
 |------|-------|-------|----------|------|---------|-------|------------------------------|
 | 2026-09-06 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` (`video/mpeg` plus mp4/avi) | `live-ts` | AAC muxed, not ear-checked | **X11.** `192.168.31.8:7300`. GET `http://192.168.31.46:44757/cast.ts`. `GetTransportInfo` = `PLAYING` / `OK`. One ffmpeg for >90 s (no probe restart). ~64 MiB TS acked at ~8 Mbit. 1920×1080@30 H.264 main + AAC 48 kHz. Need `yuv420p`. |
-| 2026-09-13 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` | `live-ts` | video-only (AAC mux not used) | **Treeland.** `WAYLAND_DISPLAY=treeland.socket`. `TreelandCapture` + `pipewiresrc fd=3 always-copy=true` (no `path=`). Negotiate RGBx 3840×2160 → scale 1920×1080 H.264 main Annex-B `mpegtsmux alignment=0`. Picture on the box (user-confirmed). `gst-launch` ~195% CPU, ~63 MiB TS in 4 min. Not a latency claim. X11 row above still stands. |
+| 2026-09-13 | Tmall / YunOS | MagicBox_M18 (`我的天猫魔盒`) | Youku Taitan 13.8.1.2 | `live-ts-likely` | `live-ts` | AAC 48 kHz, ear-checked | **Treeland.** `WAYLAND_DISPLAY=treeland.socket`. `TreelandCapture` + `pipewiresrc fd=3 always-copy=true` (no `path=`). RGBx 3840×2160 → 1920×1080 H.264 main Annex-B + Pulse monitor `voaacenc` (`pulsesrc provide-clock=false`). User: picture and system audio on the box. Same-day video-only cut first (mux stall); AAC after single-clock mux. `gst-launch` ~260% CPU with AAC. Not a latency claim. X11 ffmpeg row above still stands. |
 
 ## Adding a row
 

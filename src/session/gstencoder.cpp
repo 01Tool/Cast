@@ -115,11 +115,11 @@ bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpP
             && gstHasElement(QStringLiteral("audioresample"))
             && gstHasElement(QStringLiteral("aacparse"))
             && !gstAacEncoder().isEmpty();
-        if (wantAudio) {
+        if (wantAudio && !gstAac) {
             m_audioNote = tr("no AAC on this path, video only");
-            qWarning() << "PipeWire ScreenCast is video-only until live AAC mux is stable";
+            qWarning() << m_audioNote;
         }
-        return startGst(sink, sinkIp, rtpPort, false);
+        return startGst(sink, sinkIp, rtpPort, gstAac);
     }
 
     const bool wantAudio = m_audio.enabled();
@@ -310,7 +310,8 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
                        "video/x-raw,width=%3,height=%4 ! "
                        "%5 ! h264parse config-interval=1 ! queue ! mux. "
                        "pulsesrc device=%6 provide-clock=false do-timestamp=true ! "
-                       "queue leaky=downstream ! "
+                       "queue max-size-time=3000000000 max-size-buffers=0 max-size-bytes=0 "
+                       "leaky=downstream ! "
                        "audioconvert ! audioresample ! audio/x-raw,rate=%7,channels=2 ! "
                        "%8 ! aacparse ! queue ! mux.")
                        .arg(tsOut, grab)
