@@ -49,7 +49,7 @@ This is not a green field. Deepin already shipped pieces of the same feature:
 - deepin 23 added a **无线投屏** entry in the quick panel. The tray assets live in `dde-tray-loader` as `wireless-casting`.
 - The official release note describes searching the same network for Miracast-capable devices and casting the desktop.
 
-A new DTK app should treat those as the starting point: reuse the WFD/P2P stack (and GNOME’s MS-MICE source path), replace or wrap the UI with DTK, and add an explicit X11 / Treeland / Wayland capture split. A full WFD rewrite is usually the wrong first move.
+A new DTK app should treat those as the starting point: reuse the WFD/P2P stack (and GNOME’s MS-MICE source path), replace or wrap the UI with DTK, and add an explicit X11 / Treeland capture split (generic Wayland is not continued). A full WFD rewrite is usually the wrong first move.
 
 Those pieces do **not** cover DLNA. GNOME Network Displays (and the Deepin fork) speak Miracast (P2P + MICE) and Chromecast. Chromecast stays out of this app. The DMR path in [protocols/dlna.md](protocols/dlna.md) is new engine work (GUPnP/GSSDP or equivalent), still behind `CastEngine`.
 
@@ -57,7 +57,7 @@ Those pieces do **not** cover DLNA. GNOME Network Displays (and the Deepin fork)
 
 - **X11:** the feature can work today with known Linux sender techniques.
 - **Treeland:** DDE compositor; ScreenCast portal with an async backend. Not generic Wayland. See [platform/treeland.md](platform/treeland.md).
-- **Generic Wayland:** `org.freedesktop.portal.ScreenCast` → PipeWire. Falling back to X11 grab inside a Wayland or Treeland session is not support.
+- **Generic Wayland:** **Not continued.** `PortalCapture` (ScreenCast → PipeWire) stays in the tree unused. Falling back to X11 grab inside a Wayland or Treeland session is not support.
 
 Details: [platform/x11.md](platform/x11.md), [platform/treeland.md](platform/treeland.md), [platform/wayland.md](platform/wayland.md).
 
@@ -69,10 +69,10 @@ Details: [platform/x11.md](platform/x11.md), [platform/treeland.md](platform/tre
 | Mirror to many Miracast TVs/dongles on **X11** | Yes, with hardware caveats |
 | Reach TVs that only do **DLNA DMR** well | Yes, as a labeled same-LAN backend |
 | Same capture on **Treeland** | Via `TreelandCapture` + ScreenCast portal (`xdg-desktop-portal-dde`), not Treeland protocols |
-| Same capture on **generic Wayland** | Via `PortalCapture` + ScreenCast portal |
-| One binary, both sessions, degrade gracefully | Yes — that should be the design |
+| Same capture on **generic Wayland** | Not continued. `PortalCapture` stays in tree; engine does not select it |
+| One binary, both sessions, degrade gracefully | Yes — X11 and Treeland; generic Wayland fails clearly |
 | Windows-quality “it just works” on every sink | No, not with current Linux WFD; DLNA is the fallback, not a guarantee |
 
-The DTK app is the easy part. X11 Miracast works when WFD is reused and chipset/sink limits are accepted. DLNA covers more TVs at higher latency. Treeland and Wayland capture are **desktop-environment dependencies**, not DTK ones.
+The DTK app is the easy part. X11 Miracast works when WFD is reused and chipset/sink limits are accepted. DLNA covers more TVs at higher latency. Treeland capture is a **desktop-environment dependency**, not a DTK one. Generic Wayland is parked.
 
 See also: [constraints.md](constraints.md), [architecture.md](architecture.md).

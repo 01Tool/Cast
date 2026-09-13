@@ -1,6 +1,6 @@
 # Cast (`ot-cast`)
 
-A 01tool DTK app ([github.com/01Tool/Cast](https://github.com/01Tool/Cast)) that casts the local screen to a wireless display. Current tree: **0.3.0**. **Miracast** (Wi-Fi Display) on **X11** uses Wi-Fi Direct, or **MS-MICE** on the same LAN for Windows Connect / Android. **Treeland** (DDE compositor) is not generic Wayland: capture is `TreelandCapture` through `xdg-desktop-portal` ScreenCast, not Treeland protocols and not the blocking Wayland `PortalCapture` path. Generic Wayland still uses `PortalCapture`. Never X11 grab on either. **DLNA** Digital Media Renderer on the same LAN is the fallback for TVs that do not implement WFD well. The UI names the protocol; DLNA is not Miracast. See [docs/protocols/README.md](docs/protocols/README.md). Licensed [GPL-3.0-or-later](LICENSE).
+A 01tool DTK app ([github.com/01Tool/Cast](https://github.com/01Tool/Cast)) that casts the local screen to a wireless display. Current tree: **0.3.0**. **Miracast** (Wi-Fi Display) on **X11** uses Wi-Fi Direct, or **MS-MICE** on the same LAN for Windows Connect / Android. **Treeland** (DDE compositor) is not generic Wayland: capture is `TreelandCapture` through `xdg-desktop-portal` ScreenCast, not Treeland protocols and not the blocking Wayland `PortalCapture` path. Generic Wayland capture is **not continued** (`PortalCapture` stays in the tree; the engine does not select it). Never X11 grab on either. **DLNA** Digital Media Renderer on the same LAN is the fallback for TVs that do not implement WFD well. The UI names the protocol; DLNA is not Miracast. See [docs/protocols/README.md](docs/protocols/README.md). Licensed [GPL-3.0-or-later](LICENSE).
 
 ## Verdict
 
@@ -12,13 +12,13 @@ A DTK app can provide this feature. DTK only covers the UI. Miracast (Wi-Fi Dire
 | Mirror to many Miracast TVs/dongles on **X11** | Yes, with hardware caveats |
 | Reach TVs that only do **DLNA** well | Yes, as a labeled same-LAN backend (live MPEG-TS) |
 | Same capture on **Treeland** | Via `TreelandCapture` + ScreenCast portal; Tmall DLNA picture + AAC measured 2026-09-13 |
-| Same capture on **generic Wayland** | Via `PortalCapture` + ScreenCast portal |
+| Same capture on **generic Wayland** | Not continued. `PortalCapture` kept; engine does not select it |
 | One binary, both sessions, degrade gracefully | Yes — that should be the design |
 | Windows-quality “it just works” on every sink | No, not with current Linux WFD |
 
-**Bottom line:** the DTK app is the easy part. X11 Miracast works when WFD is reused and chipset limits are accepted. Same-LAN Windows Connect uses MS-MICE, not WPS. DLNA is the fallback when P2P/WFD is immature. Wayland capture is a desktop-environment dependency.
+**Bottom line:** the DTK app is the easy part. X11 Miracast works when WFD is reused and chipset limits are accepted. Same-LAN Windows Connect uses MS-MICE, not WPS. DLNA is the fallback when P2P/WFD is immature. Treeland capture is a desktop-environment dependency. Generic Wayland is parked.
 
-The X11 first cut is in the tree (DTK shell, P2P + MS-MICE + DLNA, WFD send, live HTTP TS). Treeland and generic Wayland both use the ScreenCast portal and `pipewiresrc` (`gstreamer1.0-pipewire`), as separate backends. Treeland → Tmall MagicBox DLNA has a measured live-TS picture **and AAC** (2026-09-13).
+The X11 first cut is in the tree (DTK shell, P2P + MS-MICE + DLNA, WFD send, live HTTP TS). Treeland uses the ScreenCast portal and `pipewiresrc` (`gstreamer1.0-pipewire`). Generic Wayland `PortalCapture` is parked. Treeland → Tmall MagicBox DLNA has a measured live-TS picture **and AAC** (2026-09-13).
 
 ## Build
 
@@ -77,7 +77,7 @@ Keep these three equal to each other and to the git tag (`v0.3.0` for this cut):
 - `src/main.cpp` `setApplicationVersion`
 - `debian/changelog` top stanza
 
-`0.3.0` sends this screen or a local video / photo / audio file. Miracast muxes LPCM when the sink has no AAC. DLNA live MPEG-TS stays up across the TV’s first probe GET. The sender is **X11** Miracast (P2P and MS-MICE) plus labeled DLNA, zh_CN/zh_TW. Treeland uses a separate ScreenCast backend; Tmall DLNA picture + AAC is measured. Do not claim every TV or low latency.
+`0.3.0` sends this screen or a local video / photo / audio file. Miracast muxes LPCM when the sink has no AAC. DLNA live MPEG-TS stays up across the TV’s first probe GET. The sender is **X11** Miracast (P2P and MS-MICE) plus labeled DLNA, zh_CN/zh_TW. Treeland uses a separate ScreenCast backend; Tmall DLNA picture + AAC is measured. Generic Wayland is not continued. Do not claim every TV or low latency.
 
 Push `main`, then a tag that matches those three:
 
