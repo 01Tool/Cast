@@ -1,6 +1,8 @@
 #include "engine/castengine.h"
 
+#include "capture/displayserver.h"
 #include "capture/portalcapture.h"
+#include "capture/treelandcapture.h"
 #include "capture/x11capture.h"
 #include "discovery/dlnadiscovery.h"
 #include "discovery/micediscovery.h"
@@ -212,6 +214,12 @@ void CastEngine::connectToSink(const QString &id)
         return;
     }
 
+    if (m_state == SessionState::Connecting || m_state == SessionState::Streaming) {
+        qInfo() << "connect ignored, already" << static_cast<int>(m_state)
+                << "waitingForPortal" << m_waitingForPortal;
+        return;
+    }
+
     m_selectedSinkId = id;
     setState(SessionState::Connecting);
     setStatusMessage(tr("Connecting…"));
@@ -243,7 +251,7 @@ void CastEngine::connectToSink(const QString &id)
             failSession(m_capture->lastError());
             return;
         }
-        if (m_displayServer == DisplayServer::Wayland && m_capture->pipewireFd() < 0) {
+        if (m_displayServer == DisplayServer::Treeland && m_capture->pipewireFd() < 0) {
             m_waitingForPortal = true;
             return;
         }
@@ -368,12 +376,23 @@ void CastEngine::selectCaptureBackend()
 {
     auto *helper = DGuiApplicationHelper::instance();
 
+    // Treeland is not generic Wayland. DTK IsWaylandPlatform is true on DDE
+    // Treeland (window chrome only). Capture must use TreelandCapture.
+    if (isTreelandSession()) {
+        m_displayServer = DisplayServer::Treeland;
+        auto capture = std::make_unique<TreelandCapture>();
+        connect(capture.get(), &TreelandCapture::ready, this, &CastEngine::onPortalReady);
+        connect(capture.get(), &TreelandCapture::failed, this, &CastEngine::onPortalFailed);
+        m_capture = std::move(capture);
+        qInfo() << "display server Treeland, capture" << m_capture->name()
+                << "WAYLAND_DISPLAY" << qgetenv("WAYLAND_DISPLAY")
+                << "DESKTOP_SESSION" << qgetenv("DESKTOP_SESSION");
+        return;
+    }
+
     if (helper->testAttribute(DGuiApplicationHelper::IsWaylandPlatform)) {
         m_displayServer = DisplayServer::Wayland;
-        auto portal = std::make_unique<PortalCapture>();
-        connect(portal.get(), &PortalCapture::ready, this, &CastEngine::onPortalReady);
-        connect(portal.get(), &PortalCapture::failed, this, &CastEngine::onPortalFailed);
-        m_capture = std::move(portal);
+        m_capture = std::make_unique<PortalCapture>();
         qInfo() << "display server Wayland, capture" << m_capture->name();
         return;
     }

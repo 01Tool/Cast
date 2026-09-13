@@ -393,6 +393,10 @@
         <translation>显示服务器：Wayland</translation>
     </message>
     <message>
+        <source>Display server: Treeland</source>
+        <translation>显示服务器：Treeland</translation>
+    </message>
+    <message>
         <source>No displays found</source>
         <translation>未找到显示器</translation>
     </message>
@@ -557,7 +561,11 @@
     </message>
     <message>
         <source>Screen capture is unavailable on this session. xdg-desktop-portal ScreenCast has no sources (needs a Treeland / Wayland portal backend).</source>
-        <translation>当前会话无法采集屏幕。xdg-desktop-portal ScreenCast 没有源（需要 Treeland / Wayland 门户后端）。</translation>
+        <translation type="vanished">当前会话无法采集屏幕。xdg-desktop-portal ScreenCast 没有源（需要 Treeland / Wayland 门户后端）。</translation>
+    </message>
+    <message>
+        <source>Screen capture is unavailable on this session. xdg-desktop-portal ScreenCast has no sources (needs a Wayland portal backend).</source>
+        <translation>当前会话无法采集屏幕。xdg-desktop-portal ScreenCast 没有源（需要 Wayland 门户后端）。</translation>
     </message>
     <message>
         <source>Could not listen for the ScreenCast portal reply.</source>
@@ -606,6 +614,73 @@
     <message>
         <source>ScreenCast portal returned no PipeWire stream.</source>
         <translation>ScreenCast 门户未返回 PipeWire 流。</translation>
+    </message>
+    <message>
+        <source>Could not open the PipeWire remote: %1</source>
+        <translation>无法打开 PipeWire 远端：%1</translation>
+    </message>
+    <message>
+        <source>ScreenCast portal returned an invalid PipeWire fd.</source>
+        <translation>ScreenCast 门户返回了无效的 PipeWire 文件描述符。</translation>
+    </message>
+    <message>
+        <source>Could not duplicate the PipeWire fd.</source>
+        <translation>无法复制 PipeWire 文件描述符。</translation>
+    </message>
+</context>
+<context>
+    <name>TreelandCapture</name>
+    <message>
+        <source>No session bus; cannot open the ScreenCast portal.</source>
+        <translation>没有会话总线，无法打开 ScreenCast 门户。</translation>
+    </message>
+    <message>
+        <source>Screen capture is unavailable on this session. xdg-desktop-portal ScreenCast has no sources (needs xdg-desktop-portal-dde on Treeland).</source>
+        <translation>当前会话无法采集屏幕。xdg-desktop-portal ScreenCast 没有源（Treeland 需要 xdg-desktop-portal-dde）。</translation>
+    </message>
+    <message>
+        <source>Could not listen for the ScreenCast portal reply.</source>
+        <translation>无法监听 ScreenCast 门户回复。</translation>
+    </message>
+    <message>
+        <source>ScreenCast %1 failed: %2</source>
+        <translation>ScreenCast %1 失败：%2</translation>
+    </message>
+    <message>
+        <source>The ScreenCast portal did not reply in time.</source>
+        <translation>ScreenCast 门户未及时回复。</translation>
+    </message>
+    <message>
+        <source>Screen share was cancelled.</source>
+        <translation>已取消屏幕共享。</translation>
+    </message>
+    <message>
+        <source>The ScreenCast portal refused the session.</source>
+        <translation>ScreenCast 门户拒绝了会话。</translation>
+    </message>
+    <message>
+        <source>ScreenCast portal returned no session.</source>
+        <translation>ScreenCast 门户未返回会话。</translation>
+    </message>
+    <message>
+        <source>ScreenCast Start failed: %1</source>
+        <translation>ScreenCast Start 失败：%1</translation>
+    </message>
+    <message>
+        <source>Timed out waiting to choose a screen.</source>
+        <translation>等待选择屏幕超时。</translation>
+    </message>
+    <message>
+        <source>The ScreenCast portal could not start the stream.</source>
+        <translation>ScreenCast 门户无法启动流。</translation>
+    </message>
+    <message>
+        <source>ScreenCast portal returned no PipeWire stream.</source>
+        <translation>ScreenCast 门户未返回 PipeWire 流。</translation>
+    </message>
+    <message>
+        <source>Could not open the PipeWire remote.</source>
+        <translation>无法打开 PipeWire 远端。</translation>
     </message>
     <message>
         <source>Could not open the PipeWire remote: %1</source>

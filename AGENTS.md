@@ -11,7 +11,8 @@ Mandatory rules for every agent working in this repository. Read this file and t
 | [docs/architecture.md](docs/architecture.md) | Layers, `CastEngine`, first implementation cut |
 | [docs/platform/README.md](docs/platform/README.md) | Capture backend split |
 | [docs/platform/x11.md](docs/platform/x11.md) | X11 grab (`ximagesrc` / XShm) |
-| [docs/platform/wayland.md](docs/platform/wayland.md) | Portal + PipeWire; DDE ScreenCast gap |
+| [docs/platform/wayland.md](docs/platform/wayland.md) | Generic Wayland portal + PipeWire |
+| [docs/platform/treeland.md](docs/platform/treeland.md) | Treeland ≠ Wayland; async ScreenCast |
 | [docs/constraints.md](docs/constraints.md) | Chipset, P2P vs DLNA, sinks, latency, audio |
 | [docs/devices.md](docs/devices.md) | Measured Miracast / DLNA sink matrix (fill from tests) |
 | [docs/protocols/README.md](docs/protocols/README.md) | Miracast vs DLNA transports |
@@ -25,9 +26,9 @@ DTK conventions: `~/.agents/skills/deepin-skills/dtk-development/SKILL.md` and i
 - **Miracast / WFD** is the first transport: Wi-Fi Direct **or** MS-MICE (TCP 7250 then the same WFD RTSP + RTP). **DLNA DMR** is the same-LAN HTTP fallback. Both may appear in one device list; each row must show its protocol.
 - **DTK is the UI only.** Discovery, P2P, MS-MICE, WFD/RTSP, UPnP, capture, encode, and send live in `CastEngine` and backends — not in widgets.
 - **Reuse**, do not rewrite WFD. Start from `linuxdeepin/deepin-network-displays` / GNOME Network Displays. Do **not** base the desktop app on MiracleCast.
-- **One binary, two capture backends.** Detect the session with `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform`.
-- **X11 first.** Implement `X11Capture`. `PortalCapture` uses `org.freedesktop.portal.ScreenCast` (Treeland via `xdg-desktop-portal-dde`), not Treeland protocols from the app.
-- **Never X11-grab on Wayland.** That only sees XWayland windows. Fail with a clear error if ScreenCast is missing.
+- **One binary, three capture backends.** Detect **Treeland first** (`WAYLAND_DISPLAY` / `DESKTOP_SESSION` contain `treeland`), then generic Wayland with `DGuiApplicationHelper::IsWaylandPlatform`, then X11 with `IsXWindowPlatform`. Treeland is not the Wayland method.
+- **X11 first.** Implement `X11Capture`. Generic Wayland uses `PortalCapture`. Treeland uses `TreelandCapture`. Both portal backends use `org.freedesktop.portal.ScreenCast` (Treeland via `xdg-desktop-portal-dde`), not Treeland compositor protocols from the app.
+- **Never X11-grab on Wayland or Treeland.** That only sees XWayland windows. Fail with a clear error if ScreenCast is missing.
 - Widgets must not call X11, portal, NetworkManager, `wpa_supplicant`, UPnP/SSDP, mDNS, TCP 7250, or GStreamer APIs directly. The DDE tray plugin is UI only: it calls the `ot-cast` D-Bus API, never CastEngine internals.
 - True Miracast is **WFD** (RTSP :7236 + RTP): Wi-Fi Direct **or** MS-MICE on the LAN. That is not “same LAN then HTTP.” DLNA is allowed as an **explicit** backend. Do not label a DMR as Miracast. Do not add Chromecast under either name.
 - Do not claim universal sink support or “low latency” without a measured row in [docs/devices.md](docs/devices.md).

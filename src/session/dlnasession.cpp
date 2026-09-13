@@ -468,17 +468,17 @@ void DlnaSession::attachEncoder(QTcpSocket *socket)
 
 void DlnaSession::pumpTs()
 {
-    if (!m_encoder || !m_client)
-        return;
-    QIODevice *pipe = m_encoder->tsPipe();
+    QIODevice *pipe = m_encoder ? m_encoder->tsPipe() : nullptr;
     if (!pipe)
         return;
-    if (m_client->state() != QAbstractSocket::ConnectedState)
-        return;
-    if (m_client->bytesToWrite() > 256 * 1024)
+    if (m_client && m_client->state() == QAbstractSocket::ConnectedState
+        && m_client->bytesToWrite() > 256 * 1024)
         return;
     const QByteArray chunk = pipe->readAll();
     if (chunk.isEmpty())
+        return;
+    // No client: discard so fdsink cannot block during MagicBox probe GET.
+    if (!m_client || m_client->state() != QAbstractSocket::ConnectedState)
         return;
     m_client->write(chunk);
 }

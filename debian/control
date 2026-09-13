@@ -13,6 +13,7 @@ Build-Depends:
  libdtk6gui-dev,
  libdtk6widget-dev,
  dde-tray-loader-dev,
+ libdbus-1-dev,
 Standards-Version: 4.7.0
 Homepage: https://01tool.com
 Vcs-Browser: https://github.com/01Tool/Cast

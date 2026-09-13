@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QStandardPaths>
 
+#include <cstdio>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -14,6 +15,11 @@ GstEncoder::GstEncoder(QObject *parent)
     m_process.setProcessChannelMode(QProcess::SeparateChannels);
     connect(&m_process, &QProcess::errorOccurred, this, &GstEncoder::onProcessError);
     connect(&m_process, &QProcess::finished, this, &GstEncoder::onFinished);
+    connect(&m_process, &QProcess::readyReadStandardError, this, [this]() {
+        const QByteArray err = m_process.readAllStandardError().trimmed();
+        if (!err.isEmpty())
+            qWarning() << "encoder" << err;
+    });
 }
 
 QIODevice *GstEncoder::tsPipe()
@@ -109,11 +115,11 @@ bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpP
             && gstHasElement(QStringLiteral("audioresample"))
             && gstHasElement(QStringLiteral("aacparse"))
             && !gstAacEncoder().isEmpty();
-        if (wantAudio && !gstAac) {
+        if (wantAudio) {
             m_audioNote = tr("no AAC on this path, video only");
-            qWarning() << m_audioNote;
+            qWarning() << "PipeWire ScreenCast is video-only until live AAC mux is stable";
         }
-        return startGst(sink, sinkIp, rtpPort, gstAac);
+        return startGst(sink, sinkIp, rtpPort, false);
     }
 
     const bool wantAudio = m_audio.enabled();
@@ -235,9 +241,15 @@ QString GstEncoder::ximagesrcElement() const
 QString GstEncoder::videoSourceElement() const
 {
     if (m_source.pipewireFd >= 0) {
-        return QStringLiteral("pipewiresrc fd=%1 path=%2 do-timestamp=true keepalive-time=1000")
-            .arg(ScreenCastPortal::gstPipeWireFd)
-            .arg(m_source.pipewireNode);
+        // Portal remotes already target one node. autoconnect=true races a
+        // second link and fails with "no more output formats". always-copy
+        // turns Treeland DMA-BUF into CPU video/x-raw for videoconvert/x264enc.
+        // Do not set path/autoconnect=false: a stale node id waits forever
+        // (0% CPU, no MPEG-TS). The portal remote only exposes this stream.
+        return QStringLiteral(
+            "pipewiresrc fd=%1 always-copy=true provide-clock=false "
+            "do-timestamp=true keepalive-time=1000")
+            .arg(ScreenCastPortal::gstPipeWireFd);
     }
     return ximagesrcElement();
 }
@@ -248,6 +260,11 @@ void GstEncoder::attachPipeWireFd()
     const int srcFd = m_source.pipewireFd;
     if (srcFd < 0)
         return;
+    qInfo() << "attach PipeWire parent fd" << srcFd << "-> child"
+            << ScreenCastPortal::gstPipeWireFd;
+    std::fprintf(stderr, "ot-cast: attach PipeWire parent fd %d -> child %d\n", srcFd,
+                 ScreenCastPortal::gstPipeWireFd);
+    std::fflush(stderr);
     ::fcntl(srcFd, F_SETFD, 0);
     m_process.setChildProcessModifier([srcFd]() {
         if (srcFd != ScreenCastPortal::gstPipeWireFd) {
@@ -277,50 +294,60 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
     QString pipeline;
     if (withAudio && !monitor.isEmpty()) {
         const QString x264 = QStringLiteral(
-                                 "x264enc tune=zerolatency speed-preset=%1 bitrate=%2 key-int-max=%3 ! "
-                                 "video/x-h264,profile=%4")
+                                 "x264enc tune=zerolatency speed-preset=%1 bitrate=%2 key-int-max=%3 "
+                                 "bframes=0 byte-stream=true ! "
+                                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=%4")
                                  .arg(preset)
                                  .arg(bitrate)
                                  .arg(m_video.fps)
                                  .arg(profile);
+        // alignment=0 flushes every packet (HTTP, not RTP). pulsesrc must not
+        // provide the clock or mpegtsmux waits forever on a second live source.
         pipeline = QStringLiteral(
-                       "mpegtsmux name=mux alignment=7 ! %1 "
-                       "%2 ! "
+                       "mpegtsmux name=mux alignment=0 ! %1 "
+                       "%2 ! queue max-size-buffers=8 leaky=downstream ! "
                        "videoconvert ! videoscale add-borders=true method=4 ! "
-                       "video/x-raw,width=%3,height=%4,framerate=%5/1 ! "
-                       "%6 ! h264parse config-interval=1 ! queue ! mux. "
-                       "pulsesrc device=\"%7\" provide-clock=true do-timestamp=true ! "
-                       "audioconvert ! audioresample ! audio/x-raw,rate=%8,channels=2 ! "
-                       "%9 ! aacparse ! queue ! mux.")
+                       "video/x-raw,width=%3,height=%4 ! "
+                       "%5 ! h264parse config-interval=1 ! queue ! mux. "
+                       "pulsesrc device=%6 provide-clock=false do-timestamp=true ! "
+                       "queue leaky=downstream ! "
+                       "audioconvert ! audioresample ! audio/x-raw,rate=%7,channels=2 ! "
+                       "%8 ! aacparse ! queue ! mux.")
                        .arg(tsOut, grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
-                       .arg(m_video.fps)
                        .arg(x264, monitor)
                        .arg(m_audio.rate)
                        .arg(gstAacEncoder());
         m_audioActive = true;
     } else {
         pipeline = QStringLiteral(
-                       "%1 ! "
+                       "%1 ! queue max-size-buffers=8 leaky=downstream ! "
                        "videoconvert ! videoscale add-borders=true method=4 ! "
-                       "video/x-raw,width=%2,height=%3,framerate=%4/1 ! "
-                       "x264enc tune=zerolatency speed-preset=%5 bitrate=%6 key-int-max=%4 ! "
-                       "video/x-h264,profile=%7 ! "
+                       "video/x-raw,width=%2,height=%3 ! "
+                       "x264enc tune=zerolatency speed-preset=%4 bitrate=%5 key-int-max=%6 "
+                       "bframes=0 byte-stream=true ! "
+                       "video/x-h264,stream-format=byte-stream,alignment=au,profile=%7 ! "
                        "h264parse config-interval=1 ! "
-                       "mpegtsmux alignment=7 ! %8")
+                       "mpegtsmux alignment=0 ! %8")
                        .arg(grab)
                        .arg(m_video.width)
                        .arg(m_video.height)
-                       .arg(m_video.fps)
                        .arg(preset)
                        .arg(bitrate)
+                       .arg(m_video.fps)
                        .arg(profile, tsOut);
     }
 
     qInfo() << "gst-launch" << pipeline;
+    std::fprintf(stderr, "ot-cast: gst-launch %s\n", qPrintable(pipeline));
+    std::fflush(stderr);
     attachPipeWireFd();
-    m_process.start(launch, QStringList{QStringLiteral("-e"), QStringLiteral("-q"), pipeline});
+    // gst-launch treats each argv token as a pipeline word. One string
+    // containing spaces is a single invalid element name ("syntax error").
+    QStringList args{QStringLiteral("-e"), QStringLiteral("-q")};
+    args += pipeline.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    m_process.start(launch, args);
     if (!m_process.waitForStarted(3000)) {
         m_lastError = tr("gst-launch-1.0 failed to start.");
         m_audioActive = false;

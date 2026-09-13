@@ -172,6 +172,9 @@ void MainWindow::bindEngine()
     case CastEngine::DisplayServer::Wayland:
         session = tr("Display server: Wayland");
         break;
+    case CastEngine::DisplayServer::Treeland:
+        session = tr("Display server: Treeland");
+        break;
     case CastEngine::DisplayServer::Unknown:
         break;
     }

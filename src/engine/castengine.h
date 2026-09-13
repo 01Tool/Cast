@@ -41,6 +41,7 @@ public:
     enum class DisplayServer {
         X11,
         Wayland,
+        Treeland,
         Unknown,
     };
     Q_ENUM(DisplayServer)

@@ -90,6 +90,7 @@ Live desktop over DMR is HTTP pull, not WFD RTP. See [protocols/dlna.md](protoco
 - [architecture.md](architecture.md)
 - [platform/x11.md](platform/x11.md)
 - [platform/wayland.md](platform/wayland.md)
+- [platform/treeland.md](platform/treeland.md)
 - [constraints.md](constraints.md)
 - [protocols/README.md](protocols/README.md)
 - [protocols/dlna.md](protocols/dlna.md)
@@ -337,3 +338,27 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-09 | DDE dock system ScreenCast indicator | Tooltip `正在共享屏幕至[]` after Allow; empty name; not `ot-cast-tray` (`正在投屏`) | [platform/wayland.md](platform/wayland.md) §Treeland smoke; `src/tray/casttrayplugin.cpp` `itemTipsWidget` |
 | 2026-09-08 | `docs/architecture.md` Capture | Never X11-grab on Wayland; portal then `pipewiresrc` | [platform/wayland.md](platform/wayland.md) §Treeland smoke |
 | 2026-09-09 | `~/.agents/skills/deepin/dtk-development/SKILL.md` | DTK is UI only; engine owns portal D-Bus | [platform/wayland.md](platform/wayland.md) §Treeland smoke |
+| 2026-09-13 | `~/.agents/skills/deepin/dtk-development/references/platform-abstraction.md` | `IsWaylandPlatform` → `DTreeLandPlatformWindowInterface` (window chrome, not capture) | `src/engine/castengine.cpp` `selectCaptureBackend`; [platform/treeland.md](platform/treeland.md) Detect |
+| 2026-09-13 | `~/.agents/skills/deepin/dtk-development/references/utilities/gui-helper.md` | `IsWaylandPlatform` / `IsXWindowPlatform` | `src/engine/castengine.cpp` `selectCaptureBackend` after Treeland |
+| 2026-09-13 | this session `WAYLAND_DISPLAY=treeland.socket` `DESKTOP_SESSION=treeland` | Compositor socket / session name, not DTK Wayland flag | `src/capture/displayserver.h` `isTreelandSession`; `tests/displaysource-check.cpp` |
+| 2026-09-13 | [docs/platform/treeland.md](platform/treeland.md) | Async ScreenCast; Treeland ≠ generic Wayland | `src/capture/treelandcapture.cpp`; `src/engine/castengine.cpp` `selectCaptureBackend` / `connectToSink` |
+| 2026-09-13 | [docs/platform/wayland.md](platform/wayland.md) | Generic `PortalCapture` stays off Treeland | `src/capture/portalcapture.cpp`; `src/engine/castengine.cpp` |
+| 2026-09-13 | [docs/architecture.md](architecture.md) Capture | Three backends; Treeland first | `src/engine/castengine.h` `DisplayServer::Treeland`; `src/ui/mainwindow.cpp` `bindEngine` |
+| 2026-09-13 | [xdg-desktop-portal ScreenCast](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html) | `CreateSession` / `SelectSources` / `Start` / `OpenPipeWireRemote`; `cursor_mode` | `src/capture/treelandcapture.cpp` |
+| 2026-09-13 | [Qt `QDBusPendingCallWatcher`](https://doc.qt.io/qt-6/qdbuspendingcallwatcher.html) | Async `Start` and `OpenPipeWireRemote` so the GUI can run the picker | `src/capture/treelandcapture.cpp` `beginStartSession` / `openPipeWireRemote` |
+| 2026-09-13 | `AGENTS.md` Product facts | Three backends; never X11-grab on Treeland | [AGENTS.md](../AGENTS.md); [platform/README.md](platform/README.md) |
+| 2026-09-13 | Tmall MagicBox `192.168.31.8` | DLNA retry target (no Xiaomi P2P) | [platform/treeland.md](platform/treeland.md) retry; [devices.md](devices.md) DLNA table |
+| 2026-09-13 | [Qt 6.8 `QDBusMessagePrivate::fromDBusMessage`](https://github.com/qt/qtbase/blob/6.8.0/src/dbus/qdbusmessage.cpp) | Incoming signals demarshal **all** args to `QVariant` before slots; `a{sv}` + nested `streams` hangs | `src/capture/treelandcapture.cpp` GDBus `Request.Response` watcher |
+| 2026-09-13 | [Qt 6.8 `qDBusSignalFilter`](https://github.com/qt/qtbase/blob/6.8.0/src/dbus/qdbusintegrator.cpp) | Filter calls `fromDBusMessage` on every matched signal | `src/capture/treelandcapture.cpp` does not `bus.connect` Start `Response` |
+| 2026-09-13 | [D-Bus `BecomeMonitor`](https://dbus.freedesktop.org/doc/dbus-specification.html#bus-messages-become-monitor) | Eavesdrop unicast `Request.Response` destined for Qt’s unique name | `src/capture/treelandcapture.cpp` `startResponseWatcher` |
+| 2026-09-13 | libdbus-1 `DBusMessageIter` | Parse `Response(u,a{sv})` / `streams` `a(ua{sv})` without Qt | `src/capture/treelandcapture.cpp` `parseStartResponse` |
+| 2026-09-13 | `libdbus-1-dev` 1.16.2-2deepin1 | Headers for the Treeland Start watcher | `CMakeLists.txt` `PkgConfig::DBus1`; `debian/control` Build-Depends |
+| 2026-09-13 | `gst-launch-1.0` argv | One string with spaces is one element name → `WARNING: erroneous pipeline: syntax error` (`警告: 错误管道: 语法错误`) | `src/session/gstencoder.cpp` `startGst` split pipeline tokens |
+| 2026-09-13 | GStreamer `pipewiresrc` `path` | NULL = default node; portal remote only has the ScreenCast node | `src/session/gstencoder.cpp` `videoSourceElement` |
+| 2026-09-13 | this Treeland session `pipewiresrc` | After Allow: `stream error: no more output formats` / `not-negotiated (-4)` | `src/session/gstencoder.cpp` `videoSourceElement` `autoconnect=false` `always-copy=true` |
+| 2026-09-13 | [GNOME Shell screencast always-copy](https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/d32c03488fcf6cdb0ca2e99b0ed6ade078460deb) | `always-copy=true` so DMA-BUF is copied before encode | `src/session/gstencoder.cpp` `videoSourceElement` |
+| 2026-09-13 | this Treeland DLNA session `gst-launch` `/proc/<pid>/io` | Encoder 0% CPU, `wchar` ~1.3 KiB, MagicBox GET `/cast.ts` every ~6 s | `src/session/gstencoder.cpp` `startGst`; `src/session/dlnasession.cpp` `pumpTs` |
+| 2026-09-13 | GStreamer `mpegtsmux` `alignment` | `7` is UDP/RTP; `0` flushes all packets for HTTP | `src/session/gstencoder.cpp` `startGst` |
+| 2026-09-13 | `docs/protocols/dlna.md` Required path §5 | Keep live encoder across MagicBox probe GET; drain stdout | `src/session/dlnasession.cpp` `pumpTs` / `startLiveEncoder` |
+| 2026-09-13 | this Treeland session user-confirmed picture | MagicBox shows desktop; `pipewiresrc` RGBx 3840×2160; `gst-launch` ~63 MiB TS | [devices.md](devices.md) DLNA 2026-09-13; [platform/treeland.md](platform/treeland.md) §2026-09-13 |
+| 2026-09-13 | `docs/devices.md` How to test | Measured Treeland live-ts is not the X11 ffmpeg row | [devices.md](devices.md) DLNA table |

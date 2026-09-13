@@ -1,4 +1,5 @@
 #include "capture/displaysource.h"
+#include "capture/displayserver.h"
 
 #include <cstdio>
 
@@ -50,6 +51,20 @@ int main()
     expectTrue("hidpi origin", right.x() == 3840 && right.width() == 3840);
     const QRect unscaled = scaleToNativePixels(QRect(0, 0, 3840, 2160), 1.0);
     expectTrue("dpr 1 unchanged", unscaled.width() == 3840 && unscaled.height() == 2160);
+
+    expectTrue("treeland socket",
+               isTreelandSession(QByteArrayLiteral("treeland.socket"), QByteArrayLiteral("treeland")));
+    expectTrue("treeland wayland display only",
+               isTreelandSession(QByteArrayLiteral("treeland.socket"), QByteArrayLiteral("deepin")));
+    expectTrue("treeland desktop session only",
+               isTreelandSession(QByteArrayLiteral("wayland-0"), QByteArrayLiteral("treeland")));
+    expectTrue("treeland xdg session desktop",
+               isTreelandSession(QByteArrayLiteral("wayland-0"), QByteArrayLiteral("deepin"),
+                                 QByteArrayLiteral("treeland")));
+    expectTrue("generic wayland is not treeland",
+               !isTreelandSession(QByteArrayLiteral("wayland-0"), QByteArrayLiteral("plasma")));
+    expectTrue("x11 is not treeland",
+               !isTreelandSession(QByteArray(), QByteArrayLiteral("lightdm-xsession")));
 
     if (g_failed) {
         std::fprintf(stderr, "%d check(s) failed\n", g_failed);

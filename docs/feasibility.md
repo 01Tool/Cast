@@ -11,7 +11,7 @@ DTK (deepin Tool Kit) is a UI and system-integration framework for deepin / UOS 
 - Application shell: `DApplication`, `DMainWindow`, title bar, theming
 - Device list, dialogs, status, notifications
 - DConfig / settings, logging (`DLogManager`), DBus helpers
-- Platform detection via `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform`
+- Platform detection via `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform` (window chrome). Treeland capture is **not** this flag; see [platform/treeland.md](platform/treeland.md).
 - Window chrome on X11 and Treeland (radius, blur, CSD)
 
 DTK’s platform abstraction is for **window decoration**, not screen capture. `DPlatformHandle` / `DPlatformTheme` do not grab frames, talk Wi-Fi Direct, or speak WFD.
@@ -49,16 +49,17 @@ This is not a green field. Deepin already shipped pieces of the same feature:
 - deepin 23 added a **无线投屏** entry in the quick panel. The tray assets live in `dde-tray-loader` as `wireless-casting`.
 - The official release note describes searching the same network for Miracast-capable devices and casting the desktop.
 
-A new DTK app should treat those as the starting point: reuse the WFD/P2P stack (and GNOME’s MS-MICE source path), replace or wrap the UI with DTK, and add an explicit X11 / Wayland capture split. A full WFD rewrite is usually the wrong first move.
+A new DTK app should treat those as the starting point: reuse the WFD/P2P stack (and GNOME’s MS-MICE source path), replace or wrap the UI with DTK, and add an explicit X11 / Treeland / Wayland capture split. A full WFD rewrite is usually the wrong first move.
 
 Those pieces do **not** cover DLNA. GNOME Network Displays (and the Deepin fork) speak Miracast (P2P + MICE) and Chromecast. Chromecast stays out of this app. The DMR path in [protocols/dlna.md](protocols/dlna.md) is new engine work (GUPnP/GSSDP or equivalent), still behind `CastEngine`.
 
-## X11 vs Wayland in one sentence
+## X11 vs Treeland vs Wayland in one sentence
 
 - **X11:** the feature can work today with known Linux sender techniques.
-- **Wayland / Treeland:** `org.freedesktop.portal.ScreenCast` → PipeWire. Falling back to X11 grab inside a Wayland session is not Wayland support.
+- **Treeland:** DDE compositor; ScreenCast portal with an async backend. Not generic Wayland. See [platform/treeland.md](platform/treeland.md).
+- **Generic Wayland:** `org.freedesktop.portal.ScreenCast` → PipeWire. Falling back to X11 grab inside a Wayland or Treeland session is not support.
 
-Details: [platform/x11.md](platform/x11.md), [platform/wayland.md](platform/wayland.md).
+Details: [platform/x11.md](platform/x11.md), [platform/treeland.md](platform/treeland.md), [platform/wayland.md](platform/wayland.md).
 
 ## Verdict
 
@@ -67,10 +68,11 @@ Details: [platform/x11.md](platform/x11.md), [platform/wayland.md](platform/wayl
 | DTK app that looks native on DDE | Yes |
 | Mirror to many Miracast TVs/dongles on **X11** | Yes, with hardware caveats |
 | Reach TVs that only do **DLNA DMR** well | Yes, as a labeled same-LAN backend |
-| Same capture on **Wayland / Treeland** | Via `org.freedesktop.portal.ScreenCast` (Treeland through xdg-desktop-portal-dde) |
+| Same capture on **Treeland** | Via `TreelandCapture` + ScreenCast portal (`xdg-desktop-portal-dde`), not Treeland protocols |
+| Same capture on **generic Wayland** | Via `PortalCapture` + ScreenCast portal |
 | One binary, both sessions, degrade gracefully | Yes — that should be the design |
 | Windows-quality “it just works” on every sink | No, not with current Linux WFD; DLNA is the fallback, not a guarantee |
 
-The DTK app is the easy part. X11 Miracast works when WFD is reused and chipset/sink limits are accepted. DLNA covers more TVs at higher latency. Wayland capture is a **desktop-environment dependency**, not a DTK one.
+The DTK app is the easy part. X11 Miracast works when WFD is reused and chipset/sink limits are accepted. DLNA covers more TVs at higher latency. Treeland and Wayland capture are **desktop-environment dependencies**, not DTK ones.
 
 See also: [constraints.md](constraints.md), [architecture.md](architecture.md).

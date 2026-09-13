@@ -5,8 +5,9 @@ Screen capture is the only layer that must branch on the display server. Encode 
 | Session | Document | First cut |
 |---------|----------|-----------|
 | X11 | [x11.md](x11.md) | Implement. `ximagesrc` / XShm. |
-| Wayland / Treeland | [wayland.md](wayland.md) | `PortalCapture` via `org.freedesktop.portal.ScreenCast` → PipeWire. |
+| Treeland (DDE) | [treeland.md](treeland.md) | `TreelandCapture` via ScreenCast portal (async Start). Not Treeland protocols. |
+| Generic Wayland | [wayland.md](wayland.md) | `PortalCapture` via `org.freedesktop.portal.ScreenCast` → PipeWire. |
 
-Do not use X11 grab on a Wayland session. That only captures XWayland windows.
+Do not use X11 grab on a Wayland or Treeland session. That only captures XWayland windows.
 
-Detect the session with `DGuiApplicationHelper::IsXWindowPlatform` / `IsWaylandPlatform` in `CastEngine`, not in widgets.
+Detect **Treeland first** (`WAYLAND_DISPLAY` / `DESKTOP_SESSION` contain `treeland`), then generic Wayland with `DGuiApplicationHelper::IsWaylandPlatform`, then X11 with `IsXWindowPlatform`. Do this in `CastEngine`, not in widgets. Treeland is not the Wayland method.
