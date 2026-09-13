@@ -6,6 +6,9 @@
 #include <QDBusObjectPath>
 #include <QString>
 
+// Parked: generic (non-Treeland) Wayland capture is not continued.
+// CastEngine does not construct this class. Keep the implementation for a
+// later mutter/kwin pass. Do not fold Treeland into start().
 class PortalCapture : public CaptureBackend
 {
     Q_DECLARE_TR_FUNCTIONS(PortalCapture)

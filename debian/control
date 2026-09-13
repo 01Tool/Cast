@@ -48,7 +48,8 @@ Description: Cast a desktop to Miracast and other wireless displays
  app over D-Bus.
  .
  Screen mirroring is X11 grab, or the ScreenCast portal on
- Wayland / Treeland. Native builds follow Architecture: any
- (amd64, arm64, or loong64 on that host).
+ Treeland. Generic Wayland capture is not continued. Native
+ builds follow Architecture: any (amd64, arm64, or loong64
+ on that host).
  .
  This is not an official Deepin / DDE component.

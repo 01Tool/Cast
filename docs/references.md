@@ -364,3 +364,11 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-13 | this Treeland session user-confirmed AAC | MagicBox plays system audio; Pulse `.monitor` `voaacenc`; `gst-launch` ~260% CPU | [devices.md](devices.md) DLNA 2026-09-13; `src/session/gstencoder.cpp` `startGst` |
 | 2026-09-13 | GStreamer `pulsesrc` `provide-clock` | Second live clock stalled `mpegtsmux`; audio slave-clocks the pipeline | `src/session/gstencoder.cpp` `startGst` PipeWire AAC branch |
 | 2026-09-13 | `docs/devices.md` How to test | Measured Treeland live-ts is not the X11 ffmpeg row | [devices.md](devices.md) DLNA table |
+| 2026-09-13 | [docs/architecture.md](architecture.md) Capture | Two live backends (X11, Treeland); `PortalCapture` parked | `src/engine/castengine.cpp` `selectCaptureBackend` / `connectToSink`; [architecture.md](architecture.md) Layers |
+| 2026-09-13 | [docs/platform/wayland.md](platform/wayland.md) | Generic Wayland not continued; keep `PortalCapture` unused | `src/engine/castengine.cpp` `selectCaptureBackend`; `src/capture/portalcapture.h` |
+| 2026-09-13 | [docs/platform/README.md](platform/README.md) | Treeland then X11; generic Wayland fails clearly | `src/engine/castengine.cpp` `selectCaptureBackend` |
+| 2026-09-13 | [docs/platform/treeland.md](platform/treeland.md) | Do not fold Treeland into `PortalCapture` | `src/capture/portalcapture.h`; [platform/wayland.md](platform/wayland.md) |
+| 2026-09-13 | [AGENTS.md](../AGENTS.md) Product facts | Two live backends; never construct `PortalCapture` | [AGENTS.md](../AGENTS.md); `src/engine/castengine.cpp` `selectCaptureBackend` |
+| 2026-09-13 | `~/.agents/skills/deepin/dtk-development/SKILL.md` | DTK is UI only; engine owns capture selection | `src/engine/castengine.cpp`; `src/ui/mainwindow.cpp` `bindEngine` |
+| 2026-09-13 | `~/.agents/skills/deepin/dtk-development/references/platform-abstraction.md` | `IsWaylandPlatform` / `IsXWindowPlatform` | `src/engine/castengine.cpp` `selectCaptureBackend` parked Wayland |
+| 2026-09-13 | [README.md](../README.md) Verdict | Generic Wayland not continued | [README.md](../README.md); [feasibility.md](feasibility.md); `debian/control` Description |

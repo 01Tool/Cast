@@ -1,7 +1,6 @@
 #include "engine/castengine.h"
 
 #include "capture/displayserver.h"
-#include "capture/portalcapture.h"
 #include "capture/treelandcapture.h"
 #include "capture/x11capture.h"
 #include "discovery/dlnadiscovery.h"
@@ -32,7 +31,12 @@ CastEngine::CastEngine(QObject *parent)
     bindPairing();
     watchScreens();
     refreshDisplays();
-    setStatusMessage(tr("Idle. Scan to search for Miracast and DLNA displays."));
+    if (m_displayServer == DisplayServer::Wayland) {
+        setStatusMessage(
+            tr("Wayland capture is not continued. Screen mirror needs Treeland or X11."));
+    } else {
+        setStatusMessage(tr("Idle. Scan to search for Miracast and DLNA displays."));
+    }
 }
 
 CastEngine::~CastEngine()
@@ -243,7 +247,12 @@ void CastEngine::connectToSink(const QString &id)
         }
     } else {
         if (!m_capture) {
-            failSession(tr("No capture backend for this session."));
+            if (m_displayServer == DisplayServer::Wayland) {
+                failSession(tr("Screen capture on generic Wayland is not continued. "
+                               "Use a Treeland or X11 session."));
+            } else {
+                failSession(tr("No capture backend for this session."));
+            }
             return;
         }
         setStatusMessage(tr("Select a screen to share…"));
@@ -390,10 +399,15 @@ void CastEngine::selectCaptureBackend()
         return;
     }
 
+    // DDE sessions are Treeland or X11. Generic Wayland (mutter, kwin, …) is
+    // not continued: keep PortalCapture in the tree, do not construct it, and
+    // never X11-grab (that only sees XWayland windows).
     if (helper->testAttribute(DGuiApplicationHelper::IsWaylandPlatform)) {
         m_displayServer = DisplayServer::Wayland;
-        m_capture = std::make_unique<PortalCapture>();
-        qInfo() << "display server Wayland, capture" << m_capture->name();
+        m_capture.reset();
+        qWarning() << "generic Wayland capture is not continued; PortalCapture is parked"
+                   << "WAYLAND_DISPLAY" << qgetenv("WAYLAND_DISPLAY")
+                   << "DESKTOP_SESSION" << qgetenv("DESKTOP_SESSION");
         return;
     }
 

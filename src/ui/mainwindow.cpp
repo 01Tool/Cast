@@ -170,7 +170,7 @@ void MainWindow::bindEngine()
         session = tr("Display server: X11");
         break;
     case CastEngine::DisplayServer::Wayland:
-        session = tr("Display server: Wayland");
+        session = tr("Display server: Wayland (not continued)");
         break;
     case CastEngine::DisplayServer::Treeland:
         session = tr("Display server: Treeland");

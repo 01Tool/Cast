@@ -43,12 +43,20 @@
         <translation>目前工作階段沒有可用的畫面擷取後端。</translation>
     </message>
     <message>
+        <source>Screen capture on generic Wayland is not continued. Use a Treeland or X11 session.</source>
+        <translation>通用 Wayland 上的畫面擷取暫不繼續。請使用 Treeland 或 X11 工作階段。</translation>
+    </message>
+    <message>
         <source>Disconnected.</source>
         <translation>已中斷連線。</translation>
     </message>
     <message>
         <source>Idle. Scan to search for Miracast and DLNA displays.</source>
         <translation>空閒。掃描以尋找 Miracast 和 DLNA 顯示器。</translation>
+    </message>
+    <message>
+        <source>Wayland capture is not continued. Screen mirror needs Treeland or X11.</source>
+        <translation>Wayland 擷取暫不繼續。螢幕鏡像需要 Treeland 或 X11。</translation>
     </message>
     <message>
         <source>Scanning for Miracast and DLNA displays…</source>
@@ -389,8 +397,8 @@
         <translation>顯示伺服器：X11</translation>
     </message>
     <message>
-        <source>Display server: Wayland</source>
-        <translation>顯示伺服器：Wayland</translation>
+        <source>Display server: Wayland (not continued)</source>
+        <translation>顯示伺服器：Wayland（暫不繼續）</translation>
     </message>
     <message>
         <source>Display server: Treeland</source>

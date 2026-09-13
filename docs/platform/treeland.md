@@ -11,7 +11,7 @@ Check the compositor **before** `DGuiApplicationHelper::IsWaylandPlatform`:
 1. `WAYLAND_DISPLAY` contains `treeland` (this host: `treeland.socket`), or
 2. `DESKTOP_SESSION` / `XDG_SESSION_DESKTOP` contains `treeland`.
 
-Then `CastEngine` sets `DisplayServer::Treeland` and `TreelandCapture`. The UI must say **Display server: Treeland**, not Wayland. Generic kwin/mutter sessions still use [wayland.md](wayland.md) `PortalCapture`.
+Then `CastEngine` sets `DisplayServer::Treeland` and `TreelandCapture`. The UI must say **Display server: Treeland**, not Wayland. Generic kwin/mutter sessions are [wayland.md](wayland.md) **not continued**: `PortalCapture` stays in the tree and is not selected.
 
 Never X11-grab here. That only sees XWayland windows.
 
@@ -34,7 +34,7 @@ TreelandCapture → xdg-desktop-portal ScreenCast → PipeWire → encoder → W
 
 ## Why not the Wayland method
 
-Generic `PortalCapture` (blocking `Start` + `QVariantMap` `streams`) matches mutter-style portals. On Treeland + `xdg-desktop-portal-dde` 1.1.9 it freezes the GUI after Allow. Keep that class for non-Treeland Wayland. Do not share the blocking `start()` on this compositor.
+Generic `PortalCapture` (blocking `Start` + `QVariantMap` `streams`) matches mutter-style portals. On Treeland + `xdg-desktop-portal-dde` 1.1.9 it freezes the GUI after Allow. Keep that class in the tree; generic Wayland is not continued. Do not share the blocking `start()` on this compositor.
 
 ## DDE status (deepin V25)
 

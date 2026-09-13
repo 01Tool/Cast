@@ -70,7 +70,7 @@ Prefer:
 ## 7. Security and permissions
 
 - X11 grab can capture the whole desktop without a user picker.
-- Wayland capture should go through the portal so the user consents and can choose a monitor.
+- Treeland capture goes through the ScreenCast portal so the user consents and can choose a monitor. Generic Wayland capture is not continued; do not X11-grab there.
 - P2P groups are a new L2 network; firewall rules that assume “only the AP” will break the RTP/RTSP path (a common GNOME Network Displays support issue).
 - Many P2P sinks use WPS push-button; others show an 8-digit PIN on the TV. The app registers an in-process NetworkManager SecretAgent so those prompts stay in the DTK window instead of depending on nm-applet. MS-MICE with PIN off (typical Windows “Projecting to this PC” on a secure LAN) does not prompt.
 

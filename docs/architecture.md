@@ -1,6 +1,6 @@
 # Architecture
 
-One DTK process, a display-server-agnostic cast engine, **three** capture backends, and **two labeled transports**. Widgets never call X11, Wayland, Treeland, NetworkManager, or UPnP APIs directly.
+One DTK process, a display-server-agnostic cast engine, **two live** capture backends (X11 and Treeland), and **two labeled transports**. Generic Wayland `PortalCapture` stays in the tree but is **not continued**. Widgets never call X11, Wayland, Treeland, NetworkManager, or UPnP APIs directly.
 
 Miracast (Wi-Fi Display: Wi-Fi Direct **or** MS-MICE, then WFD RTSP + RTP) is the first transport. Many TVs and Linux chipsets implement P2P poorly, so DLNA Digital Media Renderer on the same LAN is the HTTP fallback. The device list must show the protocol. Do not present a DMR as a Miracast sink. See [protocols/README.md](protocols/README.md).
 
@@ -24,10 +24,10 @@ CastEngine (Qt, display-server agnostic)
     └── Capture:
           X11      → ximagesrc / XShm
           Treeland → TreelandCapture (ScreenCast portal, async Start)
-          Wayland  → PortalCapture (ScreenCast portal)
+          Wayland  → PortalCapture (parked; not selected)
 ```
 
-Detect **Treeland first** (`WAYLAND_DISPLAY` / `DESKTOP_SESSION` contain `treeland`). DTK `IsWaylandPlatform` is true on Treeland only for window chrome; do not select the generic Wayland backend there. Then `IsWaylandPlatform` → `PortalCapture`, then `IsXWindowPlatform` → `X11Capture`.
+Detect **Treeland first** (`WAYLAND_DISPLAY` / `DESKTOP_SESSION` contain `treeland`). DTK `IsWaylandPlatform` is true on Treeland only for window chrome; do not select the generic Wayland backend there. DDE sessions are Treeland or X11. If `IsWaylandPlatform` and not Treeland, fail with a clear error: do **not** construct `PortalCapture`, and do **not** X11-grab. Then `IsXWindowPlatform` → `X11Capture`.
 
 ## UI (DTK)
 
@@ -90,23 +90,23 @@ Implementations:
 |---------|---------|--------|
 | `X11Capture` | X11 | Implement first. See [platform/x11.md](platform/x11.md). |
 | `TreelandCapture` | DDE Treeland | Same ScreenCast portal, async `Start` / `OpenPipeWireRemote`. See [platform/treeland.md](platform/treeland.md). Not Treeland compositor protocols. |
-| `PortalCapture` | Generic Wayland | Blocking ScreenCast portal → PipeWire. See [platform/wayland.md](platform/wayland.md). |
+| `PortalCapture` | Generic Wayland | **Not continued.** Blocking ScreenCast portal → PipeWire. Code kept; `CastEngine` does not construct it. See [platform/wayland.md](platform/wayland.md). |
 
-If Treeland or Wayland is active and the portal backend cannot create a session, the engine must fail with a clear error. It must **not** silently fall back to X11 grab (that only sees XWayland windows). Do not run `PortalCapture` on Treeland.
+If Treeland is active and the portal backend cannot create a session, the engine must fail with a clear error. If the session is generic Wayland, fail the same way without starting `PortalCapture`. It must **not** silently fall back to X11 grab (that only sees XWayland windows). Do not run `PortalCapture` on Treeland.
 
 ## First implementation cut
 
 1. DTK shell: window, empty device list, connect/disconnect placeholders.
 2. Discovery: NetworkManager P2P scan, populate the list.
 3. X11 capture + GStreamer WFD send path (reuse deepin/GNOME network-displays where possible).
-4. Treeland `TreelandCapture` and generic Wayland `PortalCapture` via xdg-desktop-portal ScreenCast + `pipewiresrc` (not Treeland protocols from the app).
+4. Treeland `TreelandCapture` via xdg-desktop-portal ScreenCast + `pipewiresrc` (not Treeland protocols from the app). Generic Wayland `PortalCapture` is parked (not continued).
 5. Hardware-encoder tuning after video, optional AAC, and a monitor picker work.
 6. DLNA: SSDP list + HTTP live MPEG-TS to MediaRenderers, tagged in the UI. Use this when P2P/WFD is missing or unstable. See [protocols/dlna.md](protocols/dlna.md).
 7. Device matrix: record which TVs accept live TS vs file-only, separately from WFD. See [devices.md](devices.md).
 8. DDE quick panel: D-Bus scan/connect, no protocol code in the plugin.
 9. MS-MICE for Windows Connect / Android-on-the-same-LAN: try TCP 7250 before P2P.
 
-Items 1–6 and 8–9 are in the tree. Item 7 is filled from measured sessions, not from logos (Windows Connect over MS-MICE, Tmall MagicBox over DLNA on X11, and Tmall MagicBox over DLNA on Treeland with AAC). A local file can be sent instead of the monitor: DLNA serves the file over HTTP; Miracast transcodes it into the same WFD RTP path. Treeland capture is a separate backend from generic Wayland. X11 grab uses physical pixels (`QScreen::geometry() × devicePixelRatio()`). WFD mode selection prefers the captured monitor’s aspect ratio and letterboxes.
+Items 1–6 and 8–9 are in the tree (item 4’s generic Wayland path is parked). Item 7 is filled from measured sessions, not from logos (Windows Connect over MS-MICE, Tmall MagicBox over DLNA on X11, and Tmall MagicBox over DLNA on Treeland with AAC). A local file can be sent instead of the monitor: DLNA serves the file over HTTP; Miracast transcodes it into the same WFD RTP path. Treeland capture is a separate backend; generic Wayland is not continued. X11 grab uses physical pixels (`QScreen::geometry() × devicePixelRatio()`). WFD mode selection prefers the captured monitor’s aspect ratio and letterboxes.
 
 ## What not to put in widgets
 
@@ -117,4 +117,4 @@ Items 1–6 and 8–9 are in the tree. Item 7 is filled from measured sessions, 
 - mDNS `_display._tcp` / TCP 7250 MS-MICE
 - Encoder bitrate / RTP socket details
 
-Those belong in `CastEngine` and the capture backends so X11, Treeland, and Wayland stay swappable.
+Those belong in `CastEngine` and the capture backends so X11 and Treeland stay swappable. `PortalCapture` remains in the tree unused.
