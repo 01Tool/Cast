@@ -48,20 +48,30 @@ private:
     QString desktopPulseMonitor() const;
     QString ximagesrcElement() const;
     QString videoSourceElement() const;
-    void attachPipeWireFd();
     enum class TsSink { Rtp, Stdout };
+    QString pipewireH264Pipeline(TsSink sink) const;
+    QString pipewireRawI420Pipeline() const;
+    void attachPipeWireFd(QProcess *proc = nullptr);
+    void stopProcess(QProcess *proc);
+    void closeH264Pipe();
+    void killOrphanRtpEncoders() const;
+    static constexpr int kH264PipeFd = 4;
 
     bool prepare(const WfdVideoMode &video, const WfdAudioMode &audio, const DisplaySource &source,
                  const MediaSource &media);
     bool startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpPort);
     bool startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio);
+    bool startPipewireLpcm(TsSink sink, const QString &sinkIp, quint16 rtpPort);
     bool startFfmpeg(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio);
-    void appendAudioEncodeArgs(QStringList *args) const;
+    void appendAudioEncodeArgs(QStringList *args, bool zeroFirstPts = true) const;
     int videoBitrateKbps() const;
     QString x264Preset(TsSink sink) const;
     QString x264Profile(TsSink sink) const;
 
     QProcess m_process;
+    QProcess m_videoProcess;
+    int m_h264ReadFd = -1;
+    int m_h264WriteFd = -1;
     QString m_lastError;
     WfdVideoMode m_video;
     WfdAudioMode m_audio;

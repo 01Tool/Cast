@@ -64,4 +64,20 @@ Same session type. Tmall MagicBox_M18 (`192.168.31.8`) labeled **DLNA**. Connect
 
 Do **not** set `pipewiresrc path=<node>` on this portal remote: a stale id waits forever (0% CPU, ~65 B out, MagicBox GET `/cast.ts` every ~6 s with no picture). Do not `QDBusConnection::connect` Start `Response`. Do not fold this into `PortalCapture`.
 
-Xiaomi P2P on Treeland is still unmeasured. WFD LPCM on this path stays video-only until the encode path muxes it.
+Xiaomi Pad 7S Pro P2P on Treeland has a user-confirmed **picture** (2026-09-13): Pad GO `192.168.49.1`, this PC `192.168.49.128`, RTP 15550, `1920x1080@30`. The Pad lists LPCM only. `mpegtsmux` `audio/x-lpcm` is DVD `0x8b`; `gstreamer1.0-libav` does not load (`plugin 1.26` vs gst `1.24`). PipeWire LPCM is gst-launch H.264 on inherited `fd 4` plus ffmpeg Pulse `pcm_bluray` (same mux as X11). ## Treeland WFD (2026-09-13) — picture pass, audio further investigation
+
+Xiaomi Pad 7S Pro 12.5 P2P: user-confirmed **picture**. Pad GO `192.168.49.1`, this PC `192.168.49.128`, RTP 15550, `1920x1080@30` from DP-1. Screen cast is the working function.
+
+**Audio is further investigation.** The Pad lists only `LPCM 00000002 00` (no AAC). X11 still muxes `ffmpeg -c:a pcm_bluray` and that row stands.
+
+What was tried on Treeland and must not be claimed as a pass:
+
+| Attempt | Result |
+|---------|--------|
+| gst-launch MPEG-TS video only | Picture. No audio (expected). |
+| Copy gst H.264 into ffmpeg stdin / `pipe:0` | ffmpeg EOF: `Nothing was written into output file`. |
+| H.264 on inherited `fd 4`, ffmpeg `-c:v copy -c:a pcm_bluray` | Probe `unspecified size`; leftover ffmpeg can keep sending RTP after Cast dies. Silent. |
+| I420 on `fd 4`, ffmpeg `libx264` + Pulse `pcm_bluray` (X11 mux) | `pcm_bluray` in TS as private `0x06`. Picture. Still silent. Second WFD PLAY used to kill the encoder at ~200 ms. |
+| SET **AAC** + gst `voaacenc` while the sink listed only LPCM | Picture **and** a loud boom (AAC decoded as PCM). Reverted. Do **not** SET AAC on an LPCM-only sink. |
+
+`mpegtsmux` `audio/x-lpcm` is DVD `0x8b`, not HDMV `pcm_bluray`. `gstreamer1.0-libav` does not load (`plugin 1.26` vs gst `1.24`). Ignore a second WFD PLAY. Kill leftover `rtp_mpegts`/`pcm_bluray` ffmpeg; children use `PR_SET_PDEATHSIG`. Not a latency claim. Not an audio pass.

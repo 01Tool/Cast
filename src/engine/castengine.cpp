@@ -644,7 +644,8 @@ void CastEngine::onP2PActivated(const QString &localIpv4)
 {
     if (m_state != SessionState::Connecting)
         return;
-    if (!m_wfd->listen(localIpv4, m_audioEnabled, m_sessionSource.width, m_sessionSource.height))
+    if (!m_wfd->listen(localIpv4, m_audioEnabled, m_sessionSource.width, m_sessionSource.height,
+                       m_sessionSource.pipewireFd >= 0))
         return;
     const QString peer = m_p2p->peerIpv4();
     if (!peer.isEmpty() && peer != localIpv4)
@@ -655,7 +656,8 @@ void CastEngine::onMiceActivated(const QString &localIpv4)
 {
     if (m_state != SessionState::Connecting)
         return;
-    if (!m_wfd->listen(localIpv4, m_audioEnabled, m_sessionSource.width, m_sessionSource.height))
+    if (!m_wfd->listen(localIpv4, m_audioEnabled, m_sessionSource.width, m_sessionSource.height,
+                       m_sessionSource.pipewireFd >= 0))
         return;
     if (!m_mice->announce())
         fallbackToP2p(tr("Could not send SOURCE_READY on TCP 7250."));
@@ -666,6 +668,10 @@ void CastEngine::onPlayRequested(const QString &sinkIp, quint16 rtpPort, const W
 {
     if (m_state != SessionState::Connecting && m_state != SessionState::Streaming)
         return;
+    if (m_encoder && m_encoder->running()) {
+        qInfo() << "WFD PLAY ignored, encoder already running" << sinkIp << rtpPort;
+        return;
+    }
     const QString sourceName = m_media.isFile() ? m_media.title : m_sessionSource.shortName();
     setStatusMessage(tr("Starting encoder (%1, %2, %3)…")
                          .arg(video.description(), audio.description(), sourceName));

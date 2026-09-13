@@ -16,7 +16,8 @@ class WfdSession : public QObject
 
 public:
     explicit WfdSession(QTcpSocket *socket, const QString &localIpv4, bool audioWanted,
-                       int sourceWidth, int sourceHeight, QObject *parent = nullptr);
+                       int sourceWidth, int sourceHeight, bool pipewireCapture = false,
+                       QObject *parent = nullptr);
 
 Q_SIGNALS:
     void playRequested(const QString &sinkIp, quint16 rtpPort, const WfdVideoMode &video,
@@ -52,6 +53,7 @@ private:
     WfdVideoMode m_video;
     WfdAudioMode m_audio;
     bool m_audioWanted = false;
+    bool m_pipewireCapture = false;
     int m_sourceWidth = 0;
     int m_sourceHeight = 0;
     bool m_sentM1 = false;
@@ -67,7 +69,7 @@ public:
     ~WfdServer() override;
 
     bool listen(const QString &localIpv4, bool audioWanted, int sourceWidth = 0,
-                int sourceHeight = 0);
+                int sourceHeight = 0, bool pipewireCapture = false);
     // Some Android/MediaTek sinks become P2P GO and wait for the source to
     // open RTSP :7236 instead of dialing the source (WFD spec).
     void dial(const QString &peerIpv4);
@@ -100,4 +102,5 @@ private:
     bool m_audioWanted = false;
     int m_sourceWidth = 0;
     int m_sourceHeight = 0;
+    bool m_pipewireCapture = false;
 };

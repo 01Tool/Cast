@@ -77,7 +77,7 @@ Keep these three equal to each other and to the git tag (`v0.3.0` for this cut):
 - `src/main.cpp` `setApplicationVersion`
 - `debian/changelog` top stanza
 
-`0.3.0` sends this screen or a local video / photo / audio file. Miracast muxes LPCM when the sink has no AAC. DLNA live MPEG-TS stays up across the TV’s first probe GET. The sender is **X11** Miracast (P2P and MS-MICE) plus labeled DLNA, zh_CN/zh_TW. Treeland uses a separate ScreenCast backend; Tmall DLNA picture + AAC is measured. Generic Wayland is not continued. Do not claim every TV or low latency.
+`0.3.0` sends this screen or a local video / photo / audio file. Miracast muxes LPCM when the sink has no AAC. DLNA live MPEG-TS stays up across the TV’s first probe GET. The sender is **X11** Miracast (P2P and MS-MICE) plus labeled DLNA, zh_CN/zh_TW. Treeland uses a separate ScreenCast backend; Tmall DLNA picture + AAC is measured; Xiaomi Pad WFD **picture** is measured. Treeland WFD **audio** is further investigation (do not SET AAC on an LPCM-only sink). Generic Wayland is not continued. Do not claim every TV or low latency.
 
 Push `main`, then a tag that matches those three:
 

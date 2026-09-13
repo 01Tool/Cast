@@ -372,3 +372,23 @@ Agents **must** append a row here for every document or repo they reference, and
 | 2026-09-13 | `~/.agents/skills/deepin/dtk-development/SKILL.md` | DTK is UI only; engine owns capture selection | `src/engine/castengine.cpp`; `src/ui/mainwindow.cpp` `bindEngine` |
 | 2026-09-13 | `~/.agents/skills/deepin/dtk-development/references/platform-abstraction.md` | `IsWaylandPlatform` / `IsXWindowPlatform` | `src/engine/castengine.cpp` `selectCaptureBackend` parked Wayland |
 | 2026-09-13 | [README.md](../README.md) Verdict | Generic Wayland not continued | [README.md](../README.md); [feasibility.md](feasibility.md); `debian/control` Description |
+| 2026-09-13 | this Treeland session user-confirmed Xiaomi picture | Pad GO `192.168.49.1` RTP 15550; `Streaming` `1920x1080@30`; video-only | [devices.md](devices.md) Miracast 2026-09-13; [platform/treeland.md](platform/treeland.md) |
+| 2026-09-13 | ffmpeg `pcm_bluray` / `pcm_s16be` | 48 kHz WFD LPCM as HDMV PCM; 44.1 kHz raw BE PCM | `src/session/gstencoder.cpp` `startPipewireLpcm` / `appendAudioEncodeArgs` |
+| 2026-09-13 | [docs/protocols/miracast.md](protocols/miracast.md) Audio | LPCM when the sink has no AAC | `src/session/gstencoder.cpp` `startPreferred` PipeWire LPCM |
+| 2026-09-13 | GStreamer `mpegtsmux` `audio/x-lpcm` | DVD stream type `0x8b`, not HDMV `pcm_bluray` | `src/session/gstencoder.cpp` `startPipewireLpcm` uses ffmpeg instead |
+| 2026-09-13 | [Qt `QProcess::setStandardOutputProcess`](https://doc.qt.io/qt-6/qprocess.html#setStandardOutputProcess) | Do not use stdin for H.264: ffmpeg started first reads EOF | `src/session/gstencoder.cpp` `startPipewireLpcm` uses `pipe()` fd 4 |
+| 2026-09-13 | ffmpeg `pipe:N` / gst `fdsink fd=N` | Inherited pipe so Pulse can open before H.264 | `src/session/gstencoder.cpp` `startPipewireLpcm` |
+| 2026-09-13 | ffmpeg log `Nothing was written into output file` | At least one mapped stream got no packets (empty stdin H.264) | `src/session/gstencoder.cpp` `startPipewireLpcm` |
+| 2026-09-13 | ffmpeg `aresample=async=1:first_pts=0` | Pins audio at PTS 0; with wall-clock H.264 the mux drops LPCM | `src/session/gstencoder.cpp` `startPipewireLpcm` omits `first_pts=0` |
+| 2026-09-13 | this Treeland LPCM session ffmpeg | gst wrote ~29 MiB H.264, ffmpeg 2% CPU, Pulse monitor IDLE, Pad silent | `src/session/gstencoder.cpp` `startPipewireLpcm` |
+| 2026-09-13 | ffmpeg h264 probe | `Could not find codec parameters ... unspecified size` when fd 4 has no SPS yet | `src/session/gstencoder.cpp` `startPipewireLpcm` uses `rawvideo` I420 |
+| 2026-09-13 | ffmpeg mpegts `pcm_bluray` | Muxed as private data stream `0x06`; Pad silent on copy-H.264 path | `src/session/gstencoder.cpp` `startPipewireLpcm` matches X11 `libx264`+`pcm_bluray` |
+| 2026-09-13 | this Treeland session leftover ffmpeg 112767 | Previous Cast killed; child ffmpeg still sent RTP to `192.168.49.1:15550` | `src/session/gstencoder.cpp` `dieIfParentDies` `PR_SET_PDEATHSIG` |
+| 2026-09-13 | Linux `prctl(PR_SET_PDEATHSIG)` | Encoder children die when `ot-cast` is killed | `src/session/gstencoder.cpp` child modifiers |
+| 2026-09-13 | this Treeland session WFD PLAY twice | Second PLAY called `encoder->start` and killed ffmpeg before the first I420 frame | `src/engine/castengine.cpp` `onPlayRequested` ignores PLAY while running |
+| 2026-09-13 | ffmpeg `rtp_mpegts` `-mpegts_muxer_options` | Pass flags through to the inner MPEG-TS muxer | `src/session/gstencoder.cpp` `startPipewireLpcm` `resend_headers` |
+| 2026-09-13 | this Treeland Xiaomi P2P | ffmpeg `pcm_bluray` muxed; Pad silent after leftover kill and PLAY-once | `src/session/gstencoder.cpp` `startPipewireLpcm` |
+| 2026-09-13 | this Treeland Xiaomi P2P AAC SET | Sink `LPCM 00000002 00`; we SET AAC; user: boom loudspeaker | `src/session/wfdserver.cpp` `parseSinkParams` must keep LPCM |
+| 2026-09-13 | [docs/devices.md](devices.md) How to test | Treeland Xiaomi WFD picture is `streaming`; audio is further investigation | [devices.md](devices.md) Miracast 2026-09-13; [platform/treeland.md](platform/treeland.md) §WFD audio |
+| 2026-09-13 | this Treeland session user | Screen cast OK; boom was AAC vs LPCM, not two mixers | [devices.md](devices.md); [protocols/miracast.md](protocols/miracast.md) Audio |
+| 2026-09-13 | `gstreamer1.0-libav` 1.24.6-1deepin2 | Plugin 1.26 vs gst 1.24, `avenc_pcm_bluray` does not load | `src/session/gstencoder.cpp` `startPipewireLpcm` uses ffmpeg |
