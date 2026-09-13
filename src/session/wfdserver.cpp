@@ -40,11 +40,12 @@ int headerInt(const QByteArray &raw, const QByteArray &name, int fallback = 0)
 } // namespace
 
 WfdSession::WfdSession(QTcpSocket *socket, const QString &localIpv4, bool audioWanted,
-                       int sourceWidth, int sourceHeight, QObject *parent)
+                       int sourceWidth, int sourceHeight, bool pipewireCapture, QObject *parent)
     : QObject(parent)
     , m_socket(socket)
     , m_localIpv4(localIpv4)
     , m_audioWanted(audioWanted)
+    , m_pipewireCapture(pipewireCapture)
     , m_sourceWidth(sourceWidth)
     , m_sourceHeight(sourceHeight)
 {
@@ -102,6 +103,7 @@ void WfdSession::handleMessage(const QByteArray &raw)
     const QByteArray start = lines.first().trimmed();
     const int cseq = headerInt(header, "CSeq");
     if (start.startsWith("RTSP/1.0")) {
+        qInfo() << "WFD RTSP response" << start << "cseq" << cseq;
         handleResponse(cseq, body);
         return;
     }
@@ -255,7 +257,10 @@ void WfdSession::parseSinkParams(const QByteArray &body)
     m_video = selectWfdVideoMode(body, m_sourceWidth, m_sourceHeight);
     m_audio = selectWfdAudioMode(body, m_audioWanted);
     qInfo() << "WFD sink RTP port" << m_rtpPort << "video" << m_video.description()
-            << "audio" << m_audio.description();
+            << "audio" << m_audio.description()
+            << (m_pipewireCapture ? "pipewire" : "not-pipewire");
+    // Do not SET AAC when the sink listed only LPCM. This Pad decoded AAC as
+    // PCM (boom / clipped loudspeaker). Keep LPCM on the wire.
     if (m_audioWanted && !m_audio.enabled()) {
         for (QByteArray line : body.split('\n')) {
             line = line.trimmed();
@@ -278,13 +283,14 @@ WfdServer::~WfdServer()
 }
 
 bool WfdServer::listen(const QString &localIpv4, bool audioWanted, int sourceWidth,
-                       int sourceHeight)
+                       int sourceHeight, bool pipewireCapture)
 {
     stop();
     m_localIpv4 = localIpv4;
     m_audioWanted = audioWanted;
     m_sourceWidth = sourceWidth;
     m_sourceHeight = sourceHeight;
+    m_pipewireCapture = pipewireCapture;
     m_dialTries = 0;
     if (!m_server.listen(QHostAddress::AnyIPv4, kWfdPort)) {
         Q_EMIT failed(tr("Cannot listen on RTSP port %1: %2")
@@ -347,7 +353,7 @@ void WfdServer::attachSession(QTcpSocket *socket)
         return;
     }
     m_session = new WfdSession(socket, m_localIpv4, m_audioWanted, m_sourceWidth, m_sourceHeight,
-                               this);
+                               m_pipewireCapture, this);
     connect(m_session, &WfdSession::playRequested, this, &WfdServer::playRequested);
     connect(m_session, &WfdSession::statusChanged, this, &WfdServer::statusChanged);
     connect(m_session, &WfdSession::sessionClosed, this, [this]() {

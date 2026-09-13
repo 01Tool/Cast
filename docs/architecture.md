@@ -70,7 +70,7 @@ Subsystems:
 | Session (DLNA) | HTTP + `SetAVTransportURI` | `DlnaSession` (live encoder starts on Play; survives probe GET) |
 | Sink identity | Protocol on every row | `SinkDevice::protocol` is `Miracast` or `Dlna` |
 | Capture | Frames + optional system audio | Backend interface + Pulse/PipeWire monitor |
-| Encode | H.264 + AAC-LC | GStreamer (`x264enc` / `avenc_aac`) or ffmpeg |
+| Encode | H.264 + AAC-LC or LPCM | GStreamer (`x264enc` / AAC) or ffmpeg (`pcm_bluray` when the sink is LPCM-only) |
 | Transport | RTP or HTTP | Same encoder, different mux/send path |
 
 Do not start from MiracleCast for a desktop app. It often requires stopping NetworkManager / `wpa_supplicant` and has a poor UX fit.

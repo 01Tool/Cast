@@ -2,24 +2,44 @@
 
 #include "capture/screencastportal.h"
 
+#include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
 #include <QStandardPaths>
 
 #include <cstdio>
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/prctl.h>
 #include <unistd.h>
+
+namespace {
+
+void dieIfParentDies()
+{
+    ::prctl(PR_SET_PDEATHSIG, SIGKILL);
+    if (::getppid() == 1)
+        ::_exit(127);
+}
+
+} // namespace
 
 GstEncoder::GstEncoder(QObject *parent)
     : QObject(parent)
 {
-    m_process.setProcessChannelMode(QProcess::SeparateChannels);
-    connect(&m_process, &QProcess::errorOccurred, this, &GstEncoder::onProcessError);
-    connect(&m_process, &QProcess::finished, this, &GstEncoder::onFinished);
-    connect(&m_process, &QProcess::readyReadStandardError, this, [this]() {
-        const QByteArray err = m_process.readAllStandardError().trimmed();
-        if (!err.isEmpty())
-            qWarning() << "encoder" << err;
-    });
+    auto bindProcess = [this](QProcess *proc, const char *tag) {
+        proc->setProcessChannelMode(QProcess::SeparateChannels);
+        connect(proc, &QProcess::errorOccurred, this, &GstEncoder::onProcessError);
+        connect(proc, &QProcess::finished, this, &GstEncoder::onFinished);
+        connect(proc, &QProcess::readyReadStandardError, this, [this, proc, tag]() {
+            const QByteArray err = proc->readAllStandardError().trimmed();
+            if (!err.isEmpty())
+                qWarning() << tag << err;
+        });
+    };
+    bindProcess(&m_process, "encoder");
+    bindProcess(&m_videoProcess, "video encoder");
 }
 
 QIODevice *GstEncoder::tsPipe()
@@ -109,15 +129,24 @@ bool GstEncoder::startPreferred(TsSink sink, const QString &sinkIp, quint16 rtpP
         }
         const bool wantAudio = m_audio.enabled();
         const QString monitor = wantAudio ? desktopPulseMonitor() : QString();
-        bool gstAac = wantAudio && m_audio.codec == WfdAudioMode::Codec::Aac && !monitor.isEmpty()
+        const bool gstAac = wantAudio && m_audio.codec == WfdAudioMode::Codec::Aac && !monitor.isEmpty()
             && gstHasElement(QStringLiteral("pulsesrc"))
             && gstHasElement(QStringLiteral("audioconvert"))
             && gstHasElement(QStringLiteral("audioresample"))
             && gstHasElement(QStringLiteral("aacparse"))
             && !gstAacEncoder().isEmpty();
-        if (wantAudio && !gstAac) {
-            m_audioNote = tr("no AAC on this path, video only");
+        const bool gstLpcm = wantAudio && m_audio.codec == WfdAudioMode::Codec::Lpcm
+            && !monitor.isEmpty()
+            && !QStandardPaths::findExecutable(QStringLiteral("ffmpeg")).isEmpty()
+            && !QStandardPaths::findExecutable(QStringLiteral("gst-launch-1.0")).isEmpty();
+        if (wantAudio && !gstAac && !gstLpcm) {
+            m_audioNote = monitor.isEmpty() ? m_audioNote
+                                            : tr("no LPCM mux on this path, video only");
             qWarning() << m_audioNote;
+        }
+        if (gstLpcm) {
+            qInfo() << "PipeWire LPCM mux via gst-launch | ffmpeg";
+            return startPipewireLpcm(sink, sinkIp, rtpPort);
         }
         return startGst(sink, sinkIp, rtpPort, gstAac);
     }
@@ -254,9 +283,44 @@ QString GstEncoder::videoSourceElement() const
     return ximagesrcElement();
 }
 
-void GstEncoder::attachPipeWireFd()
+QString GstEncoder::pipewireH264Pipeline(TsSink sink) const
 {
-    m_process.setChildProcessModifier({});
+    return QStringLiteral(
+               "%1 ! queue max-size-buffers=8 leaky=downstream ! "
+               "videoconvert ! videoscale add-borders=true method=4 ! "
+               "video/x-raw,width=%2,height=%3 ! "
+               "x264enc tune=zerolatency speed-preset=%4 bitrate=%5 key-int-max=%6 "
+               "bframes=0 byte-stream=true ! "
+               "video/x-h264,stream-format=byte-stream,alignment=au,profile=%7 ! "
+               "h264parse config-interval=1")
+        .arg(videoSourceElement())
+        .arg(m_video.width)
+        .arg(m_video.height)
+        .arg(x264Preset(sink))
+        .arg(videoBitrateKbps())
+        .arg(m_video.fps)
+        .arg(x264Profile(sink));
+}
+
+QString GstEncoder::pipewireRawI420Pipeline() const
+{
+    // I420 for ffmpeg -f rawvideo -pixel_format yuv420p. Do not set framerate
+    // here: Treeland pipewiresrc often has framerate=0/1 and videorate stalls.
+    return QStringLiteral(
+               "%1 ! queue max-size-buffers=2 leaky=downstream ! "
+               "videoconvert ! videoscale add-borders=true method=4 ! "
+               "video/x-raw,format=I420,width=%2,height=%3 ! "
+               "queue max-size-buffers=2 leaky=downstream")
+        .arg(videoSourceElement())
+        .arg(m_video.width)
+        .arg(m_video.height);
+}
+
+void GstEncoder::attachPipeWireFd(QProcess *proc)
+{
+    if (!proc)
+        proc = &m_process;
+    proc->setChildProcessModifier({});
     const int srcFd = m_source.pipewireFd;
     if (srcFd < 0)
         return;
@@ -266,13 +330,61 @@ void GstEncoder::attachPipeWireFd()
                  ScreenCastPortal::gstPipeWireFd);
     std::fflush(stderr);
     ::fcntl(srcFd, F_SETFD, 0);
-    m_process.setChildProcessModifier([srcFd]() {
+    proc->setChildProcessModifier([srcFd]() {
+        dieIfParentDies();
         if (srcFd != ScreenCastPortal::gstPipeWireFd) {
             if (::dup2(srcFd, ScreenCastPortal::gstPipeWireFd) == -1)
                 ::_exit(127);
         }
         ::fcntl(ScreenCastPortal::gstPipeWireFd, F_SETFD, 0);
     });
+}
+
+void GstEncoder::stopProcess(QProcess *proc)
+{
+    if (!proc || proc->state() == QProcess::NotRunning)
+        return;
+    proc->setChildProcessModifier({});
+    proc->terminate();
+    if (!proc->waitForFinished(2000))
+        proc->kill();
+}
+
+void GstEncoder::closeH264Pipe()
+{
+    if (m_h264ReadFd >= 0) {
+        ::close(m_h264ReadFd);
+        m_h264ReadFd = -1;
+    }
+    if (m_h264WriteFd >= 0) {
+        ::close(m_h264WriteFd);
+        m_h264WriteFd = -1;
+    }
+}
+
+void GstEncoder::killOrphanRtpEncoders() const
+{
+    const qint64 self = QCoreApplication::applicationPid();
+    const qint64 child = m_process.processId();
+    const qint64 child2 = m_videoProcess.processId();
+    const QDir proc(QStringLiteral("/proc"));
+    for (const QString &name : proc.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        bool ok = false;
+        const qint64 pid = name.toLongLong(&ok);
+        if (!ok || pid <= 1 || pid == self || pid == child || pid == child2)
+            continue;
+        const QString exe = QFile::symLinkTarget(QStringLiteral("/proc/%1/exe").arg(pid));
+        if (!exe.contains(QLatin1String("ffmpeg")))
+            continue;
+        QFile cmdlineFile(QStringLiteral("/proc/%1/cmdline").arg(pid));
+        if (!cmdlineFile.open(QIODevice::ReadOnly))
+            continue;
+        const QByteArray cmd = cmdlineFile.readAll();
+        if (!cmd.contains("rtp_mpegts") || !cmd.contains("pcm_bluray"))
+            continue;
+        qWarning() << "killing leftover LPCM ffmpeg" << pid << exe;
+        ::kill(static_cast<pid_t>(pid), SIGTERM);
+    }
 }
 
 bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, bool withAudio)
@@ -282,25 +394,21 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
         return false;
 
     const QString monitor = withAudio ? desktopPulseMonitor() : QString();
-    const QString grab = videoSourceElement();
     const QString tsOut = (sink == TsSink::Stdout)
         ? QStringLiteral("fdsink fd=1 sync=false")
         : QStringLiteral("rtpmp2tpay pt=33 ! udpsink host=%1 port=%2 sync=false")
               .arg(sinkIp)
               .arg(rtpPort);
-    const QString preset = x264Preset(sink);
-    const QString profile = x264Profile(sink);
-    const int bitrate = videoBitrateKbps();
     QString pipeline;
     if (withAudio && !monitor.isEmpty()) {
         const QString x264 = QStringLiteral(
                                  "x264enc tune=zerolatency speed-preset=%1 bitrate=%2 key-int-max=%3 "
                                  "bframes=0 byte-stream=true ! "
                                  "video/x-h264,stream-format=byte-stream,alignment=au,profile=%4")
-                                 .arg(preset)
-                                 .arg(bitrate)
+                                 .arg(x264Preset(sink))
+                                 .arg(videoBitrateKbps())
                                  .arg(m_video.fps)
-                                 .arg(profile);
+                                 .arg(x264Profile(sink));
         // alignment=0 flushes every packet (HTTP, not RTP). pulsesrc must not
         // provide the clock or mpegtsmux waits forever on a second live source.
         pipeline = QStringLiteral(
@@ -314,7 +422,7 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
                        "leaky=downstream ! "
                        "audioconvert ! audioresample ! audio/x-raw,rate=%7,channels=2 ! "
                        "%8 ! aacparse ! queue ! mux.")
-                       .arg(tsOut, grab)
+                       .arg(tsOut, videoSourceElement())
                        .arg(m_video.width)
                        .arg(m_video.height)
                        .arg(x264, monitor)
@@ -322,22 +430,8 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
                        .arg(gstAacEncoder());
         m_audioActive = true;
     } else {
-        pipeline = QStringLiteral(
-                       "%1 ! queue max-size-buffers=8 leaky=downstream ! "
-                       "videoconvert ! videoscale add-borders=true method=4 ! "
-                       "video/x-raw,width=%2,height=%3 ! "
-                       "x264enc tune=zerolatency speed-preset=%4 bitrate=%5 key-int-max=%6 "
-                       "bframes=0 byte-stream=true ! "
-                       "video/x-h264,stream-format=byte-stream,alignment=au,profile=%7 ! "
-                       "h264parse config-interval=1 ! "
-                       "mpegtsmux alignment=0 ! %8")
-                       .arg(grab)
-                       .arg(m_video.width)
-                       .arg(m_video.height)
-                       .arg(preset)
-                       .arg(bitrate)
-                       .arg(m_video.fps)
-                       .arg(profile, tsOut);
+        pipeline = pipewireH264Pipeline(sink) + QStringLiteral(" ! mpegtsmux alignment=0 ! ")
+            + tsOut;
     }
 
     qInfo() << "gst-launch" << pipeline;
@@ -354,6 +448,147 @@ bool GstEncoder::startGst(TsSink sink, const QString &sinkIp, quint16 rtpPort, b
         m_audioActive = false;
         return false;
     }
+    m_running = true;
+    Q_EMIT started();
+    return true;
+}
+
+bool GstEncoder::startPipewireLpcm(TsSink sink, const QString &sinkIp, quint16 rtpPort)
+{
+    const QString launch = QStandardPaths::findExecutable(QStringLiteral("gst-launch-1.0"));
+    const QString ffmpeg = QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
+    const QString monitor = desktopPulseMonitor();
+    if (launch.isEmpty() || ffmpeg.isEmpty() || monitor.isEmpty()) {
+        m_lastError = tr("PipeWire LPCM needs gst-launch-1.0, ffmpeg, and a Pulse monitor.");
+        return false;
+    }
+
+    killOrphanRtpEncoders();
+
+    // Xiaomi plays X11 ffmpeg libx264+pcm_bluray. Copying gst H.264 into ffmpeg
+    // failed the Pad: probe "unspecified size", then pcm_bluray as private
+    // 0x06 with silent audio. Feed I420 on fd 4 and let ffmpeg encode both,
+    // same as x11grab+pulse. rawvideo needs no SPS probe.
+    closeH264Pipe();
+    int fds[2] = {-1, -1};
+    if (::pipe(fds) != 0) {
+        m_lastError = tr("Could not create the H.264 pipe for LPCM mux.");
+        return false;
+    }
+    m_h264ReadFd = fds[0];
+    m_h264WriteFd = fds[1];
+    ::fcntl(m_h264ReadFd, F_SETFD, FD_CLOEXEC);
+    ::fcntl(m_h264WriteFd, F_SETFD, FD_CLOEXEC);
+
+    const QString pipeline = pipewireRawI420Pipeline()
+        + QStringLiteral(" ! fdsink fd=%1 sync=false").arg(kH264PipeFd);
+    QStringList gstArgs{QStringLiteral("-e"), QStringLiteral("-q")};
+    gstArgs += pipeline.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+
+    const int pwFd = m_source.pipewireFd;
+    const int h264Write = m_h264WriteFd;
+    const int h264Read = m_h264ReadFd;
+    const int pwChild = ScreenCastPortal::gstPipeWireFd;
+    if (pwFd >= 0)
+        ::fcntl(pwFd, F_SETFD, 0);
+    m_videoProcess.setChildProcessModifier([pwFd, h264Write, pwChild]() {
+        dieIfParentDies();
+        if (pwFd >= 0) {
+            if (pwFd != pwChild && ::dup2(pwFd, pwChild) == -1)
+                ::_exit(127);
+            ::fcntl(pwChild, F_SETFD, 0);
+        }
+        if (::dup2(h264Write, GstEncoder::kH264PipeFd) == -1)
+            ::_exit(127);
+        ::fcntl(GstEncoder::kH264PipeFd, F_SETFD, 0);
+        if (h264Write != GstEncoder::kH264PipeFd)
+            ::close(h264Write);
+    });
+    m_process.setChildProcessModifier([h264Read]() {
+        dieIfParentDies();
+        if (::dup2(h264Read, GstEncoder::kH264PipeFd) == -1)
+            ::_exit(127);
+        ::fcntl(GstEncoder::kH264PipeFd, F_SETFD, 0);
+        if (h264Read != GstEncoder::kH264PipeFd)
+            ::close(h264Read);
+    });
+
+    QStringList ffArgs{
+        QStringLiteral("-hide_banner"),
+        QStringLiteral("-loglevel"),
+        QStringLiteral("warning"),
+        QStringLiteral("-nostdin"),
+        QStringLiteral("-thread_queue_size"),
+        QStringLiteral("4096"),
+        QStringLiteral("-f"),
+        QStringLiteral("pulse"),
+        QStringLiteral("-i"),
+        monitor,
+        QStringLiteral("-thread_queue_size"),
+        QStringLiteral("4096"),
+        QStringLiteral("-f"),
+        QStringLiteral("rawvideo"),
+        QStringLiteral("-pixel_format"),
+        QStringLiteral("yuv420p"),
+        QStringLiteral("-video_size"),
+        QStringLiteral("%1x%2").arg(m_video.width).arg(m_video.height),
+        QStringLiteral("-framerate"),
+        QString::number(m_video.fps),
+        QStringLiteral("-i"),
+        QStringLiteral("pipe:%1").arg(kH264PipeFd),
+        QStringLiteral("-map"),
+        QStringLiteral("1:v:0"),
+        QStringLiteral("-map"),
+        QStringLiteral("0:a:0"),
+        QStringLiteral("-pix_fmt"),
+        QStringLiteral("yuv420p"),
+        QStringLiteral("-c:v"),
+        QStringLiteral("libx264"),
+        QStringLiteral("-preset"),
+        x264Preset(sink),
+        QStringLiteral("-tune"),
+        QStringLiteral("zerolatency"),
+        QStringLiteral("-profile:v"),
+        x264Profile(sink),
+        QStringLiteral("-g"),
+        QString::number(m_video.fps),
+        QStringLiteral("-b:v"),
+        QStringLiteral("%1k").arg(videoBitrateKbps()),
+        QStringLiteral("-mpegts_muxer_options"),
+        QStringLiteral("mpegts_flags=+resend_headers+pat_pmt_at_frames"),
+    };
+    appendAudioEncodeArgs(&ffArgs, true);
+    if (sink == TsSink::Stdout) {
+        ffArgs << QStringLiteral("-flush_packets") << QStringLiteral("1")
+               << QStringLiteral("-f") << QStringLiteral("mpegts")
+               << QStringLiteral("pipe:1");
+    } else {
+        ffArgs << QStringLiteral("-f") << QStringLiteral("rtp_mpegts")
+               << QStringLiteral("rtp://%1:%2").arg(sinkIp).arg(rtpPort);
+    }
+
+    qInfo() << "gst-launch I420 | ffmpeg LPCM" << pipeline << ffArgs;
+    std::fprintf(stderr, "ot-cast: gst-launch I420 | ffmpeg LPCM fd=%d %s\n", kH264PipeFd,
+                 qPrintable(pipeline));
+    std::fflush(stderr);
+
+    m_process.start(ffmpeg, ffArgs);
+    if (!m_process.waitForStarted(3000)) {
+        m_lastError = tr("ffmpeg failed to start.");
+        closeH264Pipe();
+        return false;
+    }
+    m_videoProcess.start(launch, gstArgs);
+    if (!m_videoProcess.waitForStarted(3000)) {
+        m_lastError = tr("gst-launch-1.0 failed to start.");
+        stopProcess(&m_process);
+        closeH264Pipe();
+        return false;
+    }
+    // Children hold fd 4. Drop the parent copies so ffmpeg sees EOF when gst
+    // exits instead of hanging on the parent write end.
+    closeH264Pipe();
+    m_audioActive = true;
     m_running = true;
     Q_EMIT started();
     return true;
@@ -461,12 +696,9 @@ void GstEncoder::stop()
 {
     m_running = false;
     m_audioActive = false;
-    m_process.setChildProcessModifier({});
-    if (m_process.state() == QProcess::NotRunning)
-        return;
-    m_process.terminate();
-    if (!m_process.waitForFinished(2000))
-        m_process.kill();
+    stopProcess(&m_process);
+    stopProcess(&m_videoProcess);
+    closeH264Pipe();
 }
 
 void GstEncoder::onProcessError(QProcess::ProcessError error)
@@ -474,7 +706,8 @@ void GstEncoder::onProcessError(QProcess::ProcessError error)
     Q_UNUSED(error);
     if (!m_running)
         return;
-    m_lastError = m_process.errorString();
+    auto *proc = qobject_cast<QProcess *>(sender());
+    m_lastError = proc ? proc->errorString() : tr("encoder failed");
     m_running = false;
     m_audioActive = false;
     Q_EMIT failed(m_lastError);
@@ -496,13 +729,15 @@ void GstEncoder::onFinished(int exitCode, QProcess::ExitStatus status)
     Q_EMIT stopped();
 }
 
-void GstEncoder::appendAudioEncodeArgs(QStringList *args) const
+void GstEncoder::appendAudioEncodeArgs(QStringList *args, bool zeroFirstPts) const
 {
     if (!args)
         return;
     *args << QStringLiteral("-ar") << QString::number(m_audio.rate)
           << QStringLiteral("-ac") << QStringLiteral("2")
-          << QStringLiteral("-af") << QStringLiteral("aresample=async=1:first_pts=0");
+          << QStringLiteral("-af")
+          << (zeroFirstPts ? QStringLiteral("aresample=async=1:first_pts=0")
+                           : QStringLiteral("aresample=async=1"));
     if (m_audio.codec == WfdAudioMode::Codec::Lpcm) {
         // 48 kHz WFD LPCM is HDMV/Blu-ray PCM in MPEG-TS. pcm_bluray does not
         // accept 44.1 kHz, so that rate uses raw big-endian PCM.

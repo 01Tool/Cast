@@ -334,6 +334,18 @@
         <translation>此路径无 AAC，仅视频</translation>
     </message>
     <message>
+        <source>no LPCM mux on this path, video only</source>
+        <translation>此路径无法封装 LPCM，仅视频</translation>
+    </message>
+    <message>
+        <source>PipeWire LPCM needs gst-launch-1.0, ffmpeg, and a Pulse monitor.</source>
+        <translation>PipeWire LPCM 需要 gst-launch-1.0、ffmpeg 和 Pulse 监听源。</translation>
+    </message>
+    <message>
+        <source>encoder failed</source>
+        <translation>编码器失败</translation>
+    </message>
+    <message>
         <source>ffmpeg cannot consume a PipeWire ScreenCast fd. Need gst-launch pipewiresrc.</source>
         <translation>ffmpeg 无法使用 PipeWire ScreenCast 文件描述符。需要 gst-launch pipewiresrc。</translation>
     </message>
